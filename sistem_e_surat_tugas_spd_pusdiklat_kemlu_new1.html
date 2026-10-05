@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem E-Surat Tugas & SPD - Pusdiklat Kemlu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Tinos:ital,wght@0,400;0,700;1,400&family=Arimo:wght@400;700&family=Carlito:wght@400;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f1f5f9;
+    }
+
+    .doc-font {
+      font-family: 'Tinos', 'Times New Roman', serif;
+    }
+
+    /* Format dokumen sesuai template resmi */
+    .doc-st   { font-family: 'Arimo', Arial, 'Liberation Sans', Helvetica, sans-serif; font-size: 13.5px; line-height: 1.5; color: #000; }
+    .doc-form { font-family: 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; font-size: 12.5px; line-height: 1.35; color: #000; }
+    .tbl { border-collapse: collapse; width: 100%; }
+    .tbl td, .tbl th { border: 1px solid #000; padding: 2px 6px; vertical-align: top; }
+    .tbl.tfix { table-layout: fixed; }
+    .sign-space { height: 22mm; position: relative; display: flex; align-items: center; justify-content: center; }
+    .kv { display: grid; grid-template-columns: 34% 14px 1fr; }
+    .dots { display: inline-block; min-width: 150px; }
+
+    /* Print styles */
+    @page { size: A4; margin: 0; }
+    @media print {
+      html, body { background: #fff !important; }
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 210mm !important;
+        min-height: 0 !important;
+        margin: 0;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .no-print { display: none !important; }
+      .doc-pane { page-break-inside: avoid; }
+    }
+
+    .step-active {
+      background-color: #0F2C59 !important;
+      color: #ffffff !important;
+      border-color: #F59E0B !important;
+    }
+
+    .step-active span.badge-num {
+      background-color: #F59E0B !important;
+      color: #0F2C59 !important;
+    }
+
+    .stamp-badge {
+      border: 2px double #1e40af;
+      color: #1e40af;
+      border-radius: 50%;
+      width: 84px;
+      height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      transform: rotate(-12deg);
+      opacity: 0.85;
+      font-weight: bold;
+      font-size: 7px;
+      line-height: 1.15;
+      text-transform: uppercase;
+      box-shadow: 0 0 0 1px #1e40af inset;
+    }
+    .stamp-badge.hidden { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-[#0F2C59] text-white shadow-md border-b-4 border-amber-500 no-print">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="bg-amber-500 text-slate-900 p-2.5 rounded-lg shadow-inner">
+          <i class="fa-solid fa-file-signature text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight tracking-wide">E-SURAT & SPD ONLINE</h1>
+          <p class="text-xs text-amber-300 font-light">Pusat Pendidikan dan Pelatihan - Kementerian Luar Negeri RI</p>
+        </div>
+      </div>
+
+      <!-- Active Role Switcher Indicator -->
+      <div class="flex items-center gap-3 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
+        <span class="text-xs text-slate-400">Mode Simulasi Aktor:</span>
+        <span id="currentRoleBadge" class="bg-amber-500 text-slate-900 font-bold text-xs px-2.5 py-0.5 rounded uppercase">
+          Sespalu / Staff
+        </span>
+        <span id="kategoriBadge" class="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded uppercase flex items-center gap-1">
+          <i class="fa-solid fa-earth-asia"></i> <span id="kategoriBadgeText">Dalam Negeri</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Interactive Workflow Step Bar -->
+  <div class="bg-white border-b border-slate-200 shadow-sm no-print sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3">
+      <div class="flex items-center justify-between overflow-x-auto gap-2 text-xs py-1">
+        
+        <!-- Step 1 -->
+        <button onclick="switchStep(1)" id="btnStep1" class="step-btn flex items-center gap-2 px-3 py-2 rounded-lg border font-semibold transition shrink-0 step-active">
+          <span class="badge-num w-6 h-6 rounded-full bg-amber-500 text-slate-900 flex items-center justify-center font-bold text-xs">1</span>
+          <span>1. Upload Nota / Undangan</span>
+        </button>
+
+        <i class="fa-solid fa-chevron-right text-slate-300 text-xs"></i>
+
+        <!-- Step 2 -->
+        <button onclick="switchStep(2)" id="btnStep2" class="step-btn flex items-center gap-2 px-3 py-2 rounded-lg border font-semibold text-slate-600 bg-slate-50 border-slate-200 transition shrink-0">
+          <span class="badge-num w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">2</span>
+          <span>2. Disposisi Kapus</span>
+        </button>
+
+        <i class="fa-solid fa-chevron-right text-slate-300 text-xs"></i>
+
+        <!-- Step 3 -->
+        <button onclick="switchStep(3)" id="btnStep3" class="step-btn flex items-center gap-2 px-3 py-2 rounded-lg border font-semibold text-slate-600 bg-slate-50 border-slate-200 transition shrink-0">
+          <span class="badge-num w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">3</span>
+          <span>3. Draft Rincian Tugas (Sespalu)</span>
+        </button>
+
+        <i class="fa-solid fa-chevron-right text-slate-300 text-xs"></i>
+
+        <!-- Step 4 -->
+        <button onclick="switchStep(4)" id="btnStep4" class="step-btn flex items-center gap-2 px-3 py-2 rounded-lg border font-semibold text-slate-600 bg-slate-50 border-slate-200 transition shrink-0">
+          <span class="badge-num w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">4</span>
+          <span>4. Penomoran Surat (TU)</span>
+        </button>
+
+        <i class="fa-solid fa-chevron-right text-slate-300 text-xs"></i>
+
+        <!-- Step 5 -->
+        <button onclick="switchStep(5)" id="btnStep5" class="step-btn flex items-center gap-2 px-3 py-2 rounded-lg border font-semibold text-slate-600 bg-slate-50 border-slate-200 transition shrink-0">
+          <span class="badge-num w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">5</span>
+          <span>5. Output & Monitoring TTD PPK</span>
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Container -->
+  <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6">
+
+    <!-- Notification Toast Container -->
+    <div id="toast" class="hidden mb-4 p-4 rounded-lg bg-emerald-100 border-l-4 border-emerald-500 text-emerald-800 flex items-center justify-between shadow transition">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
+        <span id="toastMsg" class="font-medium text-sm">Pesan Notifikasi...</span>
+      </div>
+      <button onclick="closeToast()" class="text-emerald-700 hover:text-emerald-900"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- ==================== TAHAP 1: INPUT NOTA / UNDANGAN ==================== -->
+    <section id="viewStep1" class="step-view bg-white rounded-xl shadow-md p-6 border border-slate-200">
+      <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-200">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-envelope-open-text text-amber-500"></i>
+            Tahap 1: Upload & Registrasi Nota / Undangan Masuk
+          </h2>
+          <p class="text-xs text-slate-500">Dikirimkan oleh Sespalu / Pihak Eksternal sebagai pemicu penugasan dinas.</p>
+        </div>
+        <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-1 rounded">Aktor: Sespalu / Pihak Eksternal</span>
+      </div>
+
+      <form id="formStep1" onsubmit="handleStep1Submit(event)" class="space-y-4 max-w-3xl">
+        <!-- Switcher Kategori Perjalanan Dinas -->
+        <div class="bg-blue-50/70 border border-blue-200 rounded-lg p-3">
+          <label class="block text-xs font-bold text-blue-900 mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-globe"></i> Kategori Perjalanan Dinas *
+          </label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="border p-2.5 rounded-lg flex items-center gap-2 cursor-pointer bg-white hover:border-blue-500 transition">
+              <input type="radio" name="katPerjalananStep1" value="DALAM_NEGERI" checked onchange="toggleKategoriPerjalanan(this.value)" class="text-blue-600">
+              <div>
+                <span class="block text-xs font-bold text-slate-800">Dalam Negeri</span>
+                <span class="text-[10px] text-slate-500">Wilayah Indonesia (Provinsi/Kab/Kota)</span>
+              </div>
+            </label>
+            <label class="border p-2.5 rounded-lg flex items-center gap-2 cursor-pointer bg-white hover:border-blue-500 transition">
+              <input type="radio" name="katPerjalananStep1" value="LUAR_NEGERI" onchange="toggleKategoriPerjalanan(this.value)" class="text-blue-600">
+              <div>
+                <span class="block text-xs font-bold text-slate-800">Luar Negeri (LN)</span>
+                <span class="text-[10px] text-slate-500">Perlu Izin Setneg & Paspor Dinas</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Sumber Nota / Undangan *</label>
+            <select id="inputSumberAsal" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <option value="EKSTERNAL">Pihak Eksternal (Instansi Luar)</option>
+              <option value="INTERNAL">Internal Sespalu / Kemlu</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Nomor Nota / Undangan *</label>
+            <input type="text" id="inputNomorNota" required value="Undangan/OT/01710/08/2026/21" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Instansi / Unit Pengirim *</label>
+            <input type="text" id="inputPengirim" required value="Pusat Studi Jepang Universitas Indonesia" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Undangan *</label>
+            <input type="date" id="inputTanggalNota" required value="2026-08-20" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Perihal Undangan / Kegiatan *</label>
+          <textarea id="inputPerihalNota" rows="3" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">Undangan Rapat Koordinasi Pembahasan Capaian Peta Jalan Postur Diplomasi Tahun 2026 serta reviu progres dan penghitungan capaian indikator dan target Peta Jalan Postur Diplomasi Tahun 2026.</textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Upload File PDF Scan Undangan (Maks 10MB)</label>
+            <div class="border-2 border-dashed border-slate-300 rounded-lg p-3 text-center bg-slate-50 hover:bg-slate-100 transition cursor-pointer">
+              <i class="fa-solid fa-cloud-arrow-up text-xl text-slate-400 mb-1"></i>
+              <p class="text-xs font-medium text-slate-600">Klik untuk mengunggah file PDF scan undangan resmi</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">Lampiran_Undangan_Rakor_Postur_Diplomasi.pdf</p>
+            </div>
+          </div>
+
+          <!-- Section Khusus Luar Negeri: Izin SETNEG -->
+          <div id="fieldIzinSetnegWrapper" class="hidden">
+            <label class="block text-xs font-bold text-amber-800 mb-1">Upload File Izin Setneg / Keppres (Wajib untuk Dinas LN) *</label>
+            <div class="border-2 border-dashed border-amber-300 rounded-lg p-3 text-center bg-amber-50 hover:bg-amber-100/80 transition cursor-pointer">
+              <i class="fa-solid fa-file-contract text-xl text-amber-600 mb-1"></i>
+              <p class="text-xs font-medium text-amber-900">Upload Surat Persetujuan Sekretariat Negara (Setneg)</p>
+              <p class="text-[10px] text-amber-700 mt-0.5">Surat_Persetujuan_Setneg_B-0482_2026.pdf (TERUNGGAH)</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 flex justify-end">
+          <button type="submit" class="bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow flex items-center gap-2 transition">
+             Kirim ke Kepala Pusat (Kapus) <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ==================== TAHAP 2: DISPOSISI KAPUS ==================== -->
+    <section id="viewStep2" class="step-view hidden bg-white rounded-xl shadow-md p-6 border border-slate-200">
+      <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-200">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-user-check text-amber-500"></i>
+            Tahap 2: Menerima Nota & Disposisi Keputusan
+          </h2>
+          <p class="text-xs text-slate-500">Kapus meninjau surat masuk dan mengambil keputusan tindak lanjut.</p>
+        </div>
+        <span class="bg-amber-100 text-amber-900 text-xs font-semibold px-2.5 py-1 rounded">Aktor: Kapus (Kepala Pusat)</span>
+      </div>
+
+      <!-- Detail Card Surat Masuk -->
+      <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6">
+        <h3 class="font-bold text-sm text-slate-700 mb-2 flex items-center gap-1.5">
+          <i class="fa-solid fa-envelope text-blue-800"></i> Ringkasan Nota / Undangan Diterima:
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+          <div><span class="text-slate-500">Nomor Nota:</span> <strong id="dispNomorNota" class="text-slate-800">Undangan/OT/01710/08/2026/21</strong></div>
+          <div><span class="text-slate-500">Pengirim:</span> <strong id="dispPengirim" class="text-slate-800">Pusat Studi Jepang Universitas Indonesia</strong></div>
+          <div class="md:col-span-2"><span class="text-slate-500">Perihal:</span> <p id="dispPerihal" class="font-medium text-slate-800 mt-0.5">Undangan Rapat Koordinasi Pembahasan Capaian Peta Jalan Postur Diplomasi Tahun 2026</p></div>
+        </div>
+      </div>
+
+      <!-- Decision Form -->
+      <div class="space-y-4 max-w-2xl">
+        <label class="block text-xs font-bold text-slate-700 mb-1">Keputusan Kapus (Tindak Lanjut) *</label>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label class="border-2 border-emerald-500 bg-emerald-50/50 p-3 rounded-lg flex items-center gap-3 cursor-pointer hover:bg-emerald-50 transition">
+            <input type="radio" name="kapusDecision" value="YA" checked class="text-emerald-600 focus:ring-emerald-500">
+            <div>
+              <span class="block font-bold text-xs text-emerald-900">Setuju / Ya</span>
+              <span class="text-[10px] text-emerald-700">Lanjut buat ST & SPD</span>
+            </div>
+          </label>
+
+          <label class="border border-slate-300 p-3 rounded-lg flex items-center gap-3 cursor-pointer hover:bg-slate-50 transition">
+            <input type="radio" name="kapusDecision" value="REVISI" class="text-amber-600 focus:ring-amber-500">
+            <div>
+              <span class="block font-bold text-xs text-slate-800">Minta Revisi</span>
+              <span class="text-[10px] text-slate-500">Kembalikan ke Sespalu</span>
+            </div>
+          </label>
+
+          <label class="border border-slate-300 p-3 rounded-lg flex items-center gap-3 cursor-pointer hover:bg-slate-50 transition">
+            <input type="radio" name="kapusDecision" value="STOP" class="text-rose-600 focus:ring-rose-500">
+            <div>
+              <span class="block font-bold text-xs text-rose-800">Hentikan (Stop)</span>
+              <span class="text-[10px] text-rose-600">Tidak perlu ditindaklanjuti</span>
+            </div>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Catatan Disposisi Kapus / Instruksi Penunjukan Tim</label>
+          <textarea id="catatanKapus" rows="3" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">Tugaskan sdr. Geovannie Foresty Palembangan (Diplomat Ahli Madya) beserta tim pendamping untuk menghadiri rapat koordinasi tersebut.</textarea>
+        </div>
+
+        <div class="pt-4 flex justify-between items-center">
+          <button type="button" onclick="switchStep(1)" class="text-slate-600 hover:text-slate-800 font-semibold text-xs flex items-center gap-1">
+            <i class="fa-solid fa-arrow-left"></i> Kembali ke Tahap 1
+          </button>
+          <button type="button" onclick="handleStep2Submit()" class="bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow flex items-center gap-2 transition">
+            Proses Disposisi <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAHAP 3: DRAFT SURAT TUGAS & SPD (SESPALU) ==================== -->
+    <section id="viewStep3" class="step-view hidden bg-white rounded-xl shadow-md p-6 border border-slate-200">
+      <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-200">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-pen-to-square text-amber-500"></i>
+            Tahap 3: Drafting Rincian Tugas & Personel SPD
+          </h2>
+          <p class="text-xs text-slate-500">Sespalu melengkapi rincian penugasan & peserta. Penomoran resmi surat dilakukan oleh TU pada tahap berikutnya.</p>
+        </div>
+        <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-1 rounded">Aktor: Sespalu</span>
+      </div>
+
+      <form id="formStep3" onsubmit="handleStep3Submit(event)" class="space-y-6">
+        
+        <!-- Section A: Informasi Penandatangan & Notice Penomoran TU -->
+        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-blue-900 mb-3 flex items-center gap-1.5">
+            <i class="fa-solid fa-user-gear"></i> Identitas Pejabat Pembuat Komitmen (PPK)
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Pilih Pejabat Pembuat Komitmen (PPK) *</label>
+              <select id="draftPPKSelect" required class="w-full border border-slate-300 rounded p-2 text-xs font-bold uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <option value="GEORGE JUNIOR|19790315 200312 1 002">GEORGE JUNIOR - NIP. 19790315 200312 1 002</option>
+                <option value="PIPIN ZAENAL HAPINUDIN|19820825 200912 1 001">PIPIN ZAENAL HAPINUDIN - NIP. 19820825 200912 1 001</option>
+              </select>
+            </div>
+            <div class="bg-blue-50 border border-blue-200 p-2.5 rounded-lg text-xs flex items-center gap-2 text-blue-900">
+              <i class="fa-solid fa-circle-info text-blue-600 text-lg"></i>
+              <div>
+                <strong>Catatan Penomoran:</strong> Nomor Surat Tugas dan Nomor SPD akan diisi & diregistrasikan resmi oleh <strong>Tata Usaha (TU)</strong> pada Tahap 4.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section B: Personel Tugas (Multi-Pegawai & Snapshot Protection) -->
+        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="font-bold text-xs uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
+                <i class="fa-solid fa-users"></i> Personel yang Ditugaskan (Multi-Pegawai & Snapshot Lock)
+              </h3>
+              <p class="text-[10px] text-slate-500">Sistem mengunci profil pangkat & jabatan pegawai saat surat dibuat (*Snapshot Data*).</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="openModalMasterPegawai()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-[11px] px-2.5 py-1 rounded shadow flex items-center gap-1">
+                <i class="fa-solid fa-id-card-clip"></i> Master Pegawai & Promosi
+              </button>
+              <span class="text-[11px] bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded font-semibold" id="pegawaiCountBadge">2 Pegawai Ditugaskan</span>
+            </div>
+          </div>
+
+          <!-- Add Pegawai Form Controls -->
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-2 mb-3 bg-white p-3 rounded border border-slate-200 shadow-sm">
+            <div class="md:col-span-9">
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">Pilih Pegawai dari Master Data Pusdiklat Kemlu</label>
+              <select id="selectPegawaiMaster" class="w-full border border-slate-300 rounded p-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <!-- Populated dynamically via JS -->
+              </select>
+            </div>
+            <div class="md:col-span-3 flex items-end">
+              <button type="button" onclick="addPegawaiFromSelect()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition shadow">
+                <i class="fa-solid fa-plus"></i> Tambah Pegawai
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Table of Assigned Officers -->
+          <div class="overflow-x-auto rounded border border-slate-300">
+            <table class="w-full border-collapse text-xs bg-white">
+              <thead>
+                <tr class="bg-slate-100 font-bold text-slate-700 border-b border-slate-300">
+                  <th class="p-2 text-center w-10">No</th>
+                  <th class="p-2 text-left">Nama / NIP</th>
+                  <th class="p-2 text-left">Pangkat / Golongan (Snapshot Dokumen)</th>
+                  <th class="p-2 text-left">Jabatan</th>
+                  <th class="p-2 text-center w-24">Status Profil</th>
+                  <th class="p-2 text-center w-16">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="draftPegawaiTableBody" class="divide-y divide-slate-200">
+                <!-- Dynamically populated via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tingkat Biaya SPD & Angkutan *</label>
+              <div class="grid grid-cols-2 gap-2">
+                <select id="draftTingkatBiaya" class="border border-slate-300 rounded p-2 text-xs">
+                  <option value="C">Tingkat C</option>
+                  <option value="B">Tingkat B</option>
+                  <option value="A">Tingkat A</option>
+                </select>
+                <select id="draftAngkutan" class="border border-slate-300 rounded p-2 text-xs">
+                  <option value="Perjalanan Darat">Perjalanan Darat</option>
+                  <option value="Perjalanan Udara">Perjalanan Udara / Tiket</option>
+                  <option value="Kendaraan Dinas">Kendaraan Dinas</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section C: Lokasi & Durasi Dinas -->
+        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-blue-900 mb-3 flex items-center gap-1.5">
+            <i class="fa-solid fa-map-location-dot"></i> Lokasi & Tanggal Perjalanan Dinas
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tempat Berangkat *</label>
+              <input type="text" id="draftTempatBerangkat" required value="Jakarta" class="w-full border border-slate-300 rounded p-2 text-xs">
+            </div>
+
+            <!-- Dynamic Fields for Luar Negeri vs Dalam Negeri -->
+            <div id="wrapperTempatTujuan">
+              <label class="block text-xs font-bold text-slate-700 mb-1" id="labelTempatTujuan">Tempat / Kota Tujuan *</label>
+              <input type="text" id="draftTempatTujuan" required value="Depok, Jawa Barat" class="w-full border border-slate-300 rounded p-2 text-xs">
+            </div>
+
+            <div id="wrapperNegaraTujuan" class="hidden">
+              <label class="block text-xs font-bold text-amber-800 mb-1">Negara Tujuan (Luar Negeri) *</label>
+              <input type="text" id="draftNegaraTujuan" value="Jepang (Tokyo)" class="w-full border border-amber-300 rounded p-2 text-xs bg-amber-50 font-bold">
+            </div>
+
+            <div id="wrapperNoSetneg" class="hidden">
+              <label class="block text-xs font-bold text-amber-800 mb-1">Nomor Surat Izin SETNEG *</label>
+              <input type="text" id="draftNoSetneg" value="B-0482/KS/SETNEG/08/2026" class="w-full border border-amber-300 rounded p-2 text-xs font-mono bg-amber-50">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Berangkat *</label>
+              <input type="date" id="draftTglBerangkat" required value="2026-08-27" onchange="autoCalcDays()" class="w-full border border-slate-300 rounded p-2 text-xs">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Harus Kembali *</label>
+              <input type="date" id="draftTglKembali" required value="2026-09-01" onchange="autoCalcDays()" class="w-full border border-slate-300 rounded p-2 text-xs">
+            </div>
+          </div>
+          <p class="text-[11px] text-blue-800 font-semibold mt-2">
+            <i class="fa-solid fa-calculator"></i> Kalkulasi Durasi Otomatis System: <span id="calcDurationText" class="underline">6 (enam) hari</span>
+          </p>
+        </div>
+
+        <div class="pt-4 flex justify-between items-center">
+          <button type="button" onclick="switchStep(2)" class="text-slate-600 hover:text-slate-800 font-semibold text-xs flex items-center gap-1">
+            <i class="fa-solid fa-arrow-left"></i> Kembali ke Tahap 2
+          </button>
+          <button type="submit" class="bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow flex items-center gap-2 transition">
+            Kirim Draft ke Tata Usaha (TU) <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ==================== TAHAP 4: PENOMORAN SURAT & REGISTRASI (TATA USAHA / TU) ==================== -->
+    <section id="viewStep4" class="step-view hidden bg-white rounded-xl shadow-md p-6 border border-slate-200">
+      <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-200">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-hashtag text-amber-500"></i>
+            Tahap 4: Registrasi & Penomoran Resmi Surat (Tata Usaha / TU)
+          </h2>
+          <p class="text-xs text-slate-500">TU menerbitkan dan menginputkan Nomor Surat Tugas serta Nomor SPD resmi dari Buku Agenda Tata Naskah Dinas.</p>
+        </div>
+        <span class="bg-purple-100 text-purple-900 text-xs font-semibold px-2.5 py-1 rounded">Aktor: Tata Usaha (TU)</span>
+      </div>
+
+      <form id="formStep4TU" onsubmit="handleStep4TUSubmit(event)" class="space-y-6">
+        <!-- Draft Review Summary Card -->
+        <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2 text-xs">
+          <h3 class="font-bold text-sm text-slate-800 border-b pb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-file-contract text-blue-800"></i> Ringkasan Draft Tugas dari Sespalu:
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div><span class="text-slate-500">Maksud Kegiatan:</span> <strong id="tuReviewPerihal" class="block text-slate-800">-</strong></div>
+            <div><span class="text-slate-500">Lokasi Tujuan:</span> <strong id="tuReviewTujuan" class="block text-slate-800">-</strong></div>
+            <div><span class="text-slate-500">Personel Ditugaskan:</span> <strong id="tuReviewPegawai" class="block text-slate-800">-</strong></div>
+            <div><span class="text-slate-500">Durasi Dinas:</span> <strong id="tuReviewDurasi" class="block text-slate-800">-</strong></div>
+          </div>
+        </div>
+
+        <!-- Penomoran Form -->
+        <div class="bg-amber-50/60 border border-amber-200 p-4 rounded-xl space-y-4">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+            <i class="fa-solid fa-barcode"></i> Input Penomoran Resmi Arsip Naskah Dinas TU
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Nomor Surat Tugas Resmi (Diisi TU) *</label>
+              <input type="text" id="tuNoST" required value="ST/KP/08581/08/2026/79" class="w-full border border-slate-300 rounded p-2.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <span class="text-[10px] text-slate-500 mt-0.5 block">Format Standar: ST/KP/[NO_URUT]/[BULAN]/[TAHUN]/[KODE_UNIT]</span>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Nomor SPD Resmi (Diisi TU) *</label>
+              <input type="text" id="tuNoSPD" required value="0088 /DL-SPD/VIII/2026/79" class="w-full border border-slate-300 rounded p-2.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <span class="text-[10px] text-slate-500 mt-0.5 block">Format Standar: [NO_URUT] /DL-SPD/[BULAN_ROMAWI]/[TAHUN]/[KODE_UNIT]</span>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Surat Tugas & SPD (Diisi TU) *</label>
+              <input type="date" id="tuTglSurat" required value="2026-08-21" class="w-full border border-slate-300 rounded p-2.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <span class="text-[10px] text-slate-500 mt-0.5 block">Dipakai pada ST, SPD, Lampiran, dan Keterangan lain-lain SPD</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-between items-center">
+          <button type="button" onclick="switchStep(3)" class="text-slate-600 hover:text-slate-800 font-semibold text-xs flex items-center gap-1">
+            <i class="fa-solid fa-arrow-left"></i> Kembali ke Tahap 3 (Drafting)
+          </button>
+          <button type="submit" class="bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow flex items-center gap-2 transition">
+            Simpan Penomoran & Penerbitan Dokumen <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ==================== TAHAP 5: OUTPUT & MONITORING TTD PPK ==================== -->
+    <section id="viewStep5" class="step-view hidden space-y-4">
+      
+      <!-- Top Actions & PPK Status Bar -->
+      <div class="bg-white p-4 rounded-xl shadow-md border border-slate-200 space-y-3 no-print">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-print text-amber-500"></i>
+              Tahap 5: Output Dokumen Resmi Ready-to-Print & Status PPK
+            </h2>
+            <p class="text-xs text-slate-500">Format disesuaikan 100% dengan Template Resmi Kemlu (ST, PMK 113/PMK.05/2012, Perdirjen PER-22/PB/2011, & Visum Rampungan).</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="window.print()" class="bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-print"></i> Cetak / Download PDF
+            </button>
+            <button type="button" onclick="switchStep(1)" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs px-3 py-2 rounded-lg transition">
+              Buat Surat Baru
+            </button>
+          </div>
+        </div>
+
+        <!-- Non-Blocking PPK Signature Panel -->
+        <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-700"><i class="fa-solid fa-user-check text-blue-800"></i> Status TTD/Stempel PPK:</span>
+            <span id="ppkStatusBadge" class="bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2.5 py-0.5 rounded uppercase">
+              Menunggu TTD PPK (Proses Tetap Berjalan)
+            </span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="togglePPKSignature(true)" id="btnSignPPK" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded transition flex items-center gap-1">
+              <i class="fa-solid fa-stamp"></i> [Simulasi Aktor PPK] Sematkan TTD Digital PPK (SPD, Lampiran, Visum)
+            </button>
+            <button type="button" onclick="togglePPKSignature(false)" id="btnUnsignPPK" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs px-3 py-1.5 rounded transition">
+              Batalkan TTD PPK
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Document Tab Switcher -->
+      <div class="flex items-center gap-2 border-b border-slate-300 no-print overflow-x-auto pb-1">
+        <button type="button" onclick="switchDocTab('docST')" id="tabDocST" class="doc-tab-btn bg-[#0F2C59] text-white font-bold text-xs px-4 py-2 rounded-t-lg shadow">
+          1. Surat Tugas (ST)
+        </button>
+        <button type="button" onclick="switchDocTab('docSPD')" id="tabDocSPD" class="doc-tab-btn bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2 rounded-t-lg hover:bg-slate-300">
+          2. SPD Lembar 1
+        </button>
+        <button type="button" onclick="switchDocTab('docLampiran')" id="tabDocLampiran" class="doc-tab-btn bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2 rounded-t-lg hover:bg-slate-300">
+          3. Lampiran Matriks SPD
+        </button>
+        <button type="button" onclick="switchDocTab('docVisum')" id="tabDocVisum" class="doc-tab-btn bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2 rounded-t-lg hover:bg-slate-300">
+          4. Lembar Visum Rampungan
+        </button>
+      </div>
+
+      <!-- Printable Area Wrapper -->
+      <div class="overflow-x-auto"><div id="printArea" class="bg-white shadow-lg border border-slate-300 mx-auto relative" style="width:210mm;min-height:297mm;padding:14mm 16mm;box-sizing:border-box;">
+
+        <!-- DOKUMEN 1: SURAT TUGAS (Format_ST.pdf) -->
+        <div id="docST" class="doc-pane doc-st">
+          <div style="text-align:center"><img class="logo-kemlu" alt="Kementerian Luar Negeri" style="width:200px;margin:0 auto"></div>
+          <div style="text-align:center;margin-top:12px">
+            <div style="font-weight:700;text-decoration:underline;font-size:15px">SURAT TUGAS</div>
+            <div><b>Nomor:</b> <span id="outSTNo">-</span></div>
+          </div>
+          <p style="text-align:justify;margin-top:14px">
+            Dalam rangka <span id="outSTTujuanKegiatan">-</span>, sesuai <span id="outSTAsalSurat">Undangan</span> <span id="outSTPengirim">-</span> Nomor <span id="outSTNoNota">-</span> tanggal <span id="outSTTglNota">-</span>, dengan ini kami menugaskan:
+          </p>
+          <table class="tbl tfix" style="margin:10px 0">
+            <colgroup><col style="width:8%"><col style="width:36%"><col style="width:28%"><col style="width:28%"></colgroup>
+            <thead><tr>
+              <th style="text-align:center;padding:8px 6px">No</th>
+              <th style="text-align:center">Nama/NIP</th>
+              <th style="text-align:center">Pangkat/Golongan</th>
+              <th style="text-align:center">Jabatan</th>
+            </tr></thead>
+            <tbody id="outSTTableBody"></tbody>
+          </table>
+          <p style="text-align:justify;margin-top:12px">
+            untuk menghadiri <span id="outSTNamaKegiatan">-</span> di <span id="outSTTempatKegiatan">-</span> pada tanggal <span id="outSTTglKegiatan">-</span>.
+          </p>
+          <p style="text-align:justify;margin-top:12px">
+            Seluruh Biaya yang berkaitan dengan pelaksanaan tugas ini dibebankan pada Daftar Isian Pelaksana Anggaran (DIPA) Pusat Pendidikan dan Pelatihan Tahun Anggaran <span id="outSTTahunAnggaran">2026</span>.
+          </p>
+          <p style="text-align:justify;margin-top:12px">
+            Surat tugas ini disusun untuk dilaksanakan dan setelah dilaksanakan pelaksana tugas segera menyampaikan laporan kepada Kepala Pusat Pendidikan dan Pelatihan.
+          </p>
+          <p style="text-align:justify;margin-top:12px">
+            Demikian Surat Tugas ini dibuat untuk dilaksanakan dengan penuh tanggung jawab.
+          </p>
+          <div style="margin-left:54%;margin-top:18px">
+            <div>Dikeluarkan di Jakarta</div>
+            <div>Pada tanggal <span id="outSTTglST">-</span></div>
+            <div>Kepala Pusat Pendidikan dan Pelatihan</div>
+            <div style="height:26mm"></div>
+            <div style="font-weight:700;text-decoration:underline">Khasan Ashari</div>
+            <div>NIP. 19750617 200003 1 001</div>
+          </div>
+          <div style="margin-top:6px;margin-left:6px">
+            <div>Tembusan:</div>
+            <ol style="list-style:decimal;margin-left:22px">
+              <li>Administrator AMS/PMS</li>
+              <li>Yang bersangkutan</li>
+              <li>Arsip</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- DOKUMEN 2: SPD LEMBAR 1 (SPD.pdf) -->
+        <div id="docSPD" class="doc-pane doc-form hidden">
+          <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:start">
+            <div></div>
+            <img class="logo-kemlu" alt="Kementerian Luar Negeri" style="width:140px">
+            <div style="font-size:7px;line-height:1.35;padding-left:14px;padding-top:2px">
+              LAMPIRAN I<br>PERATURAN MENTERI KEUANGAN REPUBLIK INDONESIA<br>NOMOR 113/PMK.05/2012<br>TENTANG<br>PERJALANAN DINAS DALAM NEGERI BAGI PEJABAT NEGARA,<br>PEGAWAI NEGERI, DAN PEGAWAI TIDAK TETAP
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:6px;font-size:11px">
+            <div style="font-weight:700;line-height:1.5">KEMENTERIAN LUAR NEGERI<br>(PUSAT PENDIDIKAN DAN PELATIHAN)</div>
+            <div style="line-height:1.5;margin-right:6mm">
+              <div>Lembar&nbsp;:&nbsp;&nbsp;&nbsp;1</div>
+              <div>Kode&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;&nbsp;&nbsp;-</div>
+              <div>Nomor&nbsp;&nbsp;:&nbsp;&nbsp;&nbsp;<span id="outSPDNo">-</span></div>
+            </div>
+          </div>
+          <div style="text-align:center;font-weight:700;font-size:16px;margin:14px 0 10px">SURAT PERJALANAN DINAS</div>
+          <table class="tbl tfix">
+            <colgroup><col style="width:6%"><col style="width:38%"><col style="width:28%"><col style="width:28%"></colgroup>
+            <tbody>
+              <tr><td style="text-align:center">1</td><td>Pejabat Pembuat Komitmen</td><td colspan="2" id="outSPDPPKNama">-</td></tr>
+              <tr><td rowspan="2" style="text-align:center">2</td><td rowspan="2">Nama/NIP Pegawai yang melaksanakan perjalanan dinas</td><td colspan="2" id="outSPDPegawaiNama">-</td></tr>
+              <tr><td colspan="2" id="outSPDPegawaiNIP">-</td></tr>
+              <tr><td rowspan="3" style="text-align:center">3</td><td>a. Pangkat dan Golongan</td><td colspan="2" id="outSPDPangkat">Terlampir</td></tr>
+              <tr><td>b. Jabatan/Instansi</td><td colspan="2" id="outSPDJabatan">Terlampir</td></tr>
+              <tr><td>c. Tingkat Biaya Perjalanan Dinas</td><td colspan="2" id="outSPDTingkatBiaya">Terlampir</td></tr>
+              <tr style="height:22mm"><td style="text-align:center;vertical-align:middle">4</td><td style="vertical-align:middle">Maksud Perjalanan Dinas</td><td colspan="2" id="outSPDMaksud">-</td></tr>
+              <tr><td style="text-align:center">5</td><td>Alat angkutan yang dipergunakan</td><td colspan="2" id="outSPDAngkutan">-</td></tr>
+              <tr><td rowspan="2" style="text-align:center">6</td><td>a. Tempat berangkat</td><td colspan="2" id="outSPDBerangkat">-</td></tr>
+              <tr><td>b. Tempat tujuan</td><td colspan="2" id="outSPDTujuan">-</td></tr>
+              <tr><td rowspan="3" style="text-align:center">7</td><td>a. Lamanya Perjalanan Dinas</td><td colspan="2">a.&nbsp;&nbsp;<span id="outSPDLamaHari">-</span></td></tr>
+              <tr><td>b. Tanggal Berangkat</td><td colspan="2">b.&nbsp;&nbsp;<span id="outSPDTglBerangkat">-</span></td></tr>
+              <tr><td>c. Tanggal harus kembali/tiba di tempat baru *)</td><td colspan="2" style="vertical-align:middle">c.&nbsp;&nbsp;<span id="outSPDTglKembali">-</span></td></tr>
+              <tr><td rowspan="2" style="text-align:center">8</td><td>Pengikut :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Nama</td><td style="text-align:center">Tanggal Lahir</td><td style="text-align:center">Keterangan</td></tr>
+              <tr><td id="outSPDPengikut" style="vertical-align:top;line-height:1.5;height:19mm">1.<br>2.<br>3.<br>4.<br>5.</td><td></td><td></td></tr>
+              <tr><td rowspan="2" style="text-align:center">9</td><td>Pembebanan Anggaran</td><td colspan="2"></td></tr>
+              <tr><td>a. Instansi<br>b. Akun</td><td colspan="2">a.&nbsp;&nbsp;&nbsp;<span id="outSPDPembebanInstansi">-</span><br>b.&nbsp;&nbsp;&nbsp;<span id="outSPDAkun">-</span></td></tr>
+              <tr><td style="text-align:center">10</td><td>Keterangan lain-lain</td><td colspan="2" id="outSPDKeteranganLain">-</td></tr>
+            </tbody>
+          </table>
+          <div style="display:flex;margin-top:2px">
+            <div style="width:41%;font-size:8px">*)coret yang tidak perlu</div>
+            <div style="flex:1;margin-top:6px">
+              <div>Dikeluarkan di&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Jakarta</div>
+              <div>Tanggal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="outSPDTglDikeluarkan">-</span></div>
+              <div style="margin-top:12px">Pejabat Pembuat Komitmen</div>
+              <div class="sign-space"><div class="stamp-badge ppk-stamp hidden">VERIFIED &amp; APPROVED<br>PPK KEMLU<br>DIGITAL STAMP</div></div>
+              <div style="font-weight:700;text-decoration:underline" id="outSPDPPKNamaFooter">-</div>
+              <div id="outSPDPPKNIPFooter">-</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DOKUMEN 3: LAMPIRAN SPD (Lampiran.pdf) -->
+        <div id="docLampiran" class="doc-pane doc-form hidden">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="font-weight:700;font-size:14px;margin-top:22px">Lampiran SPD</div>
+            <div style="font-size:7px;line-height:1.4;width:56%">
+              LAMPIRAN IV<br>PERATURAN DIRJEN PERBENDAHARAAN NOMOR PER-22/PB/2011 TENTANG<br>KETENTUAN LEBIH LANJUT PELAKSANAAN PERJALANAN DINAS DALAM NEGERI BAGI<br>PEJABAT NEGARA, PEGAWAI NEGERI DAN PEGAWAI TIDAK TETAP
+            </div>
+          </div>
+          <div style="font-size:12px;line-height:1.55;margin-top:2px">
+            <div class="kv" style="grid-template-columns:30% 14px 1fr"><span>Nomor</span><span>:</span><span id="outLampNoSPD">-</span></div>
+            <div class="kv" style="grid-template-columns:30% 14px 1fr"><span>Tanggal</span><span>:</span><span id="outLampTglSPD">-</span></div>
+            <div class="kv" style="grid-template-columns:30% 14px 1fr;margin-top:6px"><span>DAFTAR PESERTA KEGIATAN</span><span>:</span><span id="outLampKegiatan">-</span></div>
+            <div style="height:8px"></div>
+            <div class="kv" style="grid-template-columns:30% 14px 1fr"><span>TANGGAL PENYELENGGARAAN</span><span>:</span><span id="outLampTglPenyelenggara">-</span></div>
+            <div class="kv" style="grid-template-columns:30% 14px 1fr"><span>KOTA TEMPAT PENYELENGGARAAN</span><span>:</span><span id="outLampKotaPenyelenggara">-</span></div>
+            <div class="kv" style="grid-template-columns:30% 14px 1fr"><span>SATUAN KERJA</span><span>:</span><span>Pusat Pendidikan dan Pelatihan</span></div>
+            <div class="kv" style="grid-template-columns:30% 14px 1fr"><span>KEMENTERIAN NEGARA/LEMBAGA</span><span>:</span><span>Kementerian Luar Negeri</span></div>
+          </div>
+          <table class="tbl tfix" style="margin-top:6px;font-size:9px;text-align:center">
+            <colgroup>
+              <col style="width:4%"><col style="width:22%"><col style="width:9%"><col style="width:7%"><col style="width:9%">
+              <col style="width:14%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:6%"><col style="width:5%">
+            </colgroup>
+            <thead>
+              <tr style="font-weight:700">
+                <th rowspan="2" style="vertical-align:middle;text-align:center">No</th>
+                <th rowspan="2" style="vertical-align:middle;text-align:center">Nama Pelaksana<br>SPD/NIP/Jabatan/Pangkat Golongan</th>
+                <th rowspan="2" style="vertical-align:middle;text-align:center">Tempat Kedudukan Asal</th>
+                <th rowspan="2" style="vertical-align:middle;text-align:center">Tingkat Biaya Perjalanan Dinas</th>
+                <th rowspan="2" style="vertical-align:middle;text-align:center">Alat Angkutan yang digunakan</th>
+                <th colspan="2" style="text-align:center">Surat Tugas</th>
+                <th colspan="2" style="text-align:center">Tanggal</th>
+                <th rowspan="2" style="vertical-align:middle;text-align:center">Lama dinas (hari)</th>
+                <th rowspan="2" style="vertical-align:middle;text-align:center">Ket</th>
+              </tr>
+              <tr style="font-weight:700">
+                <th style="text-align:center">Nomor</th><th style="text-align:center">Tanggal</th>
+                <th style="text-align:center">Berangkat</th><th style="text-align:center">Kembali</th>
+              </tr>
+            </thead>
+            <tbody id="outLampiranTableBody"></tbody>
+          </table>
+          <div style="margin-left:63%;margin-top:6px;line-height:1.4">
+            <div>Jakarta, <span id="outLampTglFooter">-</span></div>
+            <div style="padding-left:14px">Mengetahui/Menyetujui :</div>
+            <div style="padding-left:14px">Pejabat Pembuat Komitmen</div>
+            <div class="sign-space"><div class="stamp-badge ppk-stamp hidden">VERIFIED &amp; APPROVED<br>PPK KEMLU<br>DIGITAL STAMP</div></div>
+            <div style="padding-left:14px;font-weight:700;text-decoration:underline" id="outLampPPKNamaFooter">-</div>
+            <div style="padding-left:14px" id="outLampPPKNIPFooter">-</div>
+          </div>
+        </div>
+
+        <!-- DOKUMEN 4: LEMBAR VISUM RAMPUNGAN (Draft_Rampungan.pdf) -->
+        <div id="docVisum" class="doc-pane doc-form hidden">
+          <div style="text-align:center"><img class="logo-kemlu" alt="Kementerian Luar Negeri" style="width:100px;margin:0 auto"></div>
+          <div style="text-align:center;font-weight:700;margin:4px 0 6px">- 2 -</div>
+          <table class="tbl tfix" style="font-size:11px">
+            <colgroup><col style="width:6%"><col style="width:47%"><col style="width:47%"></colgroup>
+            <tbody>
+              <!-- I -->
+              <tr style="height:30mm">
+                <td colspan="2"></td>
+                <td>
+                  <div style="display:flex;gap:10px"><b style="width:10px">I</b>
+                    <div style="flex:1">
+                      <div class="kv" style="grid-template-columns:36% 10px 1fr"><span>Berangkat dari<br>(tempat kedudukan)</span><span>:</span><span id="visumAsal1">-</span></div>
+                      <div class="kv" style="grid-template-columns:36% 10px 1fr"><span>ke</span><span>:</span><span id="visumTujuan1">-</span></div>
+                      <div class="kv" style="grid-template-columns:36% 10px 1fr"><span>Pada tanggal</span><span>:</span><span id="visumTglBerangkat1">-</span></div>
+                      <div style="text-align:center;margin-top:4px">Pejabat Pembuat Komitmen</div>
+                      <div class="sign-space"><div class="stamp-badge ppk-stamp hidden">VERIFIED &amp; APPROVED<br>PPK KEMLU<br>DIGITAL STAMP</div></div>
+                      <div style="text-align:center;font-weight:700;text-decoration:underline" id="visumPPKNama1">-</div>
+                      <div style="text-align:center" id="visumPPKNIP1">-</div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <!-- II -->
+              <tr style="height:26mm">
+                <td style="text-align:center">II</td>
+                <td>
+                  <div style="height:22mm;display:flex;flex-direction:column;justify-content:space-between">
+                    <div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Tiba di</span><span>:</span><span id="visumTujuan2">-</span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Pada tanggal</span><span>:</span><span id="visumTglTiba2">-</span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Kepala</span><span>:</span><span id="visumInstansiTujuan2">-</span></div>
+                    </div>
+                    <div><div style="text-align:center">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div><div style="text-align:center">NIP.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</div></div>
+                  </div>
+                </td>
+                <td>
+                  <div style="height:22mm;display:flex;flex-direction:column;justify-content:space-between">
+                    <div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Berangkat dari</span><span>:</span><span id="visumTujuan3">-</span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>ke</span><span>:</span><span id="visumAsal3">-</span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Pada tanggal</span><span>:</span><span id="visumTglKembali3">-</span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Kepala</span><span>:</span><span id="visumInstansiTujuan3">-</span></div>
+                    </div>
+                    <div><div style="text-align:center">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div><div style="text-align:center">NIP.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</div></div>
+                  </div>
+                </td>
+              </tr>
+              <!-- III - V -->
+              
+              <tr style="height:26mm">
+                <td style="text-align:center">III</td>
+                <td>
+                  <div style="height:22mm;display:flex;flex-direction:column;justify-content:space-between">
+                    <div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Tiba di</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Pada tanggal</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Kepala</span><span>:</span><span></span></div>
+                    </div>
+                    <div><div style="text-align:center">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div><div style="text-align:center">NIP.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</div></div>
+                  </div>
+                </td>
+                <td>
+                  <div style="height:22mm;display:flex;flex-direction:column;justify-content:space-between">
+                    <div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Berangkat dari</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>ke</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Pada tanggal</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Kepala</span><span>:</span><span></span></div>
+                    </div>
+                    <div><div style="text-align:center">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div><div style="text-align:center">NIP.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</div></div>
+                  </div>
+                </td>
+              </tr>
+              <tr style="height:26mm">
+                <td style="text-align:center">IV</td>
+                <td>
+                  <div style="height:22mm;display:flex;flex-direction:column;justify-content:space-between">
+                    <div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Tiba di</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Pada tanggal</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Kepala</span><span>:</span><span></span></div>
+                    </div>
+                    <div><div style="text-align:center">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div><div style="text-align:center">NIP.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</div></div>
+                  </div>
+                </td>
+                <td>
+                  <div style="height:22mm;display:flex;flex-direction:column;justify-content:space-between">
+                    <div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Berangkat dari</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>ke</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Pada tanggal</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Kepala</span><span>:</span><span></span></div>
+                    </div>
+                    <div><div style="text-align:center">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div><div style="text-align:center">NIP.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</div></div>
+                  </div>
+                </td>
+              </tr>
+              <tr style="height:26mm">
+                <td style="text-align:center">V</td>
+                <td>
+                  <div style="height:22mm;display:flex;flex-direction:column;justify-content:space-between">
+                    <div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Tiba di</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Pada tanggal</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Kepala</span><span>:</span><span></span></div>
+                    </div>
+                    <div><div style="text-align:center">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div><div style="text-align:center">NIP.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</div></div>
+                  </div>
+                </td>
+                <td>
+                  <div style="height:22mm;display:flex;flex-direction:column;justify-content:space-between">
+                    <div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Berangkat dari</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>ke</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Pada tanggal</span><span>:</span><span></span></div>
+                      <div class="kv" style="grid-template-columns:30% 10px 1fr"><span>Kepala</span><span>:</span><span></span></div>
+                    </div>
+                    <div><div style="text-align:center">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div><div style="text-align:center">NIP.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.</div></div>
+                  </div>
+                </td>
+              </tr>
+              <!-- VI -->
+              <tr style="height:30mm">
+                <td style="text-align:center">VI</td>
+                <td>
+                  <div class="kv" style="grid-template-columns:42% 10px 1fr"><span>Tiba di<br>(tempat kedudukan)</span><span>:</span><span id="visumAsalAkhir">-</span></div>
+                  <div class="kv" style="grid-template-columns:42% 10px 1fr"><span>Pada tanggal</span><span>:</span><span id="visumTglKembaliAkhir">-</span></div>
+                  <div style="text-align:center;margin-top:4px">Pejabat Pembuat Komitmen</div>
+                  <div class="sign-space"><div class="stamp-badge ppk-stamp hidden">VERIFIED &amp; APPROVED<br>PPK KEMLU<br>DIGITAL STAMP</div></div>
+                  <div style="text-align:center;font-weight:700;text-decoration:underline" id="visumPPKNamaAkhir">-</div>
+                  <div style="text-align:center" id="visumPPKNIPAkhir">-</div>
+                </td>
+                <td>
+                  <div>Telah diperiksa dengan keterangan bahwa perjalanan tersebut atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.</div>
+                  <div style="text-align:center;margin-top:4px">Pejabat Pembuat Komitmen</div>
+                  <div class="sign-space"><div class="stamp-badge ppk-stamp hidden">VERIFIED &amp; APPROVED<br>PPK KEMLU<br>DIGITAL STAMP</div></div>
+                  <div style="text-align:center;font-weight:700;text-decoration:underline" id="visumPPKNamaAkhir2">-</div>
+                  <div style="text-align:center" id="visumPPKNIPAkhir2">-</div>
+                </td>
+              </tr>
+              <!-- VII -->
+              <tr style="height:9mm"><td style="text-align:center;vertical-align:middle">VII</td><td colspan="2" style="vertical-align:middle">Catatan Lain-lain :</td></tr>
+              <!-- VIII -->
+              <tr><td style="text-align:center">VIII</td><td colspan="2">PERHATIAN :<br>PPK yang menerbitkan SPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan negara apabila negara menderita rugi akibat kesalahan, kelalaian, dan kealpaannya.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div></div>
+    </section>
+
+  </main>
+
+  <!-- MODAL MASTER PEGAWAI (SIMULASI SNAPSHOT DATA PEGAWAI) -->
+  <div id="modalMasterPegawai" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 space-y-4">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-user-pen text-amber-500"></i> Master Data Pegawai & Simulasi Kenaikan Pangkat
+        </h3>
+        <button onclick="closeModalMasterPegawai()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <p class="text-xs text-slate-600 bg-amber-50 p-2.5 rounded border border-amber-200">
+        <i class="fa-solid fa-lightbulb text-amber-600"></i> <strong>Aturan Imutabilitas Snapshot:</strong> Jika Pangkat/Golongan pegawai dinaikkan di Master Database saat ini, dokumen Surat Tugas/SPD lama yang sudah menggunakan *snapshot* profil terdahulu <strong>tidak akan berubah</strong>.
+      </p>
+
+      <div class="space-y-3 max-h-60 overflow-y-auto pr-1 text-xs">
+        <div class="border rounded-lg p-3 bg-slate-50 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-slate-800">Geovannie Foresty Palembangan</span>
+            <span class="font-mono text-[10px] text-slate-500">NIP. 19810702 200901 1 002</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] text-slate-500">Pangkat / Golongan Master Saat Ini:</label>
+              <select id="masterEditPangkatGeovannie" class="w-full border rounded p-1 text-xs bg-white font-semibold">
+                <option value="Pembina / IV.a">Pembina / IV.a</option>
+                <option value="Pembina Tk. I / IV.b">Pembina Tk. I / IV.b (PROMOSI BARU)</option>
+                <option value="Pembina Utama Muda / IV.c">Pembina Utama Muda / IV.c (PROMOSI BARU)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">Jabatan Master:</label>
+              <input type="text" id="masterEditJabatanGeovannie" value="Diplomat Ahli Madya" class="w-full border rounded p-1 text-xs bg-white">
+            </div>
+          </div>
+          <div class="flex justify-end pt-1">
+            <button onclick="simulasiUpdateMasterPegawai('19810702 200901 1 002')" class="bg-blue-800 hover:bg-blue-900 text-white font-bold text-[11px] px-3 py-1 rounded">
+              Update Master Data Pegawai
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t">
+        <button onclick="closeModalMasterPegawai()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs px-4 py-2 rounded">
+          Tutup Modal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Application Central Data State
+    const appData = {
+      currentStep: 1,
+      kategoriPerjalanan: 'DALAM_NEGERI',
+      negaraTujuan: 'Jepang (Tokyo)',
+      noIzinSetneg: 'B-0482/KS/SETNEG/08/2026',
+      sumberAsal: 'EKSTERNAL',
+      nomorNota: 'Undangan/OT/01710/08/2026/21',
+      pengirim: 'Pusat Studi Jepang Universitas Indonesia',
+      tanggalNota: '2026-08-20',
+      perihalNota: 'Undangan Rapat Koordinasi Pembahasan Capaian Peta Jalan Postur Diplomasi Tahun 2026 serta reviu progres dan penghitungan capaian indikator target.',
+      kapusDecision: 'YA',
+      catatanKapus: 'Tugaskan sdr. Geovannie Foresty Palembangan (Diplomat Ahli Madya) beserta tim pendamping.',
+      
+      noST: 'ST/KP/08581/08/2026/79',
+      noSPD: '0088 /DL-SPD/VIII/2026/79',
+      tglSurat: '2026-08-21',
+      
+      ppkNama: 'GEORGE JUNIOR',
+      ppkNIP: '19790315 200312 1 002',
+      ppkSigned: false,
+      
+      masterPegawaiDb: [
+        { nip: '19810702 200901 1 002', nama: 'Geovannie Foresty Palembangan', pangkat: 'Pembina / IV.a', jabatan: 'Diplomat Ahli Madya' },
+        { nip: '19850415 201012 2 003', nama: 'Siti Rahmah, S.IP', pangkat: 'Penata / III.c', jabatan: 'Diplomat Ahli Muda' },
+        { nip: '19780512 200312 1 002', nama: 'Ahmad Syarif, S.H.', pangkat: 'Penata Tk. I / III.d', jabatan: 'Diplomat Ahli Muda' },
+        { nip: '19891104 201402 1 001', nama: 'Budi Santoso, M.Si', pangkat: 'Penata Muda Tk. I / III.b', jabatan: 'Pranata Humas Ahli Muda' },
+        { nip: '19920310 201801 2 004', nama: 'Dewi Lestari, S.S.', pangkat: 'Penata Muda / III.a', jabatan: 'Analis Kebijakan Ahli Pertama' }
+      ],
+
+      pegawaiList: [
+        {
+          nama: 'Geovannie Foresty Palembangan',
+          nip: '19810702 200901 1 002',
+          pangkat: 'Pembina / IV.a',
+          jabatan: 'Diplomat Ahli Madya'
+        },
+        {
+          nama: 'Siti Rahmah, S.IP',
+          nip: '19850415 201012 2 003',
+          pangkat: 'Penata / III.c',
+          jabatan: 'Diplomat Ahli Muda'
+        }
+      ],
+      tingkatBiaya: 'C',
+      angkutan: 'Perjalanan Darat',
+      tempatBerangkat: 'Jakarta',
+      tempatTujuan: 'Depok, Jawa Barat',
+      tglBerangkat: '2026-08-27',
+      tglKembali: '2026-09-01',
+      lamaHari: 6,
+      pembebanInstansi: 'Pusat Pendidikan dan Pelatihan',
+      pembebanAkun: 'DIPA Pusat Pendidikan dan Pelatihan Tahun Anggaran 2026'
+    };
+
+    // Navigation Switcher Function
+    function switchStep(stepNumber) {
+      appData.currentStep = stepNumber;
+
+      document.querySelectorAll('.step-view').forEach(view => view.classList.add('hidden'));
+      const targetView = document.getElementById(`viewStep${stepNumber}`);
+      if (targetView) targetView.classList.remove('hidden');
+
+      document.querySelectorAll('.step-btn').forEach((btn, idx) => {
+        const btnNum = idx + 1;
+        btn.classList.remove('step-active');
+        if (btnNum === stepNumber) {
+          btn.classList.add('step-active');
+        }
+      });
+
+      const roleBadge = document.getElementById('currentRoleBadge');
+      if (roleBadge) {
+        if (stepNumber === 1 || stepNumber === 3) roleBadge.innerText = 'Sespalu / Staff';
+        else if (stepNumber === 2) roleBadge.innerText = 'Kapus (Kepala Pusat)';
+        else if (stepNumber === 4) roleBadge.innerText = 'Tata Usaha (TU)';
+        else if (stepNumber === 5) roleBadge.innerText = 'Output & Monitoring PPK';
+      }
+
+      syncDataToUI();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function toggleKategoriPerjalanan(value) {
+      appData.kategoriPerjalanan = value;
+      const setnegWrapperStep1 = document.getElementById('fieldIzinSetnegWrapper');
+      const wrapperNegara = document.getElementById('wrapperNegaraTujuan');
+      const wrapperNoSetneg = document.getElementById('wrapperNoSetneg');
+      const badgeText = document.getElementById('kategoriBadgeText');
+      const labelTujuan = document.getElementById('labelTempatTujuan');
+
+      if (value === 'LUAR_NEGERI') {
+        if (setnegWrapperStep1) setnegWrapperStep1.classList.remove('hidden');
+        if (wrapperNegara) wrapperNegara.classList.remove('hidden');
+        if (wrapperNoSetneg) wrapperNoSetneg.classList.remove('hidden');
+        if (badgeText) badgeText.innerText = 'Luar Negeri (LN)';
+        if (labelTujuan) labelTujuan.innerText = 'Kota / Venue Tujuan LN *';
+        document.getElementById('draftTempatTujuan').value = 'Tokyo (Venue Hall)';
+        document.getElementById('draftAngkutan').value = 'Perjalanan Udara';
+      } else {
+        if (setnegWrapperStep1) setnegWrapperStep1.classList.add('hidden');
+        if (wrapperNegara) wrapperNegara.classList.add('hidden');
+        if (wrapperNoSetneg) wrapperNoSetneg.classList.add('hidden');
+        if (badgeText) badgeText.innerText = 'Dalam Negeri';
+        if (labelTujuan) labelTujuan.innerText = 'Tempat / Kota Tujuan *';
+        document.getElementById('draftTempatTujuan').value = 'Depok, Jawa Barat';
+      }
+    }
+
+    function handleStep1Submit(e) {
+      e.preventDefault();
+      appData.nomorNota = document.getElementById('inputNomorNota').value;
+      appData.pengirim = document.getElementById('inputPengirim').value;
+      appData.tanggalNota = document.getElementById('inputTanggalNota').value;
+      appData.perihalNota = document.getElementById('inputPerihalNota').value;
+
+      showToast('Nota / Undangan berhasil diunggah! Melanjutkan ke Disposisi Kapus.');
+      switchStep(2);
+    }
+
+    function handleStep2Submit() {
+      const selected = document.querySelector('input[name="kapusDecision"]:checked');
+      if (selected) appData.kapusDecision = selected.value;
+      appData.catatanKapus = document.getElementById('catatanKapus').value;
+
+      showToast('Disposisi Kapus diproses! Silakan lengkapi rincian draft tugas & personel.');
+      switchStep(3);
+    }
+
+    function handleStep3Submit(e) {
+      e.preventDefault();
+      if (appData.pegawaiList.length === 0) {
+        showToast('Wajib menugaskan minimal 1 pegawai!', true);
+        return;
+      }
+
+      const ppkVal = document.getElementById('draftPPKSelect').value;
+      if (ppkVal) {
+        const [nama, nip] = ppkVal.split('|');
+        appData.ppkNama = nama;
+        appData.ppkNIP = nip;
+      }
+
+      appData.tingkatBiaya = document.getElementById('draftTingkatBiaya').value;
+      appData.angkutan = document.getElementById('draftAngkutan').value;
+      appData.tempatBerangkat = document.getElementById('draftTempatBerangkat').value;
+      appData.tempatTujuan = document.getElementById('draftTempatTujuan').value;
+      appData.tglBerangkat = document.getElementById('draftTglBerangkat').value;
+      appData.tglKembali = document.getElementById('draftTglKembali').value;
+      autoCalcDays();
+
+      if (appData.kategoriPerjalanan === 'LUAR_NEGERI') {
+        appData.negaraTujuan = document.getElementById('draftNegaraTujuan').value;
+        appData.noIzinSetneg = document.getElementById('draftNoSetneg').value;
+      }
+
+      showToast('Drafting rincian tugas oleh Sespalu selesai! Berkas diteruskan ke Tata Usaha (TU) untuk penomoran resmi.');
+      switchStep(4);
+    }
+
+    function handleStep4TUSubmit(e) {
+      e.preventDefault();
+      appData.noST = document.getElementById('tuNoST').value;
+      appData.noSPD = document.getElementById('tuNoSPD').value;
+      appData.tglSurat = document.getElementById('tuTglSurat').value;
+
+      showToast('Penomoran naskah dinas resmi oleh TU berhasil disimpan! Dokumen siap dicetak.');
+      switchStep(5);
+    }
+
+    function togglePPKSignature(signed) {
+      appData.ppkSigned = signed;
+      if (signed) {
+        showToast('Stempel Digital PPK disematkan pada dokumen.');
+      } else {
+        showToast('Stempel Digital PPK dibatalkan.', true);
+      }
+      syncDataToUI();
+    }
+
+    function autoCalcDays() {
+      const tglB = new Date(document.getElementById('draftTglBerangkat').value);
+      const tglK = new Date(document.getElementById('draftTglKembali').value);
+      
+      if (!isNaN(tglB) && !isNaN(tglK) && tglK >= tglB) {
+        const diffTime = Math.abs(tglK - tglB);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        appData.lamaHari = diffDays;
+        document.getElementById('calcDurationText').innerText = `${diffDays} hari`;
+      }
+    }
+
+    function openModalMasterPegawai() {
+      document.getElementById('modalMasterPegawai').classList.remove('hidden');
+    }
+    function closeModalMasterPegawai() {
+      document.getElementById('modalMasterPegawai').classList.add('hidden');
+    }
+
+    function simulasiUpdateMasterPegawai(nip) {
+      const newPangkat = document.getElementById('masterEditPangkatGeovannie').value;
+      const newJabatan = document.getElementById('masterEditJabatanGeovannie').value;
+
+      const pMaster = appData.masterPegawaiDb.find(p => p.nip === nip);
+      if (pMaster) {
+        pMaster.pangkat = newPangkat;
+        pMaster.jabatan = newJabatan;
+      }
+
+      populateMasterDropdown();
+      renderPegawaiDraftTable();
+      showToast(`Master Data Pegawai NIP ${nip} diperbarui. Profil snapshot pada draft lama tetap terunci!`);
+      closeModalMasterPegawai();
+    }
+
+    function populateMasterDropdown() {
+      const select = document.getElementById('selectPegawaiMaster');
+      if (!select) return;
+      select.innerHTML = appData.masterPegawaiDb.map(p => `
+        <option value="${p.nama}|${p.nip}|${p.pangkat}|${p.jabatan}">
+          ${p.nama} - NIP. ${p.nip} (${p.pangkat} - ${p.jabatan})
+        </option>
+      `).join('');
+    }
+
+    function renderPegawaiDraftTable() {
+      const tbody = document.getElementById('draftPegawaiTableBody');
+      const badge = document.getElementById('pegawaiCountBadge');
+      if (badge) badge.innerText = `${appData.pegawaiList.length} Pegawai Ditugaskan`;
+      if (!tbody) return;
+
+      if (appData.pegawaiList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400 italic">Belum ada pegawai. Pilih dari dropdown dan klik "Tambah Pegawai".</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = appData.pegawaiList.map((p, idx) => {
+        const masterObj = appData.masterPegawaiDb.find(m => m.nip === p.nip);
+        const isPromotedInMaster = masterObj && masterObj.pangkat !== p.pangkat;
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-2 border-b border-slate-200 text-center font-bold text-slate-700">${idx + 1}</td>
+            <td class="p-2 border-b border-slate-200">
+              <strong class="text-slate-800 block">${p.nama}</strong>
+              <span class="font-mono text-[11px] text-slate-500">NIP. ${p.nip}</span>
+            </td>
+            <td class="p-2 border-b border-slate-200 text-slate-700 font-medium">
+              ${p.pangkat}
+            </td>
+            <td class="p-2 border-b border-slate-200 text-slate-700">${p.jabatan}</td>
+            <td class="p-2 border-b border-slate-200 text-center">
+              ${isPromotedInMaster ? `
+                <span class="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-1.5 py-0.5 rounded block">
+                  <i class="fa-solid fa-lock"></i> Snapshot Terkunci
+                </span>
+              ` : `
+                <span class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-bold px-1.5 py-0.5 rounded block">
+                  <i class="fa-solid fa-circle-check"></i> Sesuai Master
+                </span>
+              `}
+            </td>
+            <td class="p-2 border-b border-slate-200 text-center">
+              <button type="button" onclick="removePegawai(${idx})" class="text-rose-600 hover:text-rose-800 p-1.5 rounded hover:bg-rose-50 transition">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function addPegawaiFromSelect() {
+      const val = document.getElementById('selectPegawaiMaster').value;
+      if (!val) return;
+      const [nama, nip, pangkat, jabatan] = val.split('|');
+      
+      const exists = appData.pegawaiList.some(p => p.nip === nip);
+      if (exists) {
+        showToast('Pegawai dengan NIP tersebut sudah ada dalam daftar!', true);
+        return;
+      }
+
+      appData.pegawaiList.push({ nama, nip, pangkat, jabatan });
+      renderPegawaiDraftTable();
+      showToast(`Pegawai ${nama} berhasil ditambahkan!`);
+    }
+
+    function removePegawai(idx) {
+      if (appData.pegawaiList.length <= 1) {
+        showToast('Minimal harus ada 1 pegawai dalam surat tugas!', true);
+        return;
+      }
+      appData.pegawaiList.splice(idx, 1);
+      renderPegawaiDraftTable();
+      showToast('Pegawai telah dihapus dari daftar.');
+    }
+
+    function switchDocTab(docId) {
+      document.querySelectorAll('.doc-pane').forEach(pane => pane.classList.add('hidden'));
+      document.querySelectorAll('.doc-tab-btn').forEach(btn => {
+        btn.classList.remove('bg-[#0F2C59]', 'text-white');
+        btn.classList.add('bg-slate-200', 'text-slate-700');
+      });
+
+      const activePane = document.getElementById(docId);
+      if (activePane) activePane.classList.remove('hidden');
+
+      const activeBtn = document.getElementById(`tab${docId.charAt(0).toUpperCase() + docId.slice(1)}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-slate-200', 'text-slate-700');
+        activeBtn.classList.add('bg-[#0F2C59]', 'text-white');
+      }
+    }
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      if (!toast || !toastMsg) return;
+
+      toastMsg.innerText = msg;
+      if (isError) {
+        toast.className = "mb-4 p-4 rounded-lg bg-rose-100 border-l-4 border-rose-500 text-rose-800 flex items-center justify-between shadow transition";
+      } else {
+        toast.className = "mb-4 p-4 rounded-lg bg-emerald-100 border-l-4 border-emerald-500 text-emerald-800 flex items-center justify-between shadow transition";
+      }
+      toast.classList.remove('hidden');
+
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 4000);
+    }
+
+    function closeToast() {
+      const toast = document.getElementById('toast');
+      if (toast) toast.classList.add('hidden');
+    }
+
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.innerText = text;
+    }
+
+    function syncDataToUI() {
+      populateMasterDropdown();
+      renderPegawaiDraftTable();
+
+      setText('dispNomorNota', appData.nomorNota);
+      setText('dispPengirim', appData.pengirim);
+      setText('dispPerihal', appData.perihalNota);
+
+      const perwakilanIdx = getPerwakilanIdx();
+      const primary = appData.pegawaiList[perwakilanIdx] || { nama: '-', nip: '-', pangkat: '-', jabatan: '-' };
+      const totalPegawaiCount = appData.pegawaiList.length;
+
+      const lokasiFormatted = appData.kategoriPerjalanan === 'LUAR_NEGERI' 
+        ? `${appData.tempatTujuan}, ${appData.negaraTujuan} (Izin Setneg No: ${appData.noIzinSetneg})`
+        : appData.tempatTujuan;
+
+      setText('tuReviewPerihal', appData.perihalNota);
+      setText('tuReviewTujuan', lokasiFormatted);
+      setText('tuReviewPegawai', totalPegawaiCount > 1 ? `${primary.nama}, dkk (${totalPegawaiCount} orang)` : primary.nama);
+      setText('tuReviewDurasi', `${appData.lamaHari} hari (${fmtTanggal(appData.tglBerangkat)} s.d ${fmtTanggal(appData.tglKembali)})`);
+
+      const ppkBadge = document.getElementById('ppkStatusBadge');
+      const btnSign = document.getElementById('btnSignPPK');
+      const btnUnsign = document.getElementById('btnUnsignPPK');
+      const stamps = document.querySelectorAll('.ppk-stamp');
+
+      if (appData.ppkSigned) {
+        if (ppkBadge) {
+          ppkBadge.innerText = 'SUDAH DITANDATANGANI PPK (APPROVED)';
+          ppkBadge.className = 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold px-2.5 py-0.5 rounded uppercase';
+        }
+        if (btnSign) btnSign.classList.add('hidden');
+        if (btnUnsign) btnUnsign.classList.remove('hidden');
+        stamps.forEach(el => el.classList.remove('hidden'));
+      } else {
+        if (ppkBadge) {
+          ppkBadge.innerText = 'MENUNGGU TTD PPK (PROSES TETAP BERJALAN)';
+          ppkBadge.className = 'bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2.5 py-0.5 rounded uppercase';
+        }
+        if (btnSign) btnSign.classList.remove('hidden');
+        if (btnUnsign) btnUnsign.classList.add('hidden');
+        stamps.forEach(el => el.classList.add('hidden'));
+      }
+
+      // ===== Format tanggal sesuai template (isi tetap dari input draft) =====
+      const tglSuratLong = fmtTanggal(appData.tglSurat);
+      const tglSuratPendek = fmtTanggalPendek(appData.tglSurat);
+      const tglBerangkatLong = fmtTanggal(appData.tglBerangkat);
+      const tglKembaliLong = fmtTanggal(appData.tglKembali);
+      const rentangKegiatan = fmtRentang(appData.tglBerangkat, appData.tglKembali);
+      const tahunAnggaran = (parseISO(appData.tglSurat) || { y: 2026 }).y;
+      const multi = totalPegawaiCount > 1;
+      const nbsp = '\u00A0';
+      const perihalBersih = (appData.perihalNota || '').replace(/[.\s]+$/, '');
+
+      // 1. SURAT TUGAS (Format_ST.pdf)
+      setText('outSTNo', appData.noST);
+      setText('outSTTujuanKegiatan', perihalBersih);
+      setText('outSTAsalSurat', appData.sumberAsal === 'EKSTERNAL' ? 'Undangan' : 'Nota Dinas');
+      setText('outSTPengirim', appData.pengirim);
+      setText('outSTNoNota', appData.nomorNota);
+      setText('outSTTglNota', fmtTanggal(appData.tanggalNota));
+      setText('outSTNamaKegiatan', perihalBersih);
+      setText('outSTTempatKegiatan', lokasiFormatted);
+      setText('outSTTglKegiatan', rentangKegiatan);
+      setText('outSTTahunAnggaran', String(tahunAnggaran));
+      setText('outSTTglST', tglSuratLong);
+
+      const stTbody = document.getElementById('outSTTableBody');
+      if (stTbody) {
+        stTbody.innerHTML = appData.pegawaiList.map((p, idx) => `
+          <tr>
+            <td style="text-align:center;padding:8px 6px">${idx + 1}</td>
+            <td style="padding:8px 6px">${p.nama}<br>NIP. ${p.nip}</td>
+            <td style="padding:8px 6px;vertical-align:middle">${p.pangkat}</td>
+            <td style="padding:8px 6px;vertical-align:middle">${p.jabatan}</td>
+          </tr>
+        `).join('');
+      }
+
+      // 2. SPD LEMBAR 1 (SPD.pdf)
+      setText('outSPDNo', appData.noSPD);
+      setText('outSPDPPKNama', appData.ppkNama);
+      setText('outSPDPegawaiNama', multi ? `${primary.nama}, dkk` : primary.nama);
+      setText('outSPDPegawaiNIP', multi ? 'Terlampir' : `NIP. ${primary.nip}`);
+      const pengikut = appData.pegawaiList.filter((_, i) => i !== perwakilanIdx);
+      const pengikutEl = document.getElementById('outSPDPengikut');
+      if (pengikutEl) {
+        const jmlBaris = Math.max(5, pengikut.length);
+        let html = '';
+        for (let i = 0; i < jmlBaris; i++) {
+          html += `<div style="min-height:1.5em">${i + 1}.${pengikut[i] ? '&nbsp;' + esc(pengikut[i].nama) : ''}</div>`;
+        }
+        pengikutEl.innerHTML = html;
+      }
+      setText('outSPDPangkat', multi ? 'Terlampir' : primary.pangkat);
+      setText('outSPDJabatan', multi ? 'Terlampir' : primary.jabatan);
+      setText('outSPDTingkatBiaya', multi ? 'Terlampir' : appData.tingkatBiaya);
+      setText('outSPDMaksud', perihalBersih + (appData.kategoriPerjalanan === 'LUAR_NEGERI' ? ` (Luar Negeri: ${appData.negaraTujuan})` : ''));
+      setText('outSPDAngkutan', appData.angkutan);
+      setText('outSPDBerangkat', appData.tempatBerangkat);
+      setText('outSPDTujuan', lokasiFormatted);
+      setText('outSPDLamaHari', `${appData.lamaHari}${nbsp}${nbsp}${nbsp}${terbilang(appData.lamaHari)} hari`);
+      setText('outSPDTglBerangkat', tglBerangkatLong);
+      setText('outSPDTglKembali', tglKembaliLong);
+      setText('outSPDPembebanInstansi', appData.pembebanInstansi);
+      setText('outSPDAkun', appData.pembebanAkun);
+      setText('outSPDKeteranganLain', `Surat Tugas No. ${appData.noST} tanggal ${tglSuratLong}`);
+      setText('outSPDTglDikeluarkan', tglSuratLong);
+      setText('outSPDPPKNamaFooter', appData.ppkNama);
+      setText('outSPDPPKNIPFooter', 'NIP. ' + appData.ppkNIP);
+
+      // 3. LAMPIRAN SPD (Lampiran.pdf)
+      setText('outLampNoSPD', appData.noSPD);
+      setText('outLampTglSPD', tglSuratLong);
+      setText('outLampKegiatan', perihalBersih);
+      setText('outLampTglPenyelenggara', rentangKegiatan);
+      setText('outLampKotaPenyelenggara', appData.tempatTujuan);
+      setText('outLampTglFooter', tglSuratLong);
+      setText('outLampPPKNamaFooter', appData.ppkNama);
+      setText('outLampPPKNIPFooter', 'NIP. ' + appData.ppkNIP);
+
+      const lampTbody = document.getElementById('outLampiranTableBody');
+      if (lampTbody) {
+        lampTbody.innerHTML = appData.pegawaiList.map((p, idx) => `
+          <tr>
+            <td style="vertical-align:middle">${idx + 1}</td>
+            <td style="text-align:center;vertical-align:middle;padding:8px 4px">${p.nama}<br>NIP. ${p.nip}<br>${p.jabatan}<br>${p.pangkat}</td>
+            <td style="vertical-align:middle">${idx === 0 ? appData.tempatBerangkat : 'idem'}</td>
+            <td style="vertical-align:middle">${idx === 0 ? appData.tingkatBiaya : 'idem'}</td>
+            <td style="vertical-align:middle">${idx === 0 ? appData.angkutan : 'idem'}</td>
+            <td style="vertical-align:middle;word-break:break-all">${idx === 0 ? `Surat Tugas No. ${appData.noST} tanggal ${tglSuratLong}` : 'idem'}</td>
+            <td style="vertical-align:middle">${idx === 0 ? tglSuratPendek : 'idem'}</td>
+            <td style="vertical-align:middle">${fmtTanggalPendek(appData.tglBerangkat)}</td>
+            <td style="vertical-align:middle">${fmtTanggalPendek(appData.tglKembali)}</td>
+            <td style="vertical-align:middle">${appData.lamaHari} Hari</td>
+            <td></td>
+          </tr>
+        `).join('');
+      }
+
+      // 4. LEMBAR VISUM RAMPUNGAN (Draft_Rampungan.pdf)
+      setText('visumAsal1', appData.tempatBerangkat);
+      setText('visumTujuan1', lokasiFormatted);
+      setText('visumTglBerangkat1', tglBerangkatLong);
+      setText('visumPPKNama1', appData.ppkNama);
+      setText('visumPPKNIP1', 'NIP. ' + appData.ppkNIP);
+
+      setText('visumTujuan2', lokasiFormatted);
+      setText('visumTglTiba2', tglBerangkatLong);
+      setText('visumInstansiTujuan2', appData.pengirim);
+
+      setText('visumTujuan3', lokasiFormatted);
+      setText('visumAsal3', appData.tempatBerangkat);
+      setText('visumTglKembali3', tglKembaliLong);
+      setText('visumInstansiTujuan3', appData.pengirim);
+
+      setText('visumAsalAkhir', appData.tempatBerangkat);
+      setText('visumTglKembaliAkhir', tglKembaliLong);
+      setText('visumPPKNamaAkhir', appData.ppkNama);
+      setText('visumPPKNIPAkhir', 'NIP. ' + appData.ppkNIP);
+      setText('visumPPKNamaAkhir2', appData.ppkNama);
+      setText('visumPPKNIPAkhir2', 'NIP. ' + appData.ppkNIP);
+    }
+
+    const LOGO_URI = 'data:image/jpeg;base64,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';
+
+    // Peringkat pangkat berdasarkan golongan (mis. "Pembina / IV.a" -> IV, a). Semakin besar semakin tinggi.
+    function golonganRank(pangkat) {
+      const m = /\b(IV|III|II|I)\s*\.\s*([a-e])\b/i.exec(pangkat || '');
+      if (!m) return 0;
+      const romawi = { I: 1, II: 2, III: 3, IV: 4 }[m[1].toUpperCase()];
+      return romawi * 10 + (m[2].toLowerCase().charCodeAt(0) - 96);
+    }
+    // Indeks pegawai berpangkat tertinggi; jika seri, yang lebih dulu di daftar
+    function getPerwakilanIdx() {
+      let best = -1, bestRank = -1;
+      appData.pegawaiList.forEach((p, i) => {
+        const r = golonganRank(p.pangkat);
+        if (r > bestRank) { bestRank = r; best = i; }
+      });
+      return best;
+    }
+    function esc(t) {
+      return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Helper tanggal (nilai dari input draft, tampilan sesuai template: "19 Mei 2026")
+    const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+    function parseISO(iso) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+      return m ? { y: +m[1], m: +m[2] - 1, d: +m[3] } : null;
+    }
+    function fmtTanggal(iso) {
+      const p = parseISO(iso);
+      return p ? `${p.d} ${BULAN[p.m]} ${p.y}` : (iso || '-');
+    }
+    function fmtTanggalPendek(iso) {
+      const p = parseISO(iso);
+      return p ? `${String(p.d).padStart(2, '0')}-${BULAN_PENDEK[p.m]}-${String(p.y).slice(2)}` : (iso || '-');
+    }
+    function fmtRentang(a, b) {
+      const pa = parseISO(a), pb = parseISO(b);
+      if (!pa || !pb) return `${a} s.d ${b}`;
+      if (a === b) return fmtTanggal(a);
+      if (pa.y === pb.y && pa.m === pb.m) return `${pa.d} - ${pb.d} ${BULAN[pa.m]} ${pa.y}`;
+      return `${fmtTanggal(a)} s.d ${fmtTanggal(b)}`;
+    }
+
+    // Helper angka ke kata terbilang (1 - 999)
+    function terbilang(n) {
+      const w = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+      n = Math.floor(n);
+      if (n < 12) return w[n];
+      if (n < 20) return terbilang(n - 10) + ' belas';
+      if (n < 100) return terbilang(Math.floor(n / 10)) + ' puluh' + (n % 10 ? ' ' + terbilang(n % 10) : '');
+      if (n < 200) return 'seratus' + (n > 100 ? ' ' + terbilang(n - 100) : '');
+      if (n < 1000) return terbilang(Math.floor(n / 100)) + ' ratus' + (n % 100 ? ' ' + terbilang(n % 100) : '');
+      return String(n);
+    }
+
+    window.onload = function() {
+      document.querySelectorAll('img.logo-kemlu').forEach(i => { i.src = LOGO_URI; });
+      switchStep(1);
+    };
+  </script>
+</body>
+</html>
