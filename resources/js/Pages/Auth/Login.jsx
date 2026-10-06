@@ -1,9 +1,8 @@
-<<<<<<< HEAD
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
-// ─── Kemlu Logo SVG (inline — no external request needed) ────────────────────
+// ─── Kemlu Logo Component ──────────────────────────────────────────────────
 function KemluLogo({ className = '' }) {
     return (
         <img
@@ -14,7 +13,7 @@ function KemluLogo({ className = '' }) {
     );
 }
 
-// ─── Password Input ───────────────────────────────────────────────────────────
+// ─── Password Input Component ──────────────────────────────────────────────
 function PasswordInput({ id, value, onChange, placeholder, autoComplete, error }) {
     const [show, setShow] = useState(false);
     return (
@@ -44,7 +43,7 @@ function PasswordInput({ id, value, onChange, placeholder, autoComplete, error }
     );
 }
 
-// ─── Login Form ───────────────────────────────────────────────────────────────
+// ─── Login Form Component ──────────────────────────────────────────────────
 function LoginForm({ canResetPassword, status }) {
     const { errors } = usePage().props;
     const [form, setForm] = useState({ email: '', password: '', remember: false });
@@ -62,42 +61,10 @@ function LoginForm({ canResetPassword, status }) {
         <form onSubmit={submit} noValidate className="space-y-4">
             {status && (
                 <div className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 ring-1 ring-emerald-200">
-=======
-import Checkbox from '@/Components/Checkbox';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
-
-export default function Login({ status, canResetPassword }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
-        password: '',
-        remember: false,
-    });
-
-    const submit = (e) => {
-        e.preventDefault();
-
-        post(route('login'), {
-            onFinish: () => reset('password'),
-        });
-    };
-
-    return (
-        <GuestLayout>
-            <Head title="Log in" />
-
-            {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
                     {status}
                 </div>
             )}
 
-<<<<<<< HEAD
             {/* Username / Email */}
             <div>
                 <input
@@ -125,14 +92,24 @@ export default function Login({ status, canResetPassword }) {
                 error={errors?.password}
             />
 
-            {/* Forgot password */}
-            <div className="flex justify-end">
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between text-sm">
+                <label className="flex items-center gap-2 cursor-pointer text-slate-600">
+                    <input
+                        type="checkbox"
+                        checked={form.remember}
+                        onChange={(e) => set('remember')(e.target.checked)}
+                        className="rounded border-slate-300 text-sky-500 focus:ring-sky-400"
+                    />
+                    <span>Ingat saya</span>
+                </label>
+
                 {canResetPassword && (
                     <Link
                         href={route('password.request')}
                         className="text-sm text-sky-600 hover:text-sky-800 hover:underline transition-colors"
                     >
-                        Forgot password?
+                        Lupa password?
                     </Link>
                 )}
             </div>
@@ -143,15 +120,14 @@ export default function Login({ status, canResetPassword }) {
                 disabled={loading}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-400 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-sky-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loading ? 'Memproses…' : 'Masuk'}
             </button>
-
         </form>
     );
 }
 
-// ─── Register Form ────────────────────────────────────────────────────────────
+// ─── Register Form Component ───────────────────────────────────────────────
 function RegisterForm() {
     const { errors } = usePage().props;
     const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '' });
@@ -226,7 +202,7 @@ function RegisterForm() {
                 disabled={loading}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-400 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-sky-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loading ? 'Mendaftarkan…' : 'Daftar Sekarang'}
             </button>
 
@@ -243,14 +219,7 @@ function RegisterForm() {
     );
 }
 
-// ─── Main Auth Page ───────────────────────────────────────────────────────────
-/**
- * Split-screen auth page:
- *  Left  → login/register form with Kemlu branding
- *  Right → Pusdiklat building photo
- *
- * @param {{ canResetPassword: boolean, status?: string }} props
- */
+// ─── Main Auth Page ────────────────────────────────────────────────────────
 export default function Login({ canResetPassword, status }) {
     const { url } = usePage();
     const isRegister = url.startsWith('/register');
@@ -260,10 +229,9 @@ export default function Login({ canResetPassword, status }) {
             <Head title={isRegister ? 'Daftar Akun' : 'Masuk'} />
 
             <div className="flex min-h-screen">
-                {/* ── Left Panel — Form ── */}
+                {/* Left Panel — Form */}
                 <div className="flex w-full flex-col justify-center px-8 py-8 sm:px-12 lg:w-[460px] lg:min-w-[460px] bg-white">
-
-                    {/* Logo + Institution Name — compact header */}
+                    {/* Logo + Institution Name */}
                     <div className="mb-6 text-center">
                         <div className="flex justify-center">
                             <KemluLogo className="h-44 w-44 object-contain drop-shadow-sm" />
@@ -282,7 +250,7 @@ export default function Login({ canResetPassword, status }) {
                     {/* Divider */}
                     <div className="mb-5 border-t border-slate-100" />
 
-                    {/* Form title */}
+                    {/* Form Header */}
                     <div className="mb-4">
                         <h2 className="text-lg font-bold text-slate-800">
                             {isRegister ? 'Buat Akun Baru' : 'Selamat Datang'}
@@ -294,7 +262,7 @@ export default function Login({ canResetPassword, status }) {
                         </p>
                     </div>
 
-                    {/* Form */}
+                    {/* Form Toggle */}
                     {isRegister ? (
                         <RegisterForm />
                     ) : (
@@ -307,18 +275,14 @@ export default function Login({ canResetPassword, status }) {
                     </p>
                 </div>
 
-
-                {/* ── Right Panel — Building Photo ── */}
+                {/* Right Panel — Building Photo */}
                 <div className="relative hidden flex-1 lg:block">
                     <img
                         src="/images/pusdiklat-building.jpg"
                         alt="Gedung Pusdiklat Kementerian Luar Negeri"
                         className="absolute inset-0 h-full w-full object-cover"
                     />
-                    {/* Overlay gradient for text legibility */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#1a3a7c]/60 via-transparent to-transparent" />
-
-                    {/* Caption at bottom */}
                     <div className="absolute bottom-8 left-8 right-8 text-white">
                         <p className="text-xl font-bold drop-shadow">Pusdiklat Kemlu RI</p>
                         <p className="mt-1 text-sm text-white/80 drop-shadow">
@@ -328,72 +292,5 @@ export default function Login({ canResetPassword, status }) {
                 </div>
             </div>
         </>
-=======
-            <form onSubmit={submit}>
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
-
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        className="mt-1 block w-full"
-                        autoComplete="username"
-                        isFocused={true}
-                        onChange={(e) => setData('email', e.target.value)}
-                    />
-
-                    <InputError message={errors.email} className="mt-2" />
-                </div>
-
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
-
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        autoComplete="current-password"
-                        onChange={(e) => setData('password', e.target.value)}
-                    />
-
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
-
-                <div className="mt-4 block">
-                    <label className="flex items-center">
-                        <Checkbox
-                            name="remember"
-                            checked={data.remember}
-                            onChange={(e) =>
-                                setData('remember', e.target.checked)
-                            }
-                        />
-                        <span className="ms-2 text-sm text-gray-600">
-                            Remember me
-                        </span>
-                    </label>
-                </div>
-
-                <div className="mt-4 flex items-center justify-end">
-                    {canResetPassword && (
-                        <Link
-                            href={route('password.request')}
-                            className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        >
-                            Forgot your password?
-                        </Link>
-                    )}
-
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Log in
-                    </PrimaryButton>
-                </div>
-            </form>
-        </GuestLayout>
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
     );
 }

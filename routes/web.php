@@ -6,20 +6,13 @@ use App\Http\Controllers\Admin\PegawaiController;
 use App\Http\Controllers\Admin\PpkController;
 use App\Http\Controllers\Admin\UnitKerjaController;
 use App\Http\Controllers\Admin\ReferensiController;
-<<<<<<< HEAD
-=======
 use App\Http\Controllers\SuratTugasController;
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-<<<<<<< HEAD
     return redirect()->route('admin.dashboard');
-=======
-    return redirect()->route('surat-tugas.index');
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
 });
 
 Route::get('/dashboard', function () {
@@ -30,8 +23,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-<<<<<<< HEAD
-=======
 
     // Fitur Tetap Surat Tugas & SPD (Role-Based Workflow)
     Route::get('/surat-tugas', [SuratTugasController::class, 'index'])->name('surat-tugas.index');
@@ -42,7 +33,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/surat-tugas/{suratTugas}/penomoran', [SuratTugasController::class, 'penomoran'])->name('surat-tugas.penomoran');
     Route::post('/surat-tugas/{suratTugas}/sign-ppk', [SuratTugasController::class, 'signPpk'])->name('surat-tugas.sign-ppk');
     Route::get('/surat-tugas/{suratTugas}/cetak', [SuratTugasController::class, 'cetak'])->name('surat-tugas.cetak');
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
 });
 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
@@ -69,7 +59,3 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 });
 
 require __DIR__.'/auth.php';
-<<<<<<< HEAD
-
-=======
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65

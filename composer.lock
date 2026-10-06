@@ -4,11 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-<<<<<<< HEAD
     "content-hash": "0a353bf846400731814569a379869cad",
-=======
-    "content-hash": "a8ad694a33082ee5f7d180402a687961",
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
     "packages": [
         {
             "name": "brick/math",
@@ -6363,7 +6359,6 @@
     ],
     "packages-dev": [
         {
-<<<<<<< HEAD
             "name": "composer/semver",
             "version": "3.5.1",
             "source": {
@@ -6441,8 +6436,6 @@
             "time": "2026-10-05T13:12:12+00:00"
         },
         {
-=======
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
             "name": "fakerphp/faker",
             "version": "v1.24.1",
             "source": {
@@ -6694,7 +6687,6 @@
             "time": "2026-09-12T16:17:12+00:00"
         },
         {
-<<<<<<< HEAD
             "name": "laravel/boost",
             "version": "v2.10.2",
             "source": {
@@ -6762,8 +6754,6 @@
             "time": "2026-10-05T13:34:47+00:00"
         },
         {
-=======
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
             "name": "laravel/breeze",
             "version": "v2.4.2",
             "source": {
@@ -6825,7 +6815,6 @@
             "time": "2026-05-14T16:54:25+00:00"
         },
         {
-<<<<<<< HEAD
             "name": "laravel/mcp",
             "version": "v1.0.1",
             "source": {
@@ -6900,8 +6889,6 @@
             "time": "2026-09-24T10:45:09+00:00"
         },
         {
-=======
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
             "name": "laravel/pail",
             "version": "v1.2.7",
             "source": {
@@ -7137,7 +7124,6 @@
             "time": "2026-09-10T10:47:55+00:00"
         },
         {
-<<<<<<< HEAD
             "name": "laravel/roster",
             "version": "v1.0.0",
             "source": {
@@ -7200,8 +7186,6 @@
             "time": "2026-07-18T17:53:15+00:00"
         },
         {
-=======
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
             "name": "mockery/mockery",
             "version": "1.6.15",
             "source": {
@@ -8990,7 +8974,6 @@
             "time": "2024-10-20T05:08:20+00:00"
         },
         {
-<<<<<<< HEAD
             "name": "symfony/yaml",
             "version": "v7.4.20",
             "source": {
@@ -9067,8 +9050,6 @@
             "time": "2026-09-26T06:31:10+00:00"
         },
         {
-=======
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
             "name": "theseer/tokenizer",
             "version": "2.0.1",
             "source": {
@@ -9121,21 +9102,12 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-<<<<<<< HEAD
     "stability-flags": [],
-=======
-    "stability-flags": {},
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.3"
     },
-<<<<<<< HEAD
     "platform-dev": [],
     "plugin-api-version": "2.3.0"
-=======
-    "platform-dev": {},
-    "plugin-api-version": "2.9.0"
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
 }

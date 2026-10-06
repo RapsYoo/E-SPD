@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-/**
- * GuestLayout
- *
- * Minimal pass-through layout for guest (unauthenticated) pages.
- * The Auth/Login page manages its own full-screen design, so this layout
- * simply renders children without imposing extra wrappers.
- *
- * @param {{ children: React.ReactNode }} props
- */
-export default function GuestLayout({ children }) {
-    return <>{children}</>;
-=======
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Link } from '@inertiajs/react';
 
@@ -28,5 +15,4 @@ export default function GuestLayout({ children }) {
             </div>
         </div>
     );
->>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
 }
