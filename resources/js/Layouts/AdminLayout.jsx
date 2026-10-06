@@ -5,11 +5,15 @@ import {
   Users, 
   UserCheck, 
   Building2, 
+<<<<<<< HEAD
   Settings, 
+=======
+>>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
   ChevronDown, 
   Menu, 
   X, 
   LogOut, 
+<<<<<<< HEAD
   ShieldCheck, 
   FileText,
   Search,
@@ -17,15 +21,45 @@ import {
   Database,
   Layers,
   Sparkles
+=======
+  Database,
+  Layers,
+  FileSignature,
+  PlusCircle,
+  Sparkles,
+  FileText
+>>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
 } from 'lucide-react';
 
 export default function AdminLayout({ children, title }) {
   const { auth, flash } = usePage().props;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [masterMenuOpen, setMasterMenuOpen] = useState(true);
+<<<<<<< HEAD
   const currentRoute = window.location.pathname;
 
   const isActive = (path) => currentRoute === path || currentRoute.startsWith(path + '/');
+=======
+  const [suratMenuOpen, setSuratMenuOpen] = useState(true);
+  const currentRoute = window.location.pathname;
+
+  const isActive = (path) => currentRoute === path || (path !== '/' && currentRoute.startsWith(path));
+
+  const getRoleBadge = (role) => {
+    switch (role) {
+      case 'admin':
+        return <span className="bg-amber-500 text-slate-950 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">Admin Master</span>;
+      case 'kapus':
+        return <span className="bg-purple-600 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">Kepala Pusdiklat (Kapus)</span>;
+      case 'tu':
+        return <span className="bg-blue-600 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">Tata Usaha (TU)</span>;
+      case 'ppk':
+        return <span className="bg-emerald-600 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">PPK</span>;
+      default:
+        return <span className="bg-indigo-600 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">Pemohon / Sespalu</span>;
+    }
+  };
+>>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
@@ -42,6 +76,7 @@ export default function AdminLayout({ children, title }) {
                 {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
 
+<<<<<<< HEAD
               <Link href="/admin" className="flex items-center space-x-3 group">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition transform">
                   <ShieldCheck className="w-6 h-6 text-slate-950 font-bold" />
@@ -49,6 +84,15 @@ export default function AdminLayout({ children, title }) {
                 <div>
                   <div className="flex items-center space-x-2">
                     <span className="font-bold text-lg tracking-wide text-white">e-SPD Admin</span>
+=======
+              <Link href="/surat-tugas" className="flex items-center space-x-3 group">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition transform">
+                  <FileSignature className="w-6 h-6 text-slate-950 font-bold" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-lg tracking-wide text-white">e-SPD & ST Online</span>
+>>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
                     <span className="bg-amber-500/20 text-amber-300 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-amber-500/30">
                       Pusdiklat Kemlu
                     </span>
@@ -58,6 +102,7 @@ export default function AdminLayout({ children, title }) {
               </Link>
             </div>
 
+<<<<<<< HEAD
             {/* Right section: Profile & Actions */}
             <div className="flex items-center space-x-4">
               <div className="hidden md:flex items-center bg-slate-800/80 rounded-lg px-3 py-1.5 border border-slate-700 text-xs text-slate-300">
@@ -73,6 +118,23 @@ export default function AdminLayout({ children, title }) {
                 </div>
                 <div className="w-9 h-9 rounded-full bg-slate-800 border-2 border-amber-500/80 flex items-center justify-center text-amber-400 font-bold shadow-inner">
                   {(auth?.user?.name || 'A').charAt(0).toUpperCase()}
+=======
+            {/* Right section: Role Badge & Profile */}
+            <div className="flex items-center space-x-4">
+              {/* User Role Badge */}
+              <div className="hidden sm:block">
+                {getRoleBadge(auth?.user?.role)}
+              </div>
+
+              {/* User Profile & Logout */}
+              <div className="flex items-center space-x-3 border-l border-slate-700/80 pl-4">
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm font-semibold text-white leading-tight">{auth?.user?.name || 'User'}</p>
+                  <p className="text-[11px] text-slate-300">{auth?.user?.email || 'user@kemlu.go.id'}</p>
+                </div>
+                <div className="w-9 h-9 rounded-full bg-slate-800 border-2 border-amber-500/80 flex items-center justify-center text-amber-400 font-bold shadow-inner">
+                  {(auth?.user?.name || 'U').charAt(0).toUpperCase()}
+>>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
                 </div>
                 <Link
                   href={route('logout')}
@@ -107,6 +169,7 @@ export default function AdminLayout({ children, title }) {
           <div className="p-4 space-y-6 overflow-y-auto">
             {/* Quick Title */}
             <div className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+<<<<<<< HEAD
               Navigasi Admin
             </div>
 
@@ -142,10 +205,36 @@ export default function AdminLayout({ children, title }) {
                       href="/admin/pegawai"
                       className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
                         isActive('/admin/pegawai')
+=======
+              Menu Utama
+            </div>
+
+            <nav className="space-y-1">
+              {/* Group 1: Surat Tugas Generator */}
+              <div>
+                <button
+                  onClick={() => setSuratMenuOpen(!suratMenuOpen)}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition"
+                >
+                  <div className="flex items-center space-x-3">
+                    <FileSignature className="w-5 h-5 text-amber-400" />
+                    <span>Dokumen ST & SPD</span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${suratMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {suratMenuOpen && (
+                  <div className="mt-1 pl-4 space-y-1 border-l-2 border-slate-700/60 ml-4">
+                    <Link
+                      href="/surat-tugas"
+                      className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
+                        currentRoute === '/surat-tugas'
+>>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
                           ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
                           : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                       }`}
                     >
+<<<<<<< HEAD
                       <Users className="w-4 h-4" />
                       <span>Data Pegawai</span>
                     </Link>
@@ -154,10 +243,21 @@ export default function AdminLayout({ children, title }) {
                       href="/admin/ppk"
                       className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
                         isActive('/admin/ppk')
+=======
+                      <FileText className="w-4 h-4" />
+                      <span>Daftar ST & SPD</span>
+                    </Link>
+
+                    <Link
+                      href="/surat-tugas/create"
+                      className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
+                        currentRoute === '/surat-tugas/create'
+>>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
                           ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
                           : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                       }`}
                     >
+<<<<<<< HEAD
                       <UserCheck className="w-4 h-4" />
                       <span>Data PPK</span>
                     </Link>
@@ -184,14 +284,105 @@ export default function AdminLayout({ children, title }) {
                     >
                       <Layers className="w-4 h-4" />
                       <span>Biaya & Angkutan</span>
+=======
+                      <PlusCircle className="w-4 h-4 text-emerald-400" />
+                      <span>Buat Surat Baru</span>
+>>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
                     </Link>
                   </div>
                 )}
               </div>
+<<<<<<< HEAD
             </nav>
           </div>
 
           {/* Footer Info inside Sidebar */}
+=======
+
+              {/* Group 2: Master Database (Admin Access) */}
+              {(auth?.user?.role === 'admin' || auth?.user?.role === 'tu') && (
+                <div className="pt-2">
+                  <button
+                    onClick={() => setMasterMenuOpen(!masterMenuOpen)}
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Database className="w-5 h-5 text-amber-400" />
+                      <span>Master Database</span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${masterMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {masterMenuOpen && (
+                    <div className="mt-1 pl-4 space-y-1 border-l-2 border-slate-700/60 ml-4">
+                      <Link
+                        href="/admin"
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
+                          currentRoute === '/admin'
+                            ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        <span>Overview Master</span>
+                      </Link>
+
+                      <Link
+                        href="/admin/pegawai"
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
+                          isActive('/admin/pegawai')
+                            ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <Users className="w-4 h-4" />
+                        <span>Data Pegawai</span>
+                      </Link>
+
+                      <Link
+                        href="/admin/ppk"
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
+                          isActive('/admin/ppk')
+                            ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        <span>Data PPK</span>
+                      </Link>
+
+                      <Link
+                        href="/admin/unit-kerja"
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
+                          isActive('/admin/unit-kerja')
+                            ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <Building2 className="w-4 h-4" />
+                        <span>Unit Kerja</span>
+                      </Link>
+
+                      <Link
+                        href="/admin/referensi"
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
+                          isActive('/admin/referensi')
+                            ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <Layers className="w-4 h-4" />
+                        <span>Biaya & Angkutan</span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+            </nav>
+          </div>
+
+          {/* Footer Info */}
+>>>>>>> af2d40d45070198084a26a5cda9acc844aa69d65
           <div className="p-4 border-t border-slate-800 bg-[#081935] text-xs text-slate-400 flex flex-col space-y-1">
             <div className="flex items-center justify-between text-slate-300">
               <span className="font-semibold text-amber-400">e-SPD Pusdiklat</span>
