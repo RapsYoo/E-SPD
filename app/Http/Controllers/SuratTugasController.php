@@ -45,6 +45,10 @@ class SuratTugasController extends Controller
 
     public function create()
     {
+        if (!in_array(auth()->user()?->role, ['pemohon', 'admin'])) {
+            return redirect()->route('surat-tugas.index')->with('error', 'Hanya Sespalu/Pemohon atau Admin yang dapat membuat usulan Surat Tugas.');
+        }
+
         return Inertia::render('SuratTugas/Create', [
             'pegawaiList' => Pegawai::where('is_active', true)->orderBy('nama')->get(),
             'ppkList' => Ppk::where('is_active', true)->orderBy('nama')->get(),
@@ -57,6 +61,10 @@ class SuratTugasController extends Controller
 
     public function store(Request $request)
     {
+        if (!in_array(auth()->user()?->role, ['pemohon', 'admin'])) {
+            return redirect()->back()->with('error', 'Hanya Sespalu/Pemohon atau Admin yang dapat mengirim usulan Surat Tugas.');
+        }
+
         $validated = $request->validate([
             'kategori_perjalanan' => 'required|in:DALAM_NEGERI,LUAR_NEGERI',
             'sumber_asal' => 'required|in:INTERNAL,EKSTERNAL',
@@ -65,18 +73,19 @@ class SuratTugasController extends Controller
             'tanggal_nota' => 'required|date',
             'perihal_nota' => 'required|string',
             'file_undangan' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'file_izin_setneg' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'file_izin_setneg' => 'required_if:kategori_perjalanan,LUAR_NEGERI|file|mimes:pdf,docx|max:10240',
             
             // PPK & Travel details
             'ppk_id' => 'required|exists:ppk,id',
-            'tingkat_biaya_kode' => 'required|string',
-            'jenis_angkutan_nama' => 'required|string',
+            'tingkat_biaya_kode' => 'required|exists:tingkat_biaya,kode',
+            'jenis_angkutan_nama' => 'required|exists:jenis_angkutan,nama',
             'tempat_berangkat' => 'required|string',
             'tempat_tujuan' => 'required|string',
-            'negara_tujuan' => 'nullable|string',
-            'no_setneg' => 'nullable|string',
+            'negara_tujuan' => 'required_if:kategori_perjalanan,LUAR_NEGERI|nullable|string|max:255',
+            'no_setneg' => 'required_if:kategori_perjalanan,LUAR_NEGERI|nullable|string|max:255',
             'tanggal_berangkat' => 'required|date',
             'tanggal_kembali' => 'required|date|after_or_equal:tanggal_berangkat',
+            'tanggal_surat' => 'required|date',
             'durasi_hari' => 'required|integer|min:1',
             
             // Officers array
@@ -118,6 +127,7 @@ class SuratTugasController extends Controller
             'no_setneg' => $validated['no_setneg'] ?? null,
             'tanggal_berangkat' => $validated['tanggal_berangkat'],
             'tanggal_kembali' => $validated['tanggal_kembali'],
+            'tanggal_surat' => $validated['tanggal_surat'],
             'durasi_hari' => $validated['durasi_hari'],
         ]);
 
@@ -159,6 +169,9 @@ class SuratTugasController extends Controller
         if (!in_array($userRole, ['kapus', 'admin'])) {
             return redirect()->back()->with('error', 'Hanya Kepala Pusat (Kapus) atau Admin yang berhak memberikan disposisi.');
         }
+        if ($suratTugas->status !== 'MENUNGGU_DISPOSISI_KAPUS') {
+            return redirect()->back()->with('error', 'Disposisi Kapus hanya dapat dilakukan setelah usulan dikirim oleh Sespalu.');
+        }
 
         $validated = $request->validate([
             'kapus_decision' => 'required|in:YA,REVISI,STOP',
@@ -190,6 +203,9 @@ class SuratTugasController extends Controller
         if (!in_array($userRole, ['tu', 'admin'])) {
             return redirect()->back()->with('error', 'Hanya Tata Usaha (TU) atau Admin yang berhak melakukan penomoran naskah dinas.');
         }
+        if ($suratTugas->status !== 'MENUNGGU_PENOMORAN_TU') {
+            return redirect()->back()->with('error', 'Penomoran TU hanya dapat dilakukan setelah disposisi Kapus menyetujui usulan.');
+        }
 
         $validated = $request->validate([
             'nomor_st' => 'required|string|max:255',
@@ -214,6 +230,9 @@ class SuratTugasController extends Controller
         if (!in_array($userRole, ['ppk', 'admin'])) {
             return redirect()->back()->with('error', 'Hanya Pejabat Pembuat Komitmen (PPK) atau Admin yang berhak menyematkan TTD digital.');
         }
+        if ($suratTugas->status !== 'SELESAI_TERBIT') {
+            return redirect()->back()->with('error', 'TTD PPK dapat dilakukan setelah dokumen selesai diterbitkan oleh TU.');
+        }
 
         $isSigned = $request->boolean('is_ppk_signed', true);
 
@@ -229,6 +248,10 @@ class SuratTugasController extends Controller
     // Print Document View Generator
     public function cetak(SuratTugas $suratTugas)
     {
+        if (!in_array(auth()->user()?->role, ['tu', 'admin']) || $suratTugas->status !== 'SELESAI_TERBIT') {
+            return redirect()->route('surat-tugas.show', $suratTugas->id)->with('error', 'Dokumen hanya dapat dicetak oleh TU setelah penomoran resmi diterbitkan.');
+        }
+
         $suratTugas->load(['pegawaiList', 'ppk', 'user']);
 
         return Inertia::render('SuratTugas/Print', [

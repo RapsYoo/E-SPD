@@ -30,8 +30,8 @@ export default function Show({ suratTugas, userRole }) {
 
   // TU Penomoran Form
   const tuForm = useForm({
-    nomor_st: suratTugas.nomor_st || 'ST/KP/08581/08/2026/79',
-    nomor_spd: suratTugas.nomor_spd || '0088/DL-SPD/VIII/2026/79',
+    nomor_st: suratTugas.nomor_st || '',
+    nomor_spd: suratTugas.nomor_spd || '',
     tanggal_surat: suratTugas.tanggal_surat || new Date().toISOString().split('T')[0],
   });
 
@@ -76,13 +76,15 @@ export default function Show({ suratTugas, userRole }) {
           <p className="text-xs text-slate-500">Monitoring status persetujuan, penomoran resmi, dan TTD digital PPK</p>
         </div>
 
-        <Link
-          href={`/surat-tugas/${suratTugas.id}/cetak`}
-          className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition text-sm"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Cetak Dokumen Resmi PDF</span>
-        </Link>
+        {(userRole === 'tu' || userRole === 'admin') && suratTugas.status === 'SELESAI_TERBIT' && (
+          <Link
+            href={`/surat-tugas/${suratTugas.id}/cetak`}
+            className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition text-sm"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Cetak Dokumen Resmi PDF</span>
+          </Link>
+        )}
       </div>
 
       {/* Grid: Document Summary & Workflow Timeline */}
@@ -195,6 +197,7 @@ export default function Show({ suratTugas, userRole }) {
           </div>
 
           {/* Action Box 1: Disposisi Kapus */}
+          {(userRole === 'kapus' || userRole === 'admin') && suratTugas.status === 'MENUNGGU_DISPOSISI_KAPUS' && (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
             <div className="flex items-center space-x-2 text-purple-700 font-bold text-sm">
               <UserCheck className="w-5 h-5 text-amber-500" />
@@ -235,8 +238,10 @@ export default function Show({ suratTugas, userRole }) {
               </button>
             </form>
           </div>
+          )}
 
           {/* Action Box 2: Penomoran TU */}
+          {(userRole === 'tu' || userRole === 'admin') && suratTugas.status === 'MENUNGGU_PENOMORAN_TU' && (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
             <div className="flex items-center space-x-2 text-blue-700 font-bold text-sm">
               <Hash className="w-5 h-5 text-amber-500" />
@@ -251,6 +256,7 @@ export default function Show({ suratTugas, userRole }) {
                   required
                   value={tuForm.data.nomor_st}
                   onChange={(e) => tuForm.setData('nomor_st', e.target.value)}
+                  placeholder="Masukkan nomor surat tugas"
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono"
                 />
               </div>
@@ -262,6 +268,7 @@ export default function Show({ suratTugas, userRole }) {
                   required
                   value={tuForm.data.nomor_spd}
                   onChange={(e) => tuForm.setData('nomor_spd', e.target.value)}
+                  placeholder="Masukkan nomor SPD"
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono"
                 />
               </div>
@@ -275,8 +282,10 @@ export default function Show({ suratTugas, userRole }) {
               </button>
             </form>
           </div>
+          )}
 
           {/* Action Box 3: PPK Digital Signature */}
+          {(userRole === 'ppk' || userRole === 'admin') && suratTugas.status === 'SELESAI_TERBIT' && (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
             <div className="flex items-center space-x-2 text-emerald-700 font-bold text-sm">
               <Stamp className="w-5 h-5 text-emerald-600" />
@@ -300,6 +309,7 @@ export default function Show({ suratTugas, userRole }) {
               </button>
             </form>
           </div>
+          )}
         </div>
       </div>
     </AdminLayout>

@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import mammoth from 'mammoth';
 import { 
   FileSignature, 
   Upload, 
   UserCheck, 
   PenTool, 
   Hash, 
+  FileDigit,
   Printer, 
   Check, 
   ChevronRight, 
@@ -29,30 +31,65 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
   const [activeStep, setActiveStep] = useState(1);
   const [selectedPegawaiIds, setSelectedPegawaiIds] = useState([]);
   const [selectedMasterId, setSelectedMasterId] = useState('');
+  const [attachmentUrls, setAttachmentUrls] = useState({});
+  const [docxPreviews, setDocxPreviews] = useState({});
 
   const { data, setData, post, processing, errors } = useForm({
-    kategori_perjalanan: 'DALAM_NEGERI',
-    sumber_asal: 'EKSTERNAL',
-    nomor_nota: 'Undangan/OT/01710/08/2026/21',
-    pengirim_nota: 'Pusat Studi Jepang Universitas Indonesia',
-    tanggal_nota: '2026-08-20',
-    perihal_nota: 'Undangan Rapat Koordinasi Pembahasan Capaian Peta Jalan Postur Diplomasi Tahun 2026 serta reviu progres dan penghitungan capaian indikator.',
+    kategori_perjalanan: '',
+    sumber_asal: '',
+    nomor_nota: '',
+    pengirim_nota: '',
+    tanggal_nota: '',
+    perihal_nota: '',
     file_undangan: null,
     file_izin_setneg: null,
     
     // Step 3
-    ppk_id: ppkList && ppkList.length > 0 ? ppkList[0].id : '',
-    tingkat_biaya_kode: 'C',
-    jenis_angkutan_nama: 'Perjalanan Darat',
-    tempat_berangkat: 'Jakarta',
-    tempat_tujuan: 'Depok, Jawa Barat',
+    ppk_id: '',
+    tingkat_biaya_kode: '',
+    jenis_angkutan_nama: '',
+    tempat_berangkat: '',
+    tempat_tujuan: '',
     negara_tujuan: '',
     no_setneg: '',
-    tanggal_berangkat: '2026-08-27',
-    tanggal_kembali: '2026-09-01',
-    durasi_hari: 6,
+    tanggal_berangkat: '',
+    tanggal_kembali: '',
+    tanggal_surat: '',
+    durasi_hari: 1,
     pegawai_ids: [],
   });
+
+  useEffect(() => {
+    const files = {
+      invitation: data.file_undangan,
+      setneg: data.file_izin_setneg,
+    };
+    const urls = Object.fromEntries(
+      Object.entries(files)
+        .filter(([, file]) => file)
+        .map(([key, file]) => [key, URL.createObjectURL(file)])
+    );
+    let cancelled = false;
+
+    setAttachmentUrls(urls);
+    setDocxPreviews({});
+
+    Object.entries(files).forEach(async ([key, file]) => {
+      if (!file?.name.toLowerCase().endsWith('.docx')) return;
+
+      try {
+        const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+        if (!cancelled) setDocxPreviews((previews) => ({ ...previews, [key]: result.value }));
+      } catch {
+        if (!cancelled) setDocxPreviews((previews) => ({ ...previews, [key]: 'Isi DOCX tidak dapat dipratinjau. Buka atau unduh berkas asli untuk memeriksanya.' }));
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [data.file_undangan, data.file_izin_setneg]);
 
   const handleAddPegawai = () => {
     if (!selectedMasterId) return;
@@ -91,6 +128,14 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
     });
   };
 
+  const handleTravelCategoryChange = (value) => {
+    setData({
+      ...data,
+      kategori_perjalanan: value,
+      ...(value === 'DALAM_NEGERI' ? { negara_tujuan: '', no_setneg: '' } : {}),
+    });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (selectedPegawaiIds.length === 0) {
@@ -118,12 +163,12 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 mb-6 overflow-x-auto">
         <div className="flex items-center justify-between min-w-[700px] text-xs">
           {/* Step 1 */}
-          <button
-            onClick={() => setActiveStep(1)}
+          <div
+            aria-current={activeStep === 1 ? 'step' : undefined}
             className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
               activeStep === 1
                 ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
             }`}
           >
             <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
@@ -132,17 +177,17 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               1
             </span>
             <span>1. Upload Nota / Undangan</span>
-          </button>
+          </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
 
           {/* Step 2 */}
-          <button
-            onClick={() => setActiveStep(2)}
+          <div
+            aria-current={activeStep === 2 ? 'step' : undefined}
             className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
               activeStep === 2
                 ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
             }`}
           >
             <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
@@ -151,17 +196,17 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               2
             </span>
             <span>2. Disposisi Kapus</span>
-          </button>
+          </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
 
           {/* Step 3 */}
-          <button
-            onClick={() => setActiveStep(3)}
+          <div
+            aria-current={activeStep === 3 ? 'step' : undefined}
             className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
               activeStep === 3
                 ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
             }`}
           >
             <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
@@ -170,17 +215,17 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               3
             </span>
             <span>3. Draft Personel & SPD</span>
-          </button>
+          </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
 
           {/* Step 4 */}
-          <button
-            onClick={() => setActiveStep(4)}
+          <div
+            aria-current={activeStep === 4 ? 'step' : undefined}
             className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
               activeStep === 4
                 ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
             }`}
           >
             <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
@@ -189,17 +234,17 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               4
             </span>
             <span>4. Penomoran TU</span>
-          </button>
+          </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
 
           {/* Step 5 */}
-          <button
-            onClick={() => setActiveStep(5)}
+          <div
+            aria-current={activeStep === 5 ? 'step' : undefined}
             className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
               activeStep === 5
                 ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
             }`}
           >
             <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
@@ -208,7 +253,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               5
             </span>
             <span>5. Output & Cetak PDF</span>
-          </button>
+          </div>
         </div>
       </div>
 
@@ -243,8 +288,9 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                     type="radio"
                     name="kategori_perjalanan"
                     value="DALAM_NEGERI"
+                    required
                     checked={data.kategori_perjalanan === 'DALAM_NEGERI'}
-                    onChange={(e) => setData('kategori_perjalanan', e.target.value)}
+                    onChange={(e) => handleTravelCategoryChange(e.target.value)}
                     className="text-amber-500 focus:ring-amber-500"
                   />
                   <div>
@@ -261,7 +307,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                     name="kategori_perjalanan"
                     value="LUAR_NEGERI"
                     checked={data.kategori_perjalanan === 'LUAR_NEGERI'}
-                    onChange={(e) => setData('kategori_perjalanan', e.target.value)}
+                    onChange={(e) => handleTravelCategoryChange(e.target.value)}
                     className="text-amber-500 focus:ring-amber-500"
                   />
                   <div>
@@ -278,8 +324,10 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                 <select
                   value={data.sumber_asal}
                   onChange={(e) => setData('sumber_asal', e.target.value)}
+                  required
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 >
+                  <option value="" disabled>Pilih sumber nota / undangan</option>
                   <option value="EKSTERNAL">Pihak Eksternal (Instansi Luar / Universitas / Lembaga)</option>
                   <option value="INTERNAL">Internal Sespalu / Pusdiklat Kemlu</option>
                 </select>
@@ -292,8 +340,8 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                   required
                   value={data.nomor_nota}
                   onChange={(e) => setData('nomor_nota', e.target.value)}
-                  placeholder="Undangan/OT/01710/08/2026/21"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-mono focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  placeholder="Masukkan nomor nota / undangan"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-mono placeholder:text-slate-400 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -306,8 +354,8 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                   required
                   value={data.pengirim_nota}
                   onChange={(e) => setData('pengirim_nota', e.target.value)}
-                  placeholder="Pusat Studi Jepang Universitas Indonesia"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  placeholder="Masukkan instansi / unit pengirim"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
               </div>
 
@@ -318,7 +366,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                   required
                   value={data.tanggal_nota}
                   onChange={(e) => setData('tanggal_nota', e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -330,9 +378,46 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                 required
                 value={data.perihal_nota}
                 onChange={(e) => setData('perihal_nota', e.target.value)}
-                placeholder="Rapat Koordinasi Pembahasan Capaian Peta Jalan Postur Diplomasi..."
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                placeholder="Masukkan perihal undangan / uraian tugas"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-amber-500 focus:outline-none"
               ></textarea>
+            </div>
+
+            <div className={`grid grid-cols-1 ${data.kategori_perjalanan === 'LUAR_NEGERI' ? 'sm:grid-cols-2' : ''} gap-4`}>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Upload File PDF Scan Undangan (Maks. 10 MB)</label>
+                <label className="relative flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-center text-xs text-slate-600 transition hover:border-blue-400 hover:bg-blue-50">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                    onChange={(e) => setData('file_undangan', e.target.files[0] || null)}
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  />
+                  <Upload className="h-5 w-5 text-slate-400" />
+                  <span>{data.file_undangan?.name || 'Klik untuk mengunggah scan undangan'}</span>
+                  <span className="text-[10px] text-slate-400">PDF, JPG, atau PNG</span>
+                </label>
+                {errors.file_undangan && <p className="mt-1 text-xs text-red-600">{errors.file_undangan}</p>}
+              </div>
+
+              {data.kategori_perjalanan === 'LUAR_NEGERI' && (
+                <div>
+                  <label className="block text-xs font-semibold text-amber-800 mb-1">Upload Izin Setneg / Keppres (Wajib untuk Dinas LN) *</label>
+                  <label className="relative flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 px-4 py-4 text-center text-xs text-amber-900 transition hover:bg-amber-100">
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      required
+                      onChange={(e) => setData('file_izin_setneg', e.target.files[0] || null)}
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    />
+                    <Upload className="h-5 w-5 text-amber-600" />
+                    <span>{data.file_izin_setneg?.name || 'Klik untuk mengunggah Surat Persetujuan Setneg'}</span>
+                    <span className="text-[10px] text-amber-700">PDF atau DOCX, maks. 10 MB</span>
+                  </label>
+                  {errors.file_izin_setneg && <p className="mt-1 text-xs text-red-600">{errors.file_izin_setneg}</p>}
+                </div>
+              )}
             </div>
 
             <div className="pt-4 flex justify-end">
@@ -376,12 +461,78 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               </div>
             </div>
 
+            <section className="space-y-3" aria-labelledby="kapus-attachments-title">
+              <div className="flex items-center justify-between">
+                <h3 id="kapus-attachments-title" className="text-sm font-bold text-slate-900">Lampiran untuk Ditinjau Kapus</h3>
+                <span className="text-xs text-slate-500">Berkas yang diunggah pada Tahap 1</span>
+              </div>
+
+              {[
+                { key: 'invitation', label: 'Nota / Undangan', file: data.file_undangan },
+                ...(data.kategori_perjalanan === 'LUAR_NEGERI'
+                  ? [{ key: 'setneg', label: 'Izin Setneg / Keppres', file: data.file_izin_setneg }]
+                  : []),
+              ].filter(({ file }) => file).length > 0 ? (
+                <div className="grid grid-cols-1 gap-4">
+                  {[
+                    { key: 'invitation', label: 'Nota / Undangan', file: data.file_undangan },
+                    ...(data.kategori_perjalanan === 'LUAR_NEGERI'
+                      ? [{ key: 'setneg', label: 'Izin Setneg / Keppres', file: data.file_izin_setneg }]
+                      : []),
+                  ].filter(({ file }) => file).map(({ key, label, file }) => {
+                    const extension = file.name.split('.').pop().toLowerCase();
+
+                    return (
+                      <div key={key} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">{label}</p>
+                            <p className="mt-0.5 break-all text-xs text-slate-500">{file.name}</p>
+                          </div>
+                          {attachmentUrls[key] && (
+                            <a
+                              href={attachmentUrls[key]}
+                              target="_blank"
+                              rel="noreferrer"
+                              download={file.name}
+                              className="text-xs font-semibold text-blue-700 hover:text-blue-900"
+                            >
+                              Buka / Unduh
+                            </a>
+                          )}
+                        </div>
+
+                        {extension === 'pdf' && attachmentUrls[key] ? (
+                          <iframe title={`Pratinjau ${label}`} src={attachmentUrls[key]} className="h-[32rem] w-full bg-slate-100" />
+                        ) : ['jpg', 'jpeg', 'png'].includes(extension) && attachmentUrls[key] ? (
+                          <div className="flex max-h-[32rem] justify-center overflow-auto bg-slate-100 p-4">
+                            <img src={attachmentUrls[key]} alt={`Pratinjau ${label}`} className="h-auto max-w-full object-contain" />
+                          </div>
+                        ) : extension === 'docx' ? (
+                          <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap p-4 text-xs leading-6 text-slate-700">
+                            {docxPreviews[key] ?? 'Memuat pratinjau dokumen...'}
+                          </pre>
+                        ) : (
+                          <p className="p-4 text-xs text-slate-500">Gunakan tombol Buka / Unduh untuk melihat berkas ini.</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-xs text-slate-500">
+                  Belum ada lampiran yang diunggah pada Tahap 1.
+                </p>
+              )}
+            </section>
+
             <div className="space-y-3">
               <label className="block text-xs font-bold text-slate-700">Disposisi Instruksi Kapus *</label>
               <textarea
                 rows="3"
-                value="Tugaskan sdr. Geovannie Foresty Palembangan (Diplomat Ahli Madya) beserta tim pendamping untuk menghadiri rapat koordinasi tersebut."
+                value=""
                 readOnly
+                placeholder="Instruksi disposisi Kapus akan tercatat pada tahap ini"
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-amber-50/50 font-medium text-slate-800 focus:outline-none"
               ></textarea>
             </div>
@@ -433,8 +584,10 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               <select
                 value={data.ppk_id}
                 onChange={(e) => setData('ppk_id', e.target.value)}
+                required
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold uppercase focus:ring-2 focus:ring-amber-500"
               >
+                <option value="" disabled>Pilih PPK</option>
                 {ppkList && ppkList.map((ppk) => (
                   <option key={ppk.id} value={ppk.id}>
                     {ppk.nama} — NIP: {ppk.nip} ({ppk.jabatan || 'PPK Pusdiklat'})
@@ -533,6 +686,42 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                   </tbody>
                 </table>
               </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">Tingkat Biaya SPD *</label>
+                  <select
+                    value={data.tingkat_biaya_kode}
+                    onChange={(e) => setData('tingkat_biaya_kode', e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="" disabled>Pilih tingkat biaya</option>
+                    {tingkatBiayaList?.map((tingkatBiaya) => (
+                      <option key={tingkatBiaya.id} value={tingkatBiaya.kode}>
+                        {tingkatBiaya.nama} ({tingkatBiaya.kode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">Angkutan *</label>
+                  <select
+                    value={data.jenis_angkutan_nama}
+                    onChange={(e) => setData('jenis_angkutan_nama', e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="" disabled>Pilih jenis angkutan</option>
+                    {jenisAngkutanList?.map((jenisAngkutan) => (
+                      <option key={jenisAngkutan.id} value={jenisAngkutan.nama}>
+                        {jenisAngkutan.nama}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* Travel Parameters */}
@@ -542,7 +731,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                 <span>Lokasi & Waktu Perjalanan Dinas</span>
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Tempat Berangkat *</label>
                   <input
@@ -550,7 +739,8 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                     required
                     value={data.tempat_berangkat}
                     onChange={(e) => setData('tempat_berangkat', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                    placeholder="Masukkan tempat berangkat"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs placeholder:text-slate-400"
                   />
                 </div>
 
@@ -561,9 +751,38 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                     required
                     value={data.tempat_tujuan}
                     onChange={(e) => setData('tempat_tujuan', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                    placeholder="Masukkan tempat tujuan"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs placeholder:text-slate-400"
                   />
                 </div>
+
+                {data.kategori_perjalanan === 'LUAR_NEGERI' && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-800 mb-1">Negara Tujuan *</label>
+                      <input
+                        type="text"
+                        required
+                        value={data.negara_tujuan}
+                        onChange={(e) => setData('negara_tujuan', e.target.value)}
+                        placeholder="Contoh: Jepang (Tokyo)"
+                        className="w-full rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs placeholder:text-slate-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-800 mb-1">Nomor Surat Izin Setneg *</label>
+                      <input
+                        type="text"
+                        required
+                        value={data.no_setneg}
+                        onChange={(e) => setData('no_setneg', e.target.value)}
+                        placeholder="Masukkan nomor surat izin Setneg"
+                        className="w-full rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs placeholder:text-slate-400"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Berangkat *</label>
@@ -622,7 +841,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                  <Hash className="w-5 h-5 text-amber-500" />
+                  <FileDigit className="w-5 h-5 text-amber-500" />
                   <span>Tahap 4: Registrasi & Penomoran Resmi Naskah Dinas TU</span>
                 </h2>
                 <p className="text-xs text-slate-500">Penomoran resmi Surat Tugas dan Lembar SPD oleh Tata Usaha</p>
@@ -640,27 +859,40 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nomor Surat Tugas Resmi *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nomor Surat Tugas Resmi (Diisi TU)</label>
                   <input
                     type="text"
-                    required
-                    value="ST/KP/08581/08/2026/79"
+                    value=""
                     readOnly
+                    placeholder="Diisi oleh Tata Usaha"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono font-bold bg-white text-slate-900 focus:outline-none"
                   />
                   <span className="text-[10px] text-slate-500 mt-1 block">Format: ST/KP/[NO_URUT]/[BULAN]/[TAHUN]/[KODE]</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nomor SPD Resmi *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nomor SPD Resmi (Diisi TU)</label>
                   <input
                     type="text"
-                    required
-                    value="0088/DL-SPD/VIII/2026/79"
+                    value=""
                     readOnly
+                    placeholder="Diisi oleh Tata Usaha"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono font-bold bg-white text-slate-900 focus:outline-none"
                   />
                   <span className="text-[10px] text-slate-500 mt-1 block">Format: [NO_URUT]/DL-SPD/[ROMAWI]/[TAHUN]/[KODE]</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Surat Tugas & SPD *</label>
+                  <input
+                    type="date"
+                    required
+                    value={data.tanggal_surat}
+                    onChange={(e) => setData('tanggal_surat', e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.tanggal_surat && <p className="mt-1 text-xs text-red-600">{errors.tanggal_surat}</p>}
+                  <span className="text-[10px] text-slate-500 mt-1 block">Tanggal yang dicantumkan pada Surat Tugas dan SPD</span>
                 </div>
               </div>
             </div>
