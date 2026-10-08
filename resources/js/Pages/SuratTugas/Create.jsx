@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import mammoth from 'mammoth';
 import { 
@@ -24,58 +24,96 @@ import {
   ShieldCheck,
   Coins,
   Truck,
-  FileText
+  FileText,
+  Search,
+  AlertCircle,
+  X,
+  Save,
+  Clock,
+  BookmarkCheck,
+  FileClock
 } from 'lucide-react';
 
-export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBiayaList, jenisAngkutanList, userRole }) {
-  const [activeStep, setActiveStep] = useState(1);
-  const [selectedPegawaiIds, setSelectedPegawaiIds] = useState([]);
+export default function Create({ 
+  pegawaiList, 
+  ppkList, 
+  unitKerjaList, 
+  tingkatBiayaList, 
+  jenisAngkutanList, 
+  userRole, 
+  draft, 
+  activeDrafts 
+}) {
+  const [activeStep, setActiveStep] = useState(draft?.draft_step || 1);
+  const [selectedPegawaiIds, setSelectedPegawaiIds] = useState(
+    draft?.pegawai_list ? draft.pegawai_list.map((p) => p.pegawai_id) : []
+  );
   const [selectedMasterId, setSelectedMasterId] = useState('');
+  const [pegawaiSearchTerm, setPegawaiSearchTerm] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [stepValidationError, setStepValidationError] = useState('');
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [draftSuccessMsg, setDraftSuccessMsg] = useState('');
+  const dropdownRef = useRef(null);
   const [attachmentUrls, setAttachmentUrls] = useState({});
   const [docxPreviews, setDocxPreviews] = useState({});
 
   const { data, setData, post, processing, errors } = useForm({
-    kategori_perjalanan: '',
-    sumber_asal: '',
-    nomor_nota: '',
-    pengirim_nota: '',
-    tanggal_nota: '',
-    perihal_nota: '',
+    draft_id: draft?.id || null,
+    draft_step: draft?.draft_step || 1,
+    kategori_perjalanan: draft?.kategori_perjalanan || '',
+    sumber_asal: draft?.sumber_asal || '',
+    nomor_nota: draft?.nomor_nota || '',
+    pengirim_nota: draft?.pengirim_nota || '',
+    tanggal_nota: draft?.tanggal_nota ? String(draft.tanggal_nota).split('T')[0] : '',
+    perihal_nota: draft?.perihal_nota || '',
     file_undangan: null,
     file_izin_setneg: null,
+    existing_file_undangan: draft?.file_undangan || null,
+    existing_file_izin_setneg: draft?.file_izin_setneg || null,
+
+    // Step 2 (Kapus)
+    kapus_decision: draft?.kapus_decision || 'YA',
+    catatan_kapus: draft?.catatan_kapus || '',
     
-    // Step 3
-    ppk_id: '',
-    tingkat_biaya_kode: '',
-    jenis_angkutan_nama: '',
-    tempat_berangkat: '',
-    tempat_tujuan: '',
-    negara_tujuan: '',
-    no_setneg: '',
-    tanggal_berangkat: '',
-    tanggal_kembali: '',
-    tanggal_surat: '',
-    durasi_hari: 1,
-    pegawai_ids: [],
+    // Step 3 (Personel & SPD)
+    ppk_id: draft?.ppk_id || (ppkList && ppkList.length > 0 ? ppkList[0].id : ''),
+    tingkat_biaya_kode: draft?.tingkat_biaya_kode || (tingkatBiayaList && tingkatBiayaList.length > 0 ? tingkatBiayaList[0].kode : 'C'),
+    jenis_angkutan_nama: draft?.jenis_angkutan_nama || (jenisAngkutanList && jenisAngkutanList.length > 0 ? jenisAngkutanList[0].nama : 'Perjalanan Darat'),
+    tempat_berangkat: draft?.tempat_berangkat || 'Jakarta',
+    tempat_tujuan: draft?.tempat_tujuan || '',
+    negara_tujuan: draft?.negara_tujuan || '',
+    no_setneg: draft?.no_setneg || '',
+    tanggal_berangkat: draft?.tanggal_berangkat ? String(draft.tanggal_berangkat).split('T')[0] : '',
+    tanggal_kembali: draft?.tanggal_kembali ? String(draft.tanggal_kembali).split('T')[0] : '',
+    tanggal_surat: draft?.tanggal_surat ? String(draft.tanggal_surat).split('T')[0] : new Date().toISOString().split('T')[0],
+    durasi_hari: draft?.durasi_hari || 1,
+    nomor_st: draft?.nomor_st || '',
+    nomor_spd: draft?.nomor_spd || '',
+    pegawai_ids: draft?.pegawai_list ? draft.pegawai_list.map((p) => p.pegawai_id) : [],
   });
 
   useEffect(() => {
-    const files = {
-      invitation: data.file_undangan,
-      setneg: data.file_izin_setneg,
-    };
-    const urls = Object.fromEntries(
-      Object.entries(files)
-        .filter(([, file]) => file)
-        .map(([key, file]) => [key, URL.createObjectURL(file)])
-    );
-    let cancelled = false;
+    const urls = {};
+    if (data.file_undangan instanceof File) {
+      urls.invitation = URL.createObjectURL(data.file_undangan);
+    } else if (data.existing_file_undangan) {
+      urls.invitation = `/storage/${data.existing_file_undangan}`;
+    }
 
+    if (data.file_izin_setneg instanceof File) {
+      urls.setneg = URL.createObjectURL(data.file_izin_setneg);
+    } else if (data.existing_file_izin_setneg) {
+      urls.setneg = `/storage/${data.existing_file_izin_setneg}`;
+    }
+
+    let cancelled = false;
     setAttachmentUrls(urls);
     setDocxPreviews({});
 
+    const files = { invitation: data.file_undangan, setneg: data.file_izin_setneg };
     Object.entries(files).forEach(async ([key, file]) => {
-      if (!file?.name.toLowerCase().endsWith('.docx')) return;
+      if (!file || !(file instanceof File) || !file.name.toLowerCase().endsWith('.docx')) return;
 
       try {
         const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
@@ -87,9 +125,75 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
     return () => {
       cancelled = true;
-      Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
+      if (data.file_undangan instanceof File && urls.invitation) URL.revokeObjectURL(urls.invitation);
+      if (data.file_izin_setneg instanceof File && urls.setneg) URL.revokeObjectURL(urls.setneg);
     };
-  }, [data.file_undangan, data.file_izin_setneg]);
+  }, [data.file_undangan, data.file_izin_setneg, data.existing_file_undangan, data.existing_file_izin_setneg]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleSaveDraft = () => {
+    setIsSavingDraft(true);
+    setDraftSuccessMsg('');
+    setStepValidationError('');
+
+    const formData = new FormData();
+    formData.append('draft_step', activeStep);
+    if (data.draft_id) formData.append('draft_id', data.draft_id);
+    if (data.kategori_perjalanan) formData.append('kategori_perjalanan', data.kategori_perjalanan);
+    if (data.sumber_asal) formData.append('sumber_asal', data.sumber_asal);
+    if (data.nomor_nota) formData.append('nomor_nota', data.nomor_nota);
+    if (data.pengirim_nota) formData.append('pengirim_nota', data.pengirim_nota);
+    if (data.tanggal_nota) formData.append('tanggal_nota', data.tanggal_nota);
+    if (data.perihal_nota) formData.append('perihal_nota', data.perihal_nota);
+    if (data.file_undangan) formData.append('file_undangan', data.file_undangan);
+    if (data.file_izin_setneg) formData.append('file_izin_setneg', data.file_izin_setneg);
+    if (data.kapus_decision) formData.append('kapus_decision', data.kapus_decision);
+    if (data.catatan_kapus) formData.append('catatan_kapus', data.catatan_kapus);
+    if (data.ppk_id) formData.append('ppk_id', data.ppk_id);
+    if (data.tingkat_biaya_kode) formData.append('tingkat_biaya_kode', data.tingkat_biaya_kode);
+    if (data.jenis_angkutan_nama) formData.append('jenis_angkutan_nama', data.jenis_angkutan_nama);
+    if (data.tempat_berangkat) formData.append('tempat_berangkat', data.tempat_berangkat);
+    if (data.tempat_tujuan) formData.append('tempat_tujuan', data.tempat_tujuan);
+    if (data.negara_tujuan) formData.append('negara_tujuan', data.negara_tujuan);
+    if (data.no_setneg) formData.append('no_setneg', data.no_setneg);
+    if (data.tanggal_berangkat) formData.append('tanggal_berangkat', data.tanggal_berangkat);
+    if (data.tanggal_kembali) formData.append('tanggal_kembali', data.tanggal_kembali);
+    if (data.durasi_hari) formData.append('durasi_hari', data.durasi_hari);
+    if (data.nomor_st) formData.append('nomor_st', data.nomor_st);
+    if (data.nomor_spd) formData.append('nomor_spd', data.nomor_spd);
+    if (data.tanggal_surat) formData.append('tanggal_surat', data.tanggal_surat);
+    selectedPegawaiIds.forEach((id) => formData.append('pegawai_ids[]', id));
+
+    router.post('/surat-tugas/draft', formData, {
+      onSuccess: () => {
+        setIsSavingDraft(false);
+        setDraftSuccessMsg(`Draft surat berhasil disimpan di Tahap ${activeStep}!`);
+        setTimeout(() => setDraftSuccessMsg(''), 6000);
+      },
+      onError: () => {
+        setIsSavingDraft(false);
+      }
+    });
+  };
+
+  const filteredPegawaiList = (pegawaiList || []).filter((peg) => {
+    if (!pegawaiSearchTerm.trim()) return true;
+    const term = pegawaiSearchTerm.toLowerCase();
+    const matchNama = peg.nama?.toLowerCase().includes(term);
+    const matchNip = peg.nip?.toLowerCase().includes(term);
+    return matchNama || matchNip;
+  });
 
   const handleAddPegawai = () => {
     if (!selectedMasterId) return;
@@ -99,6 +203,16 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       setSelectedPegawaiIds(updated);
       setData('pegawai_ids', updated);
     }
+    setSelectedMasterId('');
+    setPegawaiSearchTerm('');
+    setIsDropdownOpen(false);
+    setStepValidationError('');
+  };
+
+  const handleSelectPegawai = (peg) => {
+    setSelectedMasterId(peg.id);
+    setPegawaiSearchTerm(`${peg.nama} - NIP: ${peg.nip || '-'}`);
+    setIsDropdownOpen(false);
   };
 
   const handleRemovePegawai = (id) => {
@@ -136,12 +250,93 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (selectedPegawaiIds.length === 0) {
-      alert('Pilih setidaknya 1 pegawai untuk ditugaskan!');
+  const validateStep1 = () => {
+    if (!data.kategori_perjalanan) return 'Kategori Perjalanan Dinas wajib dipilih (Dalam Negeri / Luar Negeri).';
+    if (!data.sumber_asal) return 'Sumber Nota / Undangan wajib dipilih (Eksternal / Internal).';
+    if (!data.nomor_nota?.trim()) return 'Nomor Nota / Undangan Masuk wajib diisi.';
+    if (!data.pengirim_nota?.trim()) return 'Instansi / Unit Pengirim Undangan wajib diisi.';
+    if (!data.tanggal_nota) return 'Tanggal Undangan wajib diisi.';
+    if (!data.perihal_nota?.trim()) return 'Perihal Undangan / Uraian Tugas wajib diisi.';
+    if (!data.file_undangan && !data.existing_file_undangan) return 'File Lampiran Scan Nota / Undangan Masuk wajib diunggah.';
+    if (data.kategori_perjalanan === 'LUAR_NEGERI' && !data.file_izin_setneg && !data.existing_file_izin_setneg) {
+      return 'File Surat Persetujuan Setneg / Keppres wajib diunggah untuk Perjalanan Dinas Luar Negeri.';
+    }
+    return null;
+  };
+
+  const validateStep3 = () => {
+    if (!data.ppk_id) return 'Pejabat Pembuat Komitmen (PPK) wajib dipilih.';
+    if (selectedPegawaiIds.length === 0) return 'Daftar Pegawai Ditugaskan wajib diisi (minimal tambahkan 1 pegawai).';
+    if (!data.tingkat_biaya_kode) return 'Tingkat Biaya SPD wajib dipilih.';
+    if (!data.jenis_angkutan_nama) return 'Jenis Angkutan yang dipergunakan wajib dipilih.';
+    if (!data.tempat_berangkat?.trim()) return 'Tempat Berangkat wajib diisi.';
+    if (!data.tempat_tujuan?.trim()) return 'Tempat Tujuan wajib diisi.';
+    if (data.kategori_perjalanan === 'LUAR_NEGERI') {
+      if (!data.negara_tujuan?.trim()) return 'Negara Tujuan wajib diisi untuk dinas Luar Negeri.';
+      if (!data.no_setneg?.trim()) return 'Nomor Surat Izin Setneg wajib diisi untuk dinas Luar Negeri.';
+    }
+    if (!data.tanggal_berangkat) return 'Tanggal Berangkat wajib diisi.';
+    if (!data.tanggal_kembali) return 'Tanggal Kembali wajib diisi.';
+    if (data.tanggal_kembali < data.tanggal_berangkat) return 'Tanggal Kembali tidak boleh lebih awal dari Tanggal Berangkat.';
+    return null;
+  };
+
+  const validateStep4 = () => {
+    if (!data.tanggal_surat) return 'Tanggal Surat Tugas & SPD resmi wajib diisi.';
+    if (userRole === 'admin' || userRole === 'tu') {
+      if (!data.nomor_st?.trim()) return 'Nomor Surat Tugas Resmi wajib diisi oleh Admin / TU.';
+      if (!data.nomor_spd?.trim()) return 'Nomor SPD Resmi wajib diisi oleh Admin / TU.';
+    }
+    return null;
+  };
+
+  const goToStep = (targetStep) => {
+    if (targetStep < activeStep) {
+      setStepValidationError('');
+      setActiveStep(targetStep);
       return;
     }
+    if (targetStep >= 2) {
+      const err1 = validateStep1();
+      if (err1) {
+        setStepValidationError(err1);
+        setActiveStep(1);
+        return;
+      }
+    }
+    if (targetStep >= 4) {
+      const err3 = validateStep3();
+      if (err3) {
+        setStepValidationError(err3);
+        setActiveStep(3);
+        return;
+      }
+    }
+    setStepValidationError('');
+    setActiveStep(targetStep);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const err1 = validateStep1();
+    if (err1) {
+      setStepValidationError(err1);
+      setActiveStep(1);
+      return;
+    }
+    const err3 = validateStep3();
+    if (err3) {
+      setStepValidationError(err3);
+      setActiveStep(3);
+      return;
+    }
+    const err4 = validateStep4();
+    if (err4) {
+      setStepValidationError(err4);
+      setActiveStep(4);
+      return;
+    }
+    setStepValidationError('');
     post('/surat-tugas');
   };
 
@@ -163,12 +358,14 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 mb-6 overflow-x-auto">
         <div className="flex items-center justify-between min-w-[700px] text-xs">
           {/* Step 1 */}
-          <div
+          <button
+            type="button"
+            onClick={() => goToStep(1)}
             aria-current={activeStep === 1 ? 'step' : undefined}
-            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
+            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition cursor-pointer text-left ${
               activeStep === 1
                 ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
             }`}
           >
             <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
@@ -177,17 +374,19 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               1
             </span>
             <span>1. Upload Nota / Undangan</span>
-          </div>
+          </button>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
 
           {/* Step 2 */}
-          <div
+          <button
+            type="button"
+            onClick={() => goToStep(2)}
             aria-current={activeStep === 2 ? 'step' : undefined}
-            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
+            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition cursor-pointer text-left ${
               activeStep === 2
                 ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
             }`}
           >
             <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
@@ -196,17 +395,19 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               2
             </span>
             <span>2. Disposisi Kapus</span>
-          </div>
+          </button>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
 
           {/* Step 3 */}
-          <div
+          <button
+            type="button"
+            onClick={() => goToStep(3)}
             aria-current={activeStep === 3 ? 'step' : undefined}
-            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
+            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition cursor-pointer text-left ${
               activeStep === 3
                 ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
             }`}
           >
             <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
@@ -215,17 +416,19 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               3
             </span>
             <span>3. Draft Personel & SPD</span>
-          </div>
+          </button>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
 
           {/* Step 4 */}
-          <div
+          <button
+            type="button"
+            onClick={() => goToStep(4)}
             aria-current={activeStep === 4 ? 'step' : undefined}
-            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
+            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition cursor-pointer text-left ${
               activeStep === 4
                 ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
             }`}
           >
             <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
@@ -234,7 +437,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               4
             </span>
             <span>4. Penomoran TU</span>
-          </div>
+          </button>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
 
@@ -261,6 +464,16 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
         {/* ================= TAHAP 1: INPUT NOTA / UNDANGAN ================= */}
         {activeStep === 1 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
+            {stepValidationError && (
+              <div className="p-4 rounded-xl bg-red-50 border-2 border-red-300 text-red-900 text-xs font-bold flex items-start space-x-2.5 shadow-sm">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-extrabold text-red-800 uppercase tracking-wide text-[10px]">Perhatian - Kolom Wajib Terisi:</p>
+                  <p className="mt-0.5 text-xs text-red-700">{stepValidationError}</p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
@@ -385,11 +598,12 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
             <div className={`grid grid-cols-1 ${data.kategori_perjalanan === 'LUAR_NEGERI' ? 'sm:grid-cols-2' : ''} gap-4`}>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Upload File PDF Scan Undangan (Maks. 10 MB)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Upload File PDF Scan Undangan (Maks. 10 MB) *</label>
                 <label className="relative flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-center text-xs text-slate-600 transition hover:border-blue-400 hover:bg-blue-50">
                   <input
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                    required
                     onChange={(e) => setData('file_undangan', e.target.files[0] || null)}
                     className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                   />
@@ -423,7 +637,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             <div className="pt-4 flex justify-end">
               <button
                 type="button"
-                onClick={() => setActiveStep(2)}
+                onClick={() => goToStep(2)}
                 className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition"
               >
                 <span>Lanjut ke Disposisi Kapus (Tahap 2)</span>
@@ -436,6 +650,16 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
         {/* ================= TAHAP 2: DISPOSISI KAPUS ================= */}
         {activeStep === 2 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
+            {stepValidationError && (
+              <div className="p-4 rounded-xl bg-red-50 border-2 border-red-300 text-red-900 text-xs font-bold flex items-start space-x-2.5 shadow-sm">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-extrabold text-red-800 uppercase tracking-wide text-[10px]">Perhatian - Kolom Wajib Terisi:</p>
+                  <p className="mt-0.5 text-xs text-red-700">{stepValidationError}</p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
@@ -549,7 +773,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
               <button
                 type="button"
-                onClick={() => setActiveStep(3)}
+                onClick={() => goToStep(3)}
                 className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition"
               >
                 <span>Lanjut ke Draft Personel (Tahap 3)</span>
@@ -562,6 +786,16 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
         {/* ================= TAHAP 3: DRAFT PERSONEL & DETAIL PERJALANAN ================= */}
         {activeStep === 3 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
+            {stepValidationError && (
+              <div className="p-4 rounded-xl bg-red-50 border-2 border-red-300 text-red-900 text-xs font-bold flex items-start space-x-2.5 shadow-sm">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-extrabold text-red-800 uppercase tracking-wide text-[10px]">Perhatian - Kolom Wajib Terisi:</p>
+                  <p className="mt-0.5 text-xs text-red-700">{stepValidationError}</p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
@@ -579,7 +813,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
                 <ShieldCheck className="w-4 h-4 text-amber-500" />
-                <span>Penetapan Pejabat Pembuat Komitmen (PPK)</span>
+                <span>Penetapan Pejabat Pembuat Komitmen (PPK) *</span>
               </h3>
               <select
                 value={data.ppk_id}
@@ -596,13 +830,13 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               </select>
             </div>
 
-            {/* Multi-Pegawai Selection */}
+            {/* Multi-Pegawai Selection with Live Search */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
                     <Users className="w-4 h-4 text-indigo-600" />
-                    <span>Pegawai Ditugaskan (Snapshot Data Protection)</span>
+                    <span>Pegawai Ditugaskan * (Snapshot Data Protection)</span>
                   </h3>
                   <p className="text-[11px] text-slate-500">Profil pangkat & golongan pegawai dikunci saat dokumen dibuat</p>
                 </div>
@@ -611,28 +845,104 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                 </span>
               </div>
 
-              {/* Control Select */}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <select
-                  value={selectedMasterId}
-                  onChange={(e) => setSelectedMasterId(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:ring-amber-500"
-                >
-                  <option value="">-- Pilih Pegawai dari Master DB Pusdiklat Kemlu --</option>
-                  {pegawaiList && pegawaiList.map((peg) => (
-                    <option key={peg.id} value={peg.id}>
-                      {peg.nama} (NIP: {peg.nip}) — {peg.jabatan}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleAddPegawai}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center justify-center space-x-1 transition"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Tambah Pegawai</span>
-                </button>
+              {/* Live Search & Select Pegawai */}
+              <div className="relative" ref={dropdownRef}>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <Search className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      value={pegawaiSearchTerm}
+                      onChange={(e) => {
+                        setPegawaiSearchTerm(e.target.value);
+                        setIsDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsDropdownOpen(true)}
+                      placeholder="Cari nama atau NIP pegawai (Live Search 760+ pegawai)..."
+                      className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white shadow-sm"
+                    />
+                    {pegawaiSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPegawaiSearchTerm('');
+                          setSelectedMasterId('');
+                        }}
+                        className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddPegawai}
+                    disabled={!selectedMasterId}
+                    className={`font-bold text-xs px-5 py-2.5 rounded-xl flex items-center justify-center space-x-1.5 transition shadow-sm ${
+                      selectedMasterId
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Pegawai</span>
+                  </button>
+                </div>
+
+                {/* Dropdown Hasil Pencarian: HANYA NAMA DAN NIP */}
+                {isDropdownOpen && (
+                  <div className="absolute left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto divide-y divide-slate-100">
+                    <div className="p-2 bg-slate-50 text-[11px] text-slate-500 flex items-center justify-between font-semibold border-b border-slate-100 sticky top-0 z-10">
+                      <span>Daftar Pegawai ({filteredPegawaiList.length} Ditemukan)</span>
+                      <span className="text-[10px] text-slate-400">Pilih nama untuk ditambahkan</span>
+                    </div>
+
+                    {filteredPegawaiList.length > 0 ? (
+                      filteredPegawaiList.map((peg) => {
+                        const isAlreadySelected = selectedPegawaiIds.includes(peg.id);
+                        const isPicked = selectedMasterId === peg.id;
+                        return (
+                          <div
+                            key={peg.id}
+                            onClick={() => {
+                              handleSelectPegawai(peg);
+                            }}
+                            className={`px-3.5 py-2 text-xs cursor-pointer flex items-center justify-between transition ${
+                              isPicked
+                                ? 'bg-amber-100/70 text-amber-950 font-bold'
+                                : isAlreadySelected
+                                ? 'bg-slate-50/80 text-slate-400'
+                                : 'hover:bg-amber-50 text-slate-800'
+                            }`}
+                          >
+                            <div className="truncate">
+                              <span className="font-semibold text-slate-900">{peg.nama}</span>
+                              <span className="text-slate-500 font-mono text-[11px] ml-2">
+                                - {peg.nip && peg.nip !== '-' ? `NIP. ${peg.nip}` : 'NIP. -'}
+                              </span>
+                            </div>
+                            {isAlreadySelected ? (
+                              <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full ml-2 shrink-0">
+                                Sudah Terpilih
+                              </span>
+                            ) : isPicked ? (
+                              <span className="text-[10px] font-bold text-amber-700 bg-amber-200 px-2 py-0.5 rounded-full ml-2 shrink-0">
+                                Siap Ditambah
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-4 text-center text-xs text-slate-400">
+                        Tidak ada pegawai yang cocok dengan kata kunci &quot;{pegawaiSearchTerm}&quot;
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Table of Selected Pegawai */}
@@ -825,7 +1135,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
               <button
                 type="button"
-                onClick={() => setActiveStep(4)}
+                onClick={() => goToStep(4)}
                 className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition"
               >
                 <span>Lanjut ke Penomoran TU (Tahap 4)</span>
@@ -838,6 +1148,16 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
         {/* ================= TAHAP 4: PENOMORAN REGISTRASI TU ================= */}
         {activeStep === 4 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
+            {stepValidationError && (
+              <div className="p-4 rounded-xl bg-red-50 border-2 border-red-300 text-red-900 text-xs font-bold flex items-start space-x-2.5 shadow-sm">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-extrabold text-red-800 uppercase tracking-wide text-[10px]">Perhatian - Kolom Wajib Terisi:</p>
+                  <p className="mt-0.5 text-xs text-red-700">{stepValidationError}</p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">

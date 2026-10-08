@@ -22,6 +22,7 @@ class SuratTugas extends Model
         'file_undangan',
         'file_izin_setneg',
         'status',
+        'draft_step',
         'kapus_decision',
         'catatan_kapus',
         'ppk_id',
@@ -39,6 +40,14 @@ class SuratTugas extends Model
         'nomor_st',
         'nomor_spd',
         'tanggal_surat',
+        'penandatangan_st_jabatan',
+        'penandatangan_st_nama',
+        'penandatangan_st_nip',
+        'bendahara_id',
+        'bendahara_nama_snapshot',
+        'bendahara_nip_snapshot',
+        'akun_anggaran',
+        'tanggal_bayar',
         'is_ppk_signed',
         'signed_at',
     ];
@@ -48,6 +57,7 @@ class SuratTugas extends Model
         'tanggal_berangkat' => 'date:Y-m-d',
         'tanggal_kembali' => 'date:Y-m-d',
         'tanggal_surat' => 'date:Y-m-d',
+        'tanggal_bayar' => 'date:Y-m-d',
         'is_ppk_signed' => 'boolean',
         'signed_at' => 'datetime',
     ];
@@ -62,8 +72,18 @@ class SuratTugas extends Model
         return $this->belongsTo(Ppk::class);
     }
 
+    public function bendahara()
+    {
+        return $this->belongsTo(Bendahara::class);
+    }
+
     public function pegawaiList()
     {
         return $this->hasMany(SuratTugasPegawai::class, 'surat_tugas_id')->orderBy('urutan');
+    }
+
+    public function biayaList()
+    {
+        return $this->hasMany(SuratTugasBiaya::class, 'surat_tugas_id');
     }
 }

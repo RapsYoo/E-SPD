@@ -20,6 +20,10 @@ class SuratTugasPegawai extends Model
         'golongan',
         'jabatan',
         'unit_kerja',
+        'nik',
+        'swift',
+        'nama_bank',
+        'no_rekening',
         'urutan',
     ];
 
@@ -31,5 +35,10 @@ class SuratTugasPegawai extends Model
     public function pegawaiMaster()
     {
         return $this->belongsTo(Pegawai::class, 'pegawai_id');
+    }
+
+    public function biaya()
+    {
+        return $this->hasOne(SuratTugasBiaya::class, 'surat_tugas_pegawai_id');
     }
 }

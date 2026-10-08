@@ -42,9 +42,9 @@ export default function AdminLayout({ children, title }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
+    <div className="h-screen bg-slate-50 font-sans text-slate-800 flex flex-col overflow-hidden">
       {/* Top Header Navigation */}
-      <header className="bg-[#0F2C59] text-white shadow-md border-b border-slate-700/50 sticky top-0 z-40">
+      <header className="bg-[#0F2C59] text-white shadow-md border-b border-slate-700/50 flex-shrink-0 z-40">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Left section: Logo & Mobile Toggle */}
@@ -103,7 +103,7 @@ export default function AdminLayout({ children, title }) {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
         {/* Sidebar Overlay for Mobile */}
         {sidebarOpen && (
           <div
@@ -114,11 +114,11 @@ export default function AdminLayout({ children, title }) {
 
         {/* Sidebar Navigation */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-30 w-64 bg-[#0B2247] text-slate-200 shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0 flex flex-col justify-between border-r border-slate-800 ${
+          className={`fixed lg:static inset-y-0 left-0 z-30 w-64 flex-shrink-0 h-full bg-[#0B2247] text-slate-200 shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0 flex flex-col justify-between border-r border-slate-800 ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          <div className="p-4 space-y-6 overflow-y-auto">
+          <div className="p-4 space-y-6 flex-1 min-h-0 overflow-y-auto">
             {/* Quick Title */}
             <div className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
               Menu Utama
@@ -250,7 +250,7 @@ export default function AdminLayout({ children, title }) {
           </div>
 
           {/* Footer Info */}
-          <div className="p-4 border-t border-slate-800 bg-[#081935] text-xs text-slate-400 flex flex-col space-y-1">
+          <div className="p-4 border-t border-slate-800 bg-[#081935] text-xs text-slate-400 flex flex-col space-y-1 flex-shrink-0">
             <div className="flex items-center justify-between text-slate-300">
               <span className="font-semibold text-amber-400">e-SPD Pusdiklat</span>
               <span>v1.0.0</span>
@@ -260,7 +260,7 @@ export default function AdminLayout({ children, title }) {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto bg-slate-100 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 min-h-0 overflow-y-auto bg-slate-100 p-4 sm:p-6 lg:p-8">
           {/* Flash Messages */}
           {flash?.success && (
             <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between shadow-sm animate-fade-in">

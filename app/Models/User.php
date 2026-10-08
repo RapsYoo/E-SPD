@@ -25,6 +25,21 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    public function isSespalu(): bool
+    {
+        return in_array($this->role, ['sespalu', 'pemohon', 'admin']);
+    }
+
+    public function isKapus(): bool
+    {
+        return in_array($this->role, ['kapus', 'admin']);
+    }
+
+    public function isTu(): bool
+    {
+        return in_array($this->role, ['tu', 'admin']);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

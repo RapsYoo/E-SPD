@@ -28,7 +28,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/surat-tugas', [SuratTugasController::class, 'index'])->name('surat-tugas.index');
     Route::get('/surat-tugas/create', [SuratTugasController::class, 'create'])->name('surat-tugas.create');
     Route::post('/surat-tugas', [SuratTugasController::class, 'store'])->name('surat-tugas.store');
+    Route::post('/surat-tugas/draft', [SuratTugasController::class, 'saveDraft'])->name('surat-tugas.draft');
+    Route::get('/surat-tugas/{suratTugas}/edit', [SuratTugasController::class, 'edit'])->name('surat-tugas.edit');
     Route::get('/surat-tugas/{suratTugas}', [SuratTugasController::class, 'show'])->name('surat-tugas.show');
+    Route::delete('/surat-tugas/{suratTugas}', [SuratTugasController::class, 'destroy'])->name('surat-tugas.destroy');
     Route::post('/surat-tugas/{suratTugas}/disposisi', [SuratTugasController::class, 'disposisi'])->name('surat-tugas.disposisi');
     Route::post('/surat-tugas/{suratTugas}/penomoran', [SuratTugasController::class, 'penomoran'])->name('surat-tugas.penomoran');
     Route::post('/surat-tugas/{suratTugas}/sign-ppk', [SuratTugasController::class, 'signPpk'])->name('surat-tugas.sign-ppk');
