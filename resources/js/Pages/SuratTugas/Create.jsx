@@ -30,8 +30,6 @@ import {
   X,
   Save,
   Clock,
-  BookmarkCheck,
-  FileClock
 } from 'lucide-react';
 
 export default function Create({ 
@@ -40,11 +38,11 @@ export default function Create({
   unitKerjaList, 
   tingkatBiayaList, 
   jenisAngkutanList, 
-  userRole, 
   draft, 
   activeDrafts 
 }) {
-  const [activeStep, setActiveStep] = useState(draft?.draft_step || 1);
+  const approvedWorkflow = draft?.status === 'DISPOSISI_KAPUS_YA';
+  const [activeStep, setActiveStep] = useState(approvedWorkflow ? 3 : 1);
   const [selectedPegawaiIds, setSelectedPegawaiIds] = useState(
     draft?.pegawai_list ? draft.pegawai_list.map((p) => p.pegawai_id) : []
   );
@@ -59,7 +57,8 @@ export default function Create({
   const [docxPreviews, setDocxPreviews] = useState({});
 
   const { data, setData, post, processing, errors } = useForm({
-    draft_id: draft?.id || null,
+    draft_id: draft?.status === 'DRAFT' ? draft.id : null,
+    workflow_id: draft && draft.status !== 'DRAFT' ? draft.id : null,
     draft_step: draft?.draft_step || 1,
     kategori_perjalanan: draft?.kategori_perjalanan || '',
     sumber_asal: draft?.sumber_asal || '',
@@ -72,10 +71,6 @@ export default function Create({
     existing_file_undangan: draft?.file_undangan || null,
     existing_file_izin_setneg: draft?.file_izin_setneg || null,
 
-    // Step 2 (Kapus)
-    kapus_decision: draft?.kapus_decision || 'YA',
-    catatan_kapus: draft?.catatan_kapus || '',
-    
     // Step 3 (Personel & SPD)
     ppk_id: draft?.ppk_id || (ppkList && ppkList.length > 0 ? ppkList[0].id : ''),
     tingkat_biaya_kode: draft?.tingkat_biaya_kode || (tingkatBiayaList && tingkatBiayaList.length > 0 ? tingkatBiayaList[0].kode : 'C'),
@@ -86,10 +81,7 @@ export default function Create({
     no_setneg: draft?.no_setneg || '',
     tanggal_berangkat: draft?.tanggal_berangkat ? String(draft.tanggal_berangkat).split('T')[0] : '',
     tanggal_kembali: draft?.tanggal_kembali ? String(draft.tanggal_kembali).split('T')[0] : '',
-    tanggal_surat: draft?.tanggal_surat ? String(draft.tanggal_surat).split('T')[0] : new Date().toISOString().split('T')[0],
     durasi_hari: draft?.durasi_hari || 1,
-    nomor_st: draft?.nomor_st || '',
-    nomor_spd: draft?.nomor_spd || '',
     pegawai_ids: draft?.pegawai_list ? draft.pegawai_list.map((p) => p.pegawai_id) : [],
   });
 
@@ -97,14 +89,14 @@ export default function Create({
     const urls = {};
     if (data.file_undangan instanceof File) {
       urls.invitation = URL.createObjectURL(data.file_undangan);
-    } else if (data.existing_file_undangan) {
-      urls.invitation = `/storage/${data.existing_file_undangan}`;
+    } else if (data.existing_file_undangan && (data.draft_id || data.workflow_id)) {
+      urls.invitation = `/surat-tugas/${data.workflow_id || data.draft_id}/lampiran/undangan`;
     }
 
     if (data.file_izin_setneg instanceof File) {
       urls.setneg = URL.createObjectURL(data.file_izin_setneg);
-    } else if (data.existing_file_izin_setneg) {
-      urls.setneg = `/storage/${data.existing_file_izin_setneg}`;
+    } else if (data.existing_file_izin_setneg && (data.draft_id || data.workflow_id)) {
+      urls.setneg = `/surat-tugas/${data.workflow_id || data.draft_id}/lampiran/setneg`;
     }
 
     let cancelled = false;
@@ -150,6 +142,7 @@ export default function Create({
     const formData = new FormData();
     formData.append('draft_step', activeStep);
     if (data.draft_id) formData.append('draft_id', data.draft_id);
+    if (data.workflow_id) formData.append('workflow_id', data.workflow_id);
     if (data.kategori_perjalanan) formData.append('kategori_perjalanan', data.kategori_perjalanan);
     if (data.sumber_asal) formData.append('sumber_asal', data.sumber_asal);
     if (data.nomor_nota) formData.append('nomor_nota', data.nomor_nota);
@@ -158,8 +151,6 @@ export default function Create({
     if (data.perihal_nota) formData.append('perihal_nota', data.perihal_nota);
     if (data.file_undangan) formData.append('file_undangan', data.file_undangan);
     if (data.file_izin_setneg) formData.append('file_izin_setneg', data.file_izin_setneg);
-    if (data.kapus_decision) formData.append('kapus_decision', data.kapus_decision);
-    if (data.catatan_kapus) formData.append('catatan_kapus', data.catatan_kapus);
     if (data.ppk_id) formData.append('ppk_id', data.ppk_id);
     if (data.tingkat_biaya_kode) formData.append('tingkat_biaya_kode', data.tingkat_biaya_kode);
     if (data.jenis_angkutan_nama) formData.append('jenis_angkutan_nama', data.jenis_angkutan_nama);
@@ -170,13 +161,11 @@ export default function Create({
     if (data.tanggal_berangkat) formData.append('tanggal_berangkat', data.tanggal_berangkat);
     if (data.tanggal_kembali) formData.append('tanggal_kembali', data.tanggal_kembali);
     if (data.durasi_hari) formData.append('durasi_hari', data.durasi_hari);
-    if (data.nomor_st) formData.append('nomor_st', data.nomor_st);
-    if (data.nomor_spd) formData.append('nomor_spd', data.nomor_spd);
-    if (data.tanggal_surat) formData.append('tanggal_surat', data.tanggal_surat);
     selectedPegawaiIds.forEach((id) => formData.append('pegawai_ids[]', id));
 
     router.post('/surat-tugas/draft', formData, {
-      onSuccess: () => {
+      onSuccess: (page) => {
+        setData('draft_id', page.props.draft?.id || data.draft_id);
         setIsSavingDraft(false);
         setDraftSuccessMsg(`Draft surat berhasil disimpan di Tahap ${activeStep}!`);
         setTimeout(() => setDraftSuccessMsg(''), 6000);
@@ -281,22 +270,18 @@ export default function Create({
     return null;
   };
 
-  const validateStep4 = () => {
-    if (!data.tanggal_surat) return 'Tanggal Surat Tugas & SPD resmi wajib diisi.';
-    if (userRole === 'admin' || userRole === 'tu') {
-      if (!data.nomor_st?.trim()) return 'Nomor Surat Tugas Resmi wajib diisi oleh Admin / TU.';
-      if (!data.nomor_spd?.trim()) return 'Nomor SPD Resmi wajib diisi oleh Admin / TU.';
-    }
-    return null;
-  };
-
   const goToStep = (targetStep) => {
+    if (targetStep === 2 || (targetStep >= 3 && !approvedWorkflow)) return;
+    if (approvedWorkflow && targetStep < 3) {
+      router.visit(`/surat-tugas/${data.workflow_id}`);
+      return;
+    }
     if (targetStep < activeStep) {
       setStepValidationError('');
       setActiveStep(targetStep);
       return;
     }
-    if (targetStep >= 2) {
+    if (targetStep >= 3) {
       const err1 = validateStep1();
       if (err1) {
         setStepValidationError(err1);
@@ -317,7 +302,12 @@ export default function Create({
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    e?.preventDefault();
+    if (!approvedWorkflow) {
+      handleNotaSubmit();
+      return;
+    }
+    if (!data.workflow_id) return;
     const err1 = validateStep1();
     if (err1) {
       setStepValidationError(err1);
@@ -330,10 +320,15 @@ export default function Create({
       setActiveStep(3);
       return;
     }
-    const err4 = validateStep4();
-    if (err4) {
-      setStepValidationError(err4);
-      setActiveStep(4);
+    setStepValidationError('');
+    post(`/surat-tugas/${data.workflow_id}/selesaikan`);
+  };
+
+  const handleNotaSubmit = () => {
+    const err1 = validateStep1();
+    if (err1) {
+      setStepValidationError(err1);
+      setActiveStep(1);
       return;
     }
     setStepValidationError('');
@@ -352,6 +347,44 @@ export default function Create({
         </div>
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Generate Surat Tugas & SPD Online</h1>
         <p className="text-xs text-slate-500">Isi Formulir 5-Tahap sesuai Alur Operasional Pusdiklat Kemlu</p>
+      </div>
+
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">Draft Surat</h2>
+            <p className="text-xs text-slate-500">Simpan proses yang belum selesai dan lanjutkan nanti.</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={isSavingDraft || processing}
+            className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {isSavingDraft ? 'Menyimpan...' : 'Simpan sebagai Draft'}
+          </button>
+        </div>
+        {draftSuccessMsg && (
+          <p role="status" className="mt-3 text-xs font-semibold text-emerald-700">{draftSuccessMsg}</p>
+        )}
+        {activeDrafts?.length > 0 && (
+          <div className="mt-4 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-2">
+            {activeDrafts.map((item) => (
+              <Link
+                key={item.id}
+                href={`/surat-tugas/create?draft_id=${item.id}`}
+                className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 p-3 text-xs transition hover:border-blue-300 hover:bg-blue-50"
+              >
+                <span className="min-w-0">
+                  <strong className="block truncate text-slate-800">{item.perihal_nota || item.nomor_nota || 'Draft surat baru'}</strong>
+                  <span className="mt-1 block text-slate-500">Tahap {item.draft_step} · {item.nomor_nota}</span>
+                </span>
+                <span className="shrink-0 font-bold text-blue-700">Lanjutkan</span>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 5-Step Interactive Step Bar */}
@@ -382,6 +415,7 @@ export default function Create({
           <button
             type="button"
             onClick={() => goToStep(2)}
+            disabled
             aria-current={activeStep === 2 ? 'step' : undefined}
             className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition cursor-pointer text-left ${
               activeStep === 2
@@ -403,6 +437,7 @@ export default function Create({
           <button
             type="button"
             onClick={() => goToStep(3)}
+            disabled={!approvedWorkflow}
             aria-current={activeStep === 3 ? 'step' : undefined}
             className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition cursor-pointer text-left ${
               activeStep === 3
@@ -424,6 +459,7 @@ export default function Create({
           <button
             type="button"
             onClick={() => goToStep(4)}
+            disabled
             aria-current={activeStep === 4 ? 'step' : undefined}
             className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition cursor-pointer text-left ${
               activeStep === 4
@@ -608,7 +644,7 @@ export default function Create({
                     className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                   />
                   <Upload className="h-5 w-5 text-slate-400" />
-                  <span>{data.file_undangan?.name || 'Klik untuk mengunggah scan undangan'}</span>
+                  <span>{data.file_undangan?.name || (data.existing_file_undangan ? 'Lampiran tersimpan (klik untuk mengganti)' : 'Klik untuk mengunggah scan undangan')}</span>
                   <span className="text-[10px] text-slate-400">PDF, JPG, atau PNG</span>
                 </label>
                 {errors.file_undangan && <p className="mt-1 text-xs text-red-600">{errors.file_undangan}</p>}
@@ -626,7 +662,7 @@ export default function Create({
                       className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                     />
                     <Upload className="h-5 w-5 text-amber-600" />
-                    <span>{data.file_izin_setneg?.name || 'Klik untuk mengunggah Surat Persetujuan Setneg'}</span>
+                    <span>{data.file_izin_setneg?.name || (data.existing_file_izin_setneg ? 'Lampiran tersimpan (klik untuk mengganti)' : 'Klik untuk mengunggah Surat Persetujuan Setneg')}</span>
                     <span className="text-[10px] text-amber-700">PDF atau DOCX, maks. 10 MB</span>
                   </label>
                   {errors.file_izin_setneg && <p className="mt-1 text-xs text-red-600">{errors.file_izin_setneg}</p>}
@@ -637,17 +673,18 @@ export default function Create({
             <div className="pt-4 flex justify-end">
               <button
                 type="button"
-                onClick={() => goToStep(2)}
+                onClick={handleNotaSubmit}
+                disabled={processing}
                 className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition"
               >
-                <span>Lanjut ke Disposisi Kapus (Tahap 2)</span>
+                <span>{processing ? 'Mengirim nota...' : 'Kirim Nota / Undangan ke Kapus'}</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* ================= TAHAP 2: DISPOSISI KAPUS ================= */}
+        {/* ================= TAHAP 2: TINJAUAN KAPUS ================= */}
         {activeStep === 2 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
             {stepValidationError && (
@@ -664,12 +701,12 @@ export default function Create({
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
                   <UserCheck className="w-5 h-5 text-amber-500" />
-                  <span>Tahap 2: Meninjau Nota & Simulasi Disposisi Kapus</span>
+                  <span>Tahap 2: Tinjauan Nota / Undangan oleh Kapus</span>
                 </h2>
                 <p className="text-xs text-slate-500">Persetujuan & Instruksi Kepala Pusat Pendidikan dan Pelatihan</p>
               </div>
               <span className="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full">
-                Aktor: Kapus (Kepala Pusat)
+                Proses oleh Kapus setelah nota dikirim
               </span>
             </div>
 
@@ -756,7 +793,7 @@ export default function Create({
                 rows="3"
                 value=""
                 readOnly
-                placeholder="Instruksi disposisi Kapus akan tercatat pada tahap ini"
+                placeholder="Hasil tinjauan dan instruksi Kapus dapat dilihat pada halaman detail surat."
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-amber-50/50 font-medium text-slate-800 focus:outline-none"
               ></textarea>
             </div>
@@ -771,14 +808,9 @@ export default function Create({
                 <span>Kembali ke Tahap 1</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => goToStep(3)}
-                className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition"
-              >
-                <span>Lanjut ke Draft Personel (Tahap 3)</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              <span className="text-xs font-semibold text-slate-500">
+                Tahap 3 terbuka setelah Kapus menyetujui nota.
+              </span>
             </div>
           </div>
         )}
@@ -1126,20 +1158,21 @@ export default function Create({
             <div className="pt-4 flex justify-between">
               <button
                 type="button"
-                onClick={() => setActiveStep(2)}
+                onClick={() => router.visit(`/surat-tugas/${data.workflow_id}`)}
                 className="inline-flex items-center space-x-1 text-slate-600 hover:text-slate-800 font-semibold text-xs"
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span>Kembali ke Tahap 2</span>
+                <span>Kembali ke detail disposisi</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => goToStep(4)}
-                className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition"
+                onClick={handleSubmit}
+                disabled={processing || !approvedWorkflow}
+                className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <span>Lanjut ke Penomoran TU (Tahap 4)</span>
-                <ChevronRight className="w-4 h-4" />
+                <span>{processing ? 'Mengirim ke TU...' : 'Kirim Draft ST & SPD ke TU'}</span>
+                <Sparkles className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -1203,16 +1236,10 @@ export default function Create({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Surat Tugas & SPD *</label>
-                  <input
-                    type="date"
-                    required
-                    value={data.tanggal_surat}
-                    onChange={(e) => setData('tanggal_surat', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                  {errors.tanggal_surat && <p className="mt-1 text-xs text-red-600">{errors.tanggal_surat}</p>}
-                  <span className="text-[10px] text-slate-500 mt-1 block">Tanggal yang dicantumkan pada Surat Tugas dan SPD</span>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Surat Tugas & SPD</label>
+                  <p className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
+                    Tanggal surat dan nomor resmi akan diisi oleh TU setelah usulan disetujui Kapus.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1228,12 +1255,12 @@ export default function Create({
               </button>
 
               <button
-                type="submit"
-                disabled={processing || selectedPegawaiIds.length === 0}
-                className="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5"
+                type="button"
+                onClick={() => goToStep(3)}
+                className="inline-flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm px-6 py-2.5 rounded-xl transition"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>Simpan & Generate Dokumen Resmi</span>
+                <ChevronLeft className="w-4 h-4" />
+                <span>Kembali ke Tahap 3</span>
               </button>
             </div>
           </div>

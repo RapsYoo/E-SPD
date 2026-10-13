@@ -1,22 +1,22 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PegawaiController;
 use App\Http\Controllers\Admin\PpkController;
-use App\Http\Controllers\Admin\UnitKerjaController;
 use App\Http\Controllers\Admin\ReferensiController;
+use App\Http\Controllers\Admin\UnitKerjaController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SuratTugasController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', function () {
-    return redirect()->route('admin.dashboard');
+    return auth()->check()
+        ? redirect()->route(auth()->user()->dashboardRouteName())
+        : redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
-    return redirect()->route('admin.dashboard');
+    return redirect()->route(auth()->user()->dashboardRouteName());
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -25,20 +25,36 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Fitur Tetap Surat Tugas & SPD (Role-Based Workflow)
-    Route::get('/surat-tugas', [SuratTugasController::class, 'index'])->name('surat-tugas.index');
-    Route::get('/surat-tugas/create', [SuratTugasController::class, 'create'])->name('surat-tugas.create');
-    Route::post('/surat-tugas', [SuratTugasController::class, 'store'])->name('surat-tugas.store');
-    Route::post('/surat-tugas/draft', [SuratTugasController::class, 'saveDraft'])->name('surat-tugas.draft');
-    Route::get('/surat-tugas/{suratTugas}/edit', [SuratTugasController::class, 'edit'])->name('surat-tugas.edit');
-    Route::get('/surat-tugas/{suratTugas}', [SuratTugasController::class, 'show'])->name('surat-tugas.show');
-    Route::delete('/surat-tugas/{suratTugas}', [SuratTugasController::class, 'destroy'])->name('surat-tugas.destroy');
-    Route::post('/surat-tugas/{suratTugas}/disposisi', [SuratTugasController::class, 'disposisi'])->name('surat-tugas.disposisi');
-    Route::post('/surat-tugas/{suratTugas}/penomoran', [SuratTugasController::class, 'penomoran'])->name('surat-tugas.penomoran');
-    Route::post('/surat-tugas/{suratTugas}/sign-ppk', [SuratTugasController::class, 'signPpk'])->name('surat-tugas.sign-ppk');
-    Route::get('/surat-tugas/{suratTugas}/cetak', [SuratTugasController::class, 'cetak'])->name('surat-tugas.cetak');
+    Route::middleware('role:sespalu,kapus,tu,ppk,admin')->group(function () {
+        Route::get('/surat-tugas', [SuratTugasController::class, 'index'])->name('surat-tugas.index');
+        Route::get('/surat-tugas/{suratTugas}', [SuratTugasController::class, 'show'])
+            ->whereNumber('suratTugas')
+            ->name('surat-tugas.show');
+        Route::get('/surat-tugas/{suratTugas}/lampiran/{lampiran}', [SuratTugasController::class, 'attachment'])
+            ->whereNumber('suratTugas')
+            ->whereIn('lampiran', ['undangan', 'setneg'])
+            ->name('surat-tugas.attachment');
+    });
+
+    Route::middleware('role:sespalu,admin')->group(function () {
+        Route::get('/surat-tugas/create', [SuratTugasController::class, 'create'])->name('surat-tugas.create');
+        Route::post('/surat-tugas', [SuratTugasController::class, 'store'])->name('surat-tugas.store');
+        Route::post('/surat-tugas/{suratTugas}/selesaikan', [SuratTugasController::class, 'complete'])
+            ->name('surat-tugas.complete');
+        Route::post('/surat-tugas/draft', [SuratTugasController::class, 'saveDraft'])->name('surat-tugas.draft');
+        Route::get('/surat-tugas/{suratTugas}/edit', [SuratTugasController::class, 'edit'])->name('surat-tugas.edit');
+        Route::delete('/surat-tugas/{suratTugas}', [SuratTugasController::class, 'destroy'])->name('surat-tugas.destroy');
+    });
+
+    Route::middleware('role:kapus,admin')->post('/surat-tugas/{suratTugas}/disposisi', [SuratTugasController::class, 'disposisi'])->name('surat-tugas.disposisi');
+    Route::middleware('role:tu,admin')->group(function () {
+        Route::post('/surat-tugas/{suratTugas}/penomoran', [SuratTugasController::class, 'penomoran'])->name('surat-tugas.penomoran');
+        Route::get('/surat-tugas/{suratTugas}/cetak', [SuratTugasController::class, 'cetak'])->name('surat-tugas.cetak');
+    });
+    Route::middleware('role:ppk,admin')->post('/surat-tugas/{suratTugas}/sign-ppk', [SuratTugasController::class, 'signPpk'])->name('surat-tugas.sign-ppk');
 });
 
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // Master Pegawai

@@ -18,10 +18,11 @@ import {
   Layers,
   ArrowRight,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  Trash2
 } from 'lucide-react';
 
-export default function Index({ suratTugas, filters, userRole }) {
+export default function Index({ suratTugas, filters, userRole, statusSummary }) {
   const [search, setSearch] = useState(filters?.search || '');
   const [selectedStatus, setSelectedStatus] = useState(filters?.status || '');
 
@@ -30,12 +31,31 @@ export default function Index({ suratTugas, filters, userRole }) {
     router.get('/surat-tugas', { search, status: selectedStatus }, { preserveState: true });
   };
 
-  const getStatusBadge = (status, kapusDecision) => {
+  const filterByStatus = (status) => {
+    setSelectedStatus(status);
+    router.get('/surat-tugas', { search, status }, { preserveState: true });
+  };
+
+  const getStatusBadge = (status, isPpkSigned) => {
     switch (status) {
+      case 'DRAFT':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
+            <FileText className="w-3.5 h-3.5 mr-1" /> Draft
+          </span>
+        );
       case 'SELESAI_TERBIT':
         return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Terbit & TTD
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-bold ${
+            isPpkSigned
+              ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
+              : 'border-amber-300 bg-amber-100 text-amber-800'
+          }`}>
+            {isPpkSigned ? (
+              <><CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Terbit & TTD</>
+            ) : (
+              <><Clock className="mr-1 h-3.5 w-3.5" /> Terbit · Belum TTD PPK</>
+            )}
           </span>
         );
       case 'MENUNGGU_PENOMORAN_TU':
@@ -44,10 +64,16 @@ export default function Index({ suratTugas, filters, userRole }) {
             <Clock className="w-3.5 h-3.5 mr-1" /> Menunggu Penomoran TU
           </span>
         );
+      case 'DISPOSISI_KAPUS_YA':
+        return (
+          <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">
+            <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Disetujui Kapus · Menunggu Sespalu
+          </span>
+        );
       case 'DISPOSISI_KAPUS_REVISI':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-            <AlertCircle className="w-3.5 h-3.5 mr-1" /> Minta Revisi Kapus
+            <AlertCircle className="w-3.5 h-3.5 mr-1" /> Perlu Revisi Sespalu
           </span>
         );
       case 'DISPOSISI_KAPUS_STOP':
@@ -80,14 +106,65 @@ export default function Index({ suratTugas, filters, userRole }) {
           <p className="text-xs text-slate-500">Pengelolaan usulan, disposisi, penomoran resmi, dan penerbitan Surat Tugas Pusdiklat Kemlu</p>
         </div>
 
-        <Link
-          href="/surat-tugas/create"
-          className="inline-flex items-center justify-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow-md shadow-amber-500/20 transition text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Buat Surat Tugas Baru</span>
-        </Link>
+        {(userRole === 'sespalu' || userRole === 'admin') && (
+          <Link
+            href="/surat-tugas/create"
+            className="inline-flex items-center justify-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow-md shadow-amber-500/20 transition text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Buat Surat Tugas Baru</span>
+          </Link>
+        )}
       </div>
+
+      <section aria-label="Ringkasan status surat" className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          {
+            label: 'Total Pengajuan',
+            count: statusSummary?.total ?? 0,
+            status: '',
+            icon: Layers,
+            colors: 'border-blue-200 bg-blue-50 text-blue-700',
+          },
+          {
+            label: 'Menunggu Disposisi Kapus',
+            count: statusSummary?.waiting_kapus ?? 0,
+            status: 'MENUNGGU_DISPOSISI_KAPUS',
+            icon: AlertCircle,
+            colors: 'border-orange-200 bg-orange-50 text-orange-700',
+          },
+          {
+            label: 'Perlu Tindak Lanjut',
+            count: statusSummary?.in_progress ?? 0,
+            status: 'DALAM_PROSES',
+            icon: Clock,
+            colors: 'border-amber-200 bg-amber-50 text-amber-700',
+          },
+          {
+            label: 'Surat Terbit',
+            count: statusSummary?.published ?? 0,
+            status: 'SELESAI_TERBIT',
+            icon: CheckCircle2,
+            colors: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+          },
+        ].map(({ label, count, status, icon: Icon, colors }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => filterByStatus(status)}
+            aria-pressed={selectedStatus === status}
+            className={`flex items-center gap-3 rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+              colors
+            } ${selectedStatus === status ? 'ring-2 ring-amber-500' : ''}`}
+          >
+            <Icon className="h-4 w-4 shrink-0" />
+            <span>
+              <strong className="block text-xl leading-none">{count}</strong>
+              <span className="mt-1 block text-xs">{label}</span>
+            </span>
+          </button>
+        ))}
+      </section>
 
       {/* Search & Filter Bar */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 mb-6">
@@ -112,9 +189,14 @@ export default function Index({ suratTugas, filters, userRole }) {
             className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:ring-amber-500 focus:outline-none"
           >
             <option value="">Semua Status Dokumen</option>
+            <option value="DRAFT">Draft</option>
             <option value="MENUNGGU_DISPOSISI_KAPUS">Menunggu Disposisi Kapus</option>
+            <option value="DISPOSISI_KAPUS_YA">Disetujui Kapus · Menunggu Sespalu</option>
+            <option value="DISPOSISI_KAPUS_REVISI">Perlu Revisi Sespalu</option>
+            <option value="DISPOSISI_KAPUS_STOP">Dihentikan Kapus</option>
+            <option value="DALAM_PROSES">Perlu Tindak Lanjut</option>
             <option value="MENUNGGU_PENOMORAN_TU">Menunggu Penomoran TU</option>
-            <option value="SELESAI_TERBIT">Selesai Terbit & Digital TTD</option>
+            <option value="SELESAI_TERBIT">Surat Terbit</option>
           </select>
 
           <button
@@ -200,11 +282,19 @@ export default function Index({ suratTugas, filters, userRole }) {
                     </td>
 
                     <td className="py-3.5 px-4 text-center">
-                      {getStatusBadge(st.status, st.kapus_decision)}
+                      {getStatusBadge(st.status, st.is_ppk_signed)}
                     </td>
 
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex items-center justify-center space-x-2">
+                        {st.status === 'DRAFT' && (
+                          <Link
+                            href={`/surat-tugas/${st.id}/edit`}
+                            className="rounded-lg bg-blue-50 px-2 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
+                          >
+                            Lanjutkan
+                          </Link>
+                        )}
                         <Link
                           href={`/surat-tugas/${st.id}`}
                           className="p-1.5 rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-900 transition flex items-center space-x-1 text-xs font-bold"
@@ -214,14 +304,30 @@ export default function Index({ suratTugas, filters, userRole }) {
                           <span className="hidden md:inline">Detail</span>
                         </Link>
 
-                        <Link
-                          href={`/surat-tugas/${st.id}/cetak`}
-                          className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition flex items-center space-x-1 text-xs font-bold shadow-sm"
-                          title="Cetak PDF Dokumen Resmi"
-                        >
-                          <Printer className="w-4 h-4" />
-                          <span className="hidden md:inline">Cetak</span>
-                        </Link>
+                        {(userRole === 'tu' || userRole === 'admin') && st.status === 'SELESAI_TERBIT' && (
+                          <Link
+                            href={`/surat-tugas/${st.id}/cetak`}
+                            className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition flex items-center space-x-1 text-xs font-bold shadow-sm"
+                            title="Cetak PDF Dokumen Resmi"
+                          >
+                            <Printer className="w-4 h-4" />
+                            <span className="hidden md:inline">Cetak</span>
+                          </Link>
+                        )}
+                        {(userRole === 'admin' || st.status === 'DRAFT') && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm('Hapus draft / surat ini?')) {
+                                router.delete(`/surat-tugas/${st.id}`);
+                              }
+                            }}
+                            className="rounded-lg bg-red-50 p-1.5 text-red-700 transition hover:bg-red-100"
+                            title="Hapus draft / surat"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

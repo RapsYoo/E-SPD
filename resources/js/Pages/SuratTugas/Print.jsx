@@ -46,28 +46,120 @@ export default function Print({ suratTugas }) {
   return (
     <div className="print-document-flow min-h-screen bg-slate-200 font-sans text-black">
       <Head title={`Cetak ST & SPD - ${suratTugas.nomor_st || 'Resmi'}`} />
-      <style>{`.print-document-flow { display: flex; flex-direction: column; } .print-document-sheet { order: 1; } .print-break-lampiran { order: 2; } .print-sheet-lampiran { order: 3; } .print-break-visum { order: 4; } .print-sheet-visum { order: 5; } .print-sheet-lampiran, .print-sheet-visum { box-sizing: border-box; width: 100%; max-width: 210mm; margin: 1.5rem auto; padding: 2rem 3rem; background: white; border: 1px solid #cbd5e1; box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.12); } @media print { @page { size: A4; margin: 14mm; } .no-print { display: none !important; } .print-document-flow { display: block; background: white; } .print-document-sheet, .print-sheet-lampiran, .print-sheet-visum { max-width: none; margin: 0; padding: 0; box-shadow: none; border: 0; } .print-page-break { display: none !important; } .print-hide-border { border: 0 !important; } }`}</style>
-      <style>{`.spd-brand img { width: 25mm; height: 19mm; object-fit: contain; }
+      <style>{`
+        .print-document-flow { display: flex; flex-direction: column; }
+        .print-document-sheet { order: 1; }
+        .print-break-lampiran { order: 2; }
+        .print-sheet-lampiran { order: 3; }
+        .print-break-visum { order: 4; }
+        .print-sheet-visum { order: 5; }
+        .print-sheet-lampiran, .print-sheet-visum {
+          box-sizing: border-box;
+          width: 100%;
+          max-width: 210mm;
+          margin: 1.5rem auto;
+          padding: 2rem 3rem;
+          background: white;
+          border: 1px solid #cbd5e1;
+          box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.12);
+        }
+        .spd-brand img { width: 25mm; height: 19mm; object-fit: contain; }
         .spd-brand-name { margin-top: 0.5mm; font-size: 8pt; font-weight: 700; line-height: 1; }
         .spd-brand-country { margin-top: 1mm; font-size: 6pt; letter-spacing: 1.5pt; line-height: 1; color: #b4233a; }
         .spd-annex { font-size: 5.5pt; line-height: 1.2; }
+        .lampiran-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+        .lampiran-table th, .lampiran-table td {
+          border: 0.2mm solid #000;
+          padding: 1mm 0.6mm;
+          overflow-wrap: anywhere;
+          vertical-align: middle;
+        }
+        .lampiran-meta-row {
+          display: grid;
+          grid-template-columns: 58mm 3mm minmax(0, 1fr);
+          align-items: start;
+        }
+        .lampiran-meta-label { overflow-wrap: anywhere; }
+        .lampiran-signature { width: 40%; margin: 7mm 0 0 auto; padding-left: 10mm; }
         @media print {
-        @page { size: A4 portrait; margin: 8mm; }
-        .spd-document { box-sizing: border-box; display: flex; flex-direction: column; gap: 2mm; width: 194mm; height: 281mm; max-height: 281mm; overflow: hidden; font-size: 8pt; line-height: 1.05; }
-        .spd-document > :not([hidden]) ~ :not([hidden]) { margin-top: 0 !important; }
-        .spd-letterhead { height: 34mm; flex: 0 0 34mm; }
-        .spd-brand { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
-        .spd-info { min-height: 11mm; flex: 0 0 11mm; }
-        .spd-title { min-height: 8mm; flex: 0 0 8mm; padding: 0 !important; }
-        .spd-title h2 { font-size: 12pt; }
-        .spd-table { width: 100%; flex: 1 1 auto; table-layout: fixed; font-size: 7.2pt; line-height: 1.05; }
-        .spd-table td { padding: 0.6mm !important; line-height: 1 !important; }
-        .spd-table .h-20 { height: auto !important; min-height: 7mm; }
-        .spd-footer { min-height: 36mm; flex: 0 0 36mm; padding-top: 0.5mm !important; }
-        .spd-stamp-space { height: 18mm !important; min-height: 18mm; flex: 0 0 18mm; }
-        .spd-stamp-space .border-dashed { width: 14mm; height: 14mm; font-size: 5pt; }
-        .print-sheet-st { width: 194mm; margin: 0 auto; }
-      }`}</style>
+          @page { size: A4 portrait; margin: 12mm; }
+          html, body { margin: 0 !important; background: white !important; }
+          .no-print { display: none !important; }
+          .print-document-flow { display: block !important; min-height: 0 !important; background: white !important; }
+          .print-document-sheet, .print-sheet-lampiran, .print-sheet-visum {
+            box-sizing: border-box;
+            width: 186mm;
+            max-width: none;
+            margin: 0 auto;
+            padding: 0;
+            border: 0;
+            box-shadow: none;
+          }
+          .print-page-break { display: none !important; }
+          .print-hide-border { border: 0 !important; }
+          .print-sheet-st {
+            width: 186mm;
+            margin: 0 auto;
+            font-size: 9pt;
+            line-height: 1.25;
+          }
+          .print-sheet-st table { width: 100%; font-size: 8pt; }
+          .print-sheet-st th, .print-sheet-st td { padding: 1.2mm !important; }
+          .print-sheet-st tr, .spd-table tr, .lampiran-table tr, .print-sheet-visum tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          .spd-document {
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 2mm;
+            width: 186mm;
+            min-height: 273mm;
+            height: auto;
+            max-height: none;
+            margin: 0 auto;
+            overflow: visible;
+            font-size: 8pt;
+            line-height: 1.1;
+          }
+          .spd-document > :not([hidden]) ~ :not([hidden]) { margin-top: 0 !important; }
+          .spd-letterhead { min-height: 34mm; flex: 0 0 34mm; }
+          .spd-brand { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+          .spd-info { min-height: 11mm; flex: 0 0 11mm; }
+          .spd-title { min-height: 8mm; flex: 0 0 8mm; padding: 0 !important; }
+          .spd-title h2 { font-size: 12pt; }
+          .spd-table {
+            width: 100%;
+            flex: 0 0 auto;
+            table-layout: fixed;
+            border-collapse: collapse;
+            font-size: 7.2pt;
+            line-height: 1.05;
+          }
+          .spd-table td { padding: 0.6mm !important; line-height: 1.05 !important; }
+          .spd-table .h-20 { height: auto !important; min-height: 7mm; }
+          .spd-footer { min-height: 34mm; margin-top: auto; padding-top: 1mm !important; }
+          .spd-stamp-space { height: 17mm !important; min-height: 17mm; flex: 0 0 17mm; }
+          .spd-stamp-space .border-dashed { width: 14mm; height: 14mm; font-size: 5pt; }
+          .print-sheet-lampiran { font-size: 7pt; line-height: 1.15; }
+          .print-sheet-lampiran > :not([hidden]) ~ :not([hidden]) { margin-top: 2.5mm !important; }
+          .lampiran-header { min-height: 18mm; }
+          .lampiran-legal { width: 58%; font-size: 6pt; line-height: 1.15; text-align: right; }
+          .lampiran-meta { gap: 1mm; font-size: 7pt; line-height: 1.15; }
+          .lampiran-table { font-size: 5.8pt; line-height: 1.1; }
+          .lampiran-table th { padding: 1mm 0.5mm; font-weight: 700; }
+          .lampiran-table td { padding: 0.8mm 0.5mm; }
+          .lampiran-table thead { display: table-header-group; }
+          .lampiran-signature { font-size: 7pt; line-height: 1.2; }
+          .print-sheet-visum { font-size: 8pt; line-height: 1.15; }
+          .print-sheet-visum > :not([hidden]) ~ :not([hidden]) { margin-top: 2mm !important; }
+          .visum-header img { height: 18mm; }
+          .visum-header .visum-page-number { margin-top: 1mm; }
+          .visum-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 6.5pt; line-height: 1.1; }
+          .visum-table td { padding: 1mm !important; }
+        }
+      `}</style>
 
       {/* Top Floating Control Bar (Hidden on Print) */}
       <div className="no-print bg-[#0F2C59] text-white p-4 shadow-lg border-b-4 border-amber-500 sticky top-0 z-50">
@@ -121,31 +213,43 @@ export default function Print({ suratTugas }) {
 
         {/* ================= DOKUMEN 3: LAMPIRAN SPD ================= */}
         <section className={`print-sheet-lampiran space-y-5 text-[10px] leading-snug ${activeDocument === 'lampiran' ? '' : 'hidden'}`}>
-          <header className="flex items-start justify-between gap-6">
-            <h2 className="pt-5 text-sm font-bold">Lampiran SPD</h2>
-            <p className="max-w-[58%] text-[8px] leading-relaxed">
+          <header className="lampiran-header flex items-start justify-end">
+            <p className="lampiran-legal">
               LAMPIRAN IV<br />
               PERATURAN DIRJEN PERBENDAHARAAN NOMOR PER-22/PB/2011 TENTANG KETENTUAN LEBIH LANJUT PELAKSANAAN PERJALANAN DINAS DALAM NEGERI BAGI PEJABAT NEGARA, PEGAWAI NEGERI DAN PEGAWAI TIDAK TETAP
             </p>
           </header>
 
-          <div className="space-y-1 text-[11px]">
-            <p><span className="inline-block w-32">Nomor</span>: {suratTugas.nomor_spd || '-'}</p>
-            <p><span className="inline-block w-32">Tanggal</span>: {tanggalSurat}</p>
-            <p className="pt-2"><span className="inline-block w-32">DAFTAR PESERTA KEGIATAN</span>: {suratTugas.perihal_nota || '-'}</p>
-            <p className="pt-2"><span className="inline-block w-32">TANGGAL PENYELENGGARAAN</span>: {tanggalBerangkat}{tanggalKembali !== '-' ? ` s.d. ${tanggalKembali}` : ''}</p>
-            <p><span className="inline-block w-32">KOTA TEMPAT PENYELENGGARAAN</span>: {tujuanPerjalanan}</p>
-            <p><span className="inline-block w-32">SATUAN KERJA</span>: Pusat Pendidikan dan Pelatihan</p>
-            <p><span className="inline-block w-32">KEMENTERIAN NEGARA/LEMBAGA</span>: Kementerian Luar Negeri</p>
+          <div className="lampiran-meta space-y-1 text-[11px]">
+            {[
+              ['Nomor', suratTugas.nomor_spd || '-'],
+              ['Tanggal', tanggalSurat],
+              ['DAFTAR PESERTA KEGIATAN', suratTugas.perihal_nota || '-'],
+              ['TANGGAL PENYELENGGARAAN', `${tanggalBerangkat}${tanggalKembali !== '-' ? ` s.d. ${tanggalKembali}` : ''}`],
+              ['KOTA TEMPAT PENYELENGGARAAN', tujuanPerjalanan],
+              ['SATUAN KERJA', 'Pusat Pendidikan dan Pelatihan'],
+              ['KEMENTERIAN NEGARA/LEMBAGA', 'Kementerian Luar Negeri'],
+            ].map(([label, value]) => (
+              <div key={label} className="lampiran-meta-row">
+                <span className="lampiran-meta-label">{label}</span>
+                <span>:</span>
+                <span>{value}</span>
+              </div>
+            ))}
           </div>
 
-          <table className="w-full table-fixed border-collapse text-center text-[8px] leading-tight">
+          <table className="lampiran-table w-full table-fixed border-collapse text-center text-[8px] leading-tight">
+            <colgroup>
+              {Array.from({ length: 11 }, (_, index) => (
+                <col key={index} style={{ width: '9.0909%' }} />
+              ))}
+            </colgroup>
             <thead>
               <tr>
                 <th rowSpan="2" className="border border-black p-1">No</th>
                 <th rowSpan="2" className="border border-black p-1">Nama Pelaksana SPD / NIP / Jabatan / Pangkat Golongan</th>
                 <th rowSpan="2" className="border border-black p-1">Tempat Kedudukan Asal</th>
-                <th rowSpan="2" className="border border-black p-1">Tingkat Biaya</th>
+                <th rowSpan="2" className="border border-black p-1">Tingkat Biaya Perjalanan Dinas</th>
                 <th rowSpan="2" className="border border-black p-1">Alat Angkutan</th>
                 <th colSpan="2" className="border border-black p-1">Surat Tugas</th>
                 <th colSpan="2" className="border border-black p-1">Tanggal</th>
@@ -185,7 +289,7 @@ export default function Print({ suratTugas }) {
             </tbody>
           </table>
 
-          <footer className="ml-auto w-2/5 pt-2 text-[10px]">
+          <footer className="lampiran-signature ml-auto w-2/5 pt-2 text-[10px]">
             <p>Jakarta, {tanggalSurat}</p>
             <p className="pl-3">Mengetahui/Menyetujui:</p>
             <p className="pl-3">Pejabat Pembuat Komitmen</p>
@@ -200,14 +304,14 @@ export default function Print({ suratTugas }) {
 
         {/* ================= DOKUMEN 4: VISUM RAMPUNGAN ================= */}
         <section className={`print-sheet-visum space-y-4 text-[10px] leading-snug ${activeDocument === 'visum' ? '' : 'hidden'}`}>
-          <header className="text-center">
+          <header className="visum-header text-center">
             <img src="/images/kemlu-logo.webp" alt="Lambang Kementerian Luar Negeri" className="mx-auto h-20 w-auto object-contain" />
             <h2 className="font-bold tracking-wide">KEMENTERIAN LUAR NEGERI</h2>
             <p className="text-[9px] tracking-[0.2em]">REPUBLIK INDONESIA</p>
-            <p className="mt-3 font-bold">- 2 -</p>
+            <p className="visum-page-number mt-3 font-bold">- 2 -</p>
           </header>
 
-          <table className="w-full table-fixed border-collapse text-[9px] leading-snug">
+          <table className="visum-table w-full table-fixed border-collapse text-[9px] leading-snug">
             <colgroup><col className="w-[6%]" /><col className="w-[47%]" /><col className="w-[47%]" /></colgroup>
             <tbody>
               <tr className="h-32">

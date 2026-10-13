@@ -21,7 +21,7 @@ import {
   UserCog
 } from 'lucide-react';
 
-export default function Show({ suratTugas, userRole }) {
+export default function Show({ suratTugas, userRole, canContinueWorkflow }) {
   // Kapus Disposisi Form
   const kapusForm = useForm({
     kapus_decision: suratTugas.kapus_decision || 'YA',
@@ -54,6 +54,17 @@ export default function Show({ suratTugas, userRole }) {
     e.preventDefault();
     ppkForm.post(`/surat-tugas/${suratTugas.id}/sign-ppk`);
   };
+
+  const workflowStatus = {
+    DRAFT: 'Draft',
+    MENUNGGU_DISPOSISI_KAPUS: 'Menunggu persetujuan Kapus',
+    DISPOSISI_KAPUS_YA: 'Disetujui Kapus',
+    DISPOSISI_KAPUS_REVISI: 'Perlu revisi dari Sespalu',
+    DISPOSISI_KAPUS_STOP: 'Dihentikan oleh Kapus',
+    DRAFT_SESPALU_SELESAI: 'Menunggu proses berikutnya',
+    MENUNGGU_PENOMORAN_TU: 'Menunggu penomoran TU',
+    SELESAI_TERBIT: 'Surat sudah terbit',
+  }[suratTugas.status] || suratTugas.status;
 
   return (
     <AdminLayout title={`Detail Surat Tugas #${suratTugas.id}`}>
@@ -117,6 +128,48 @@ export default function Show({ suratTugas, userRole }) {
                 <p className="text-slate-500 mt-1">Nomor SPD: <strong className="text-slate-800">{suratTugas.nomor_spd || '[Belum diisi TU]'}</strong></p>
               </div>
             </div>
+
+            <section className="space-y-3 border-t border-slate-100 pt-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">Lampiran Nota / Undangan</h3>
+              {[
+                ['Nota / Undangan', suratTugas.file_undangan],
+                ['Izin Setneg / Keppres', suratTugas.file_izin_setneg],
+              ].filter(([, path]) => path).length ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[
+                    ['Nota / Undangan', suratTugas.file_undangan],
+                    ['Izin Setneg / Keppres', suratTugas.file_izin_setneg],
+                  ].filter(([, path]) => path).map(([label, path]) => (
+                    <a
+                      key={path}
+                      href={`/surat-tugas/${suratTugas.id}/lampiran/${label === 'Nota / Undangan' ? 'undangan' : 'setneg'}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 font-semibold text-blue-800 hover:bg-blue-100"
+                    >
+                      <span className="min-w-0 truncate">{label}</span>
+                      <span className="shrink-0 underline">Buka / Unduh</span>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-500">
+                  Belum ada lampiran nota / undangan.
+                </p>
+              )}
+            </section>
+
+            {suratTugas.kapus_decision && (
+              <section className="space-y-1 rounded-xl border border-purple-200 bg-purple-50 p-4 text-xs">
+                <h3 className="font-bold text-purple-900">Hasil Tinjauan Kapus</h3>
+                <p className="text-purple-800">
+                  Keputusan: <strong>{suratTugas.kapus_decision === 'YA' ? 'Disetujui' : suratTugas.kapus_decision === 'REVISI' ? 'Perlu revisi' : 'Dihentikan'}</strong>
+                </p>
+                {suratTugas.catatan_kapus && (
+                  <p className="whitespace-pre-wrap text-purple-800">Catatan: {suratTugas.catatan_kapus}</p>
+                )}
+              </section>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="flex items-start space-x-2">
@@ -182,11 +235,13 @@ export default function Show({ suratTugas, userRole }) {
             <h3 className="font-bold text-slate-900 text-sm mb-3">Status Workflow</h3>
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Tahap Terakhir:</span>
-                <span className="font-bold text-amber-600">{suratTugas.status}</span>
+                <span className="text-slate-500">Status Surat:</span>
+                <span className={`font-bold ${
+                  suratTugas.status === 'SELESAI_TERBIT' ? 'text-emerald-700' : 'text-amber-600'
+                }`}>{workflowStatus}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Digital TTD PPK:</span>
+                <span className="text-slate-500">Status TTD PPK:</span>
                 {suratTugas.is_ppk_signed ? (
                   <span className="text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded">Tersematkan</span>
                 ) : (
@@ -195,6 +250,23 @@ export default function Show({ suratTugas, userRole }) {
               </div>
             </div>
           </div>
+
+          {canContinueWorkflow && (userRole === 'sespalu' || userRole === 'admin') && suratTugas.status === 'DISPOSISI_KAPUS_YA' && (
+            <Link
+              href={`/surat-tugas/create?workflow_id=${suratTugas.id}`}
+              className="flex items-center justify-center rounded-xl bg-[#0F2C59] px-4 py-3 text-center text-xs font-bold text-white shadow transition hover:bg-slate-800"
+            >
+              Lanjutkan pembuatan ST & SPD (Tahap 3)
+            </Link>
+          )}
+          {canContinueWorkflow && (userRole === 'sespalu' || userRole === 'admin') && suratTugas.status === 'DISPOSISI_KAPUS_REVISI' && (
+            <Link
+              href={`/surat-tugas/create?workflow_id=${suratTugas.id}`}
+              className="flex items-center justify-center rounded-xl bg-amber-500 px-4 py-3 text-center text-xs font-bold text-slate-950 shadow transition hover:bg-amber-400"
+            >
+              Perbaiki Nota sesuai catatan Kapus
+            </Link>
+          )}
 
           {/* Action Box 1: Disposisi Kapus */}
           {(userRole === 'kapus' || userRole === 'admin') && suratTugas.status === 'MENUNGGU_DISPOSISI_KAPUS' && (
@@ -212,7 +284,7 @@ export default function Show({ suratTugas, userRole }) {
                   onChange={(e) => kapusForm.setData('kapus_decision', e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold"
                 >
-                  <option value="YA">Persetujuan / Ya (Lanjut TU)</option>
+                  <option value="YA">Setujui nota, lanjut ke Sespalu (Tahap 3)</option>
                   <option value="REVISI">Minta Revisi ke Sespalu</option>
                   <option value="STOP">Hentikan (Stop)</option>
                 </select>

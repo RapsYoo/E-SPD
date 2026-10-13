@@ -25,6 +25,16 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    public function normalizedRole(): string
+    {
+        return $this->role === 'pemohon' ? 'sespalu' : $this->role;
+    }
+
+    public function dashboardRouteName(): string
+    {
+        return $this->isAdmin() ? 'admin.dashboard' : 'surat-tugas.index';
+    }
+
     public function isSespalu(): bool
     {
         return in_array($this->role, ['sespalu', 'pemohon', 'admin']);
