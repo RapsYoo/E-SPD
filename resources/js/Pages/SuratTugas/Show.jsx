@@ -16,28 +16,35 @@ import {
   Calendar, 
   Users, 
   FileText,
+  PenTool,
   Sparkles,
   Stamp,
   UserCog
 } from 'lucide-react';
 
-export default function Show({ suratTugas, userRole }) {
+export default function Show({ suratTugas, userRole, authUserId, attachments = {} }) {
+  const actorDrafts = suratTugas.draft_data || {};
+
   // Kapus Disposisi Form
   const kapusForm = useForm({
-    kapus_decision: suratTugas.kapus_decision || 'YA',
-    catatan_kapus: suratTugas.catatan_kapus || '',
+    actor: 'kapus',
+    kapus_decision: actorDrafts.kapus?.kapus_decision || suratTugas.kapus_decision || 'YA',
+    catatan_kapus: actorDrafts.kapus?.catatan_kapus || suratTugas.catatan_kapus || '',
   });
 
   // TU Penomoran Form
   const tuForm = useForm({
-    nomor_st: suratTugas.nomor_st || '',
-    nomor_spd: suratTugas.nomor_spd || '',
-    tanggal_surat: suratTugas.tanggal_surat || new Date().toISOString().split('T')[0],
+    actor: 'tu',
+    nomor_st: actorDrafts.tu?.nomor_st || suratTugas.nomor_st || '',
+    nomor_spd: actorDrafts.tu?.nomor_spd || suratTugas.nomor_spd || '',
+    tanggal_surat: actorDrafts.tu?.tanggal_surat || suratTugas.tanggal_surat || new Date().toISOString().split('T')[0],
   });
 
   // PPK Signature Form
   const ppkForm = useForm({
-    is_ppk_signed: !suratTugas.is_ppk_signed,
+    actor: 'ppk',
+    is_ppk_signed: actorDrafts.ppk?.is_ppk_signed ?? !suratTugas.is_ppk_signed,
+    catatan_ppk: actorDrafts.ppk?.catatan_ppk || '',
   });
 
   const handleKapusSubmit = (e) => {
@@ -54,6 +61,37 @@ export default function Show({ suratTugas, userRole }) {
     e.preventDefault();
     ppkForm.post(`/surat-tugas/${suratTugas.id}/sign-ppk`);
   };
+
+  const workflowStatus = {
+    MENUNGGU_DISPOSISI_KAPUS: {
+      label: 'Nota masuk ke Kapus',
+      message: 'Nota/undangan sudah dikirim Sespalu ke Kapus dan sedang menunggu persetujuan.',
+    },
+    DISPOSISI_KAPUS_YA: {
+      label: 'Disetujui Kapus',
+      message: 'Kapus menyetujui penugasan. Sespalu dapat melanjutkan draft Surat Tugas dan SPD pada Tahap 3.',
+    },
+    DISPOSISI_KAPUS_REVISI: {
+      label: 'Perlu revisi Sespalu',
+      message: 'Kapus meminta perbaikan nota. Perbarui draft lalu kirim kembali untuk persetujuan.',
+    },
+    DISPOSISI_KAPUS_STOP: {
+      label: 'Dihentikan Kapus',
+      message: 'Kapus menghentikan proses surat ini.',
+    },
+    DRAFT: {
+      label: 'Draft Sespalu',
+      message: 'Isian masih disimpan sebagai draft dan belum dikirim ke Kapus.',
+    },
+    MENUNGGU_PENOMORAN_TU: {
+      label: 'Menunggu verifikasi dan nomor TU',
+      message: 'Draft Sespalu sudah dikirim. TU sedang memeriksa dan mengisi nomor resmi Surat Tugas serta SPD.',
+    },
+    SELESAI_TERBIT: {
+      label: 'Selesai diterbitkan TU',
+      message: 'Nomor resmi sudah diterbitkan TU. Dokumen siap digunakan; TTD PPK dipantau terpisah.',
+    },
+  }[suratTugas.status] || { label: suratTugas.status, message: 'Status proses surat.' };
 
   return (
     <AdminLayout title={`Detail Surat Tugas #${suratTugas.id}`}>
@@ -76,15 +114,30 @@ export default function Show({ suratTugas, userRole }) {
           <p className="text-xs text-slate-500">Monitoring status persetujuan, penomoran resmi, dan TTD digital PPK</p>
         </div>
 
-        {(userRole === 'tu' || userRole === 'admin') && suratTugas.status === 'SELESAI_TERBIT' && (
-          <Link
-            href={`/surat-tugas/${suratTugas.id}/cetak`}
-            className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition text-sm"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Cetak Dokumen Resmi PDF</span>
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {(userRole === 'admin' || (
+            (userRole === 'pemohon' || userRole === 'sespalu')
+            && suratTugas.user_id === authUserId
+          )) && ['DISPOSISI_KAPUS_YA', 'DISPOSISI_KAPUS_REVISI'].includes(suratTugas.status) && (
+            <Link
+              href={`/surat-tugas/${suratTugas.id}/draft`}
+              className="inline-flex items-center justify-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl shadow transition text-sm"
+            >
+              <PenTool className="w-4 h-4" />
+              <span>{suratTugas.status === 'DISPOSISI_KAPUS_REVISI' ? 'Perbaiki Nota' : 'Lanjutkan Draft ST & SPD'}</span>
+            </Link>
+          )}
+
+          {(userRole === 'tu' || userRole === 'admin') && ['MENUNGGU_PENOMORAN_TU', 'SELESAI_TERBIT'].includes(suratTugas.status) && (
+            <Link
+              href={`/surat-tugas/${suratTugas.id}/cetak`}
+              className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition text-sm"
+            >
+              <Printer className="w-4 h-4" />
+              <span>{suratTugas.status === 'SELESAI_TERBIT' ? 'Cetak Dokumen Resmi PDF' : 'Pratinjau Dokumen'}</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Grid: Document Summary & Workflow Timeline */}
@@ -173,6 +226,44 @@ export default function Show({ suratTugas, userRole }) {
               </div>
             </div>
           </div>
+
+          {(attachments.invitation || attachments.setneg) && (
+            <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Lampiran Nota / Izin Setneg</h3>
+                <p className="mt-1 text-xs text-slate-500">Dokumen yang dikirim Sespalu untuk ditinjau dalam proses surat.</p>
+              </div>
+              {[{ key: 'invitation', label: 'Nota / Undangan' }, { key: 'setneg', label: 'Izin Setneg / Keppres' }]
+                .filter(({ key }) => attachments[key])
+                .map(({ key, label }) => {
+                  const file = attachments[key];
+                  const extension = file.name.split('.').pop()?.toLowerCase();
+
+                  return (
+                    <div key={key} className="overflow-hidden rounded-xl border border-slate-200">
+                      <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-3">
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">{label}</p>
+                          <p className="mt-0.5 break-all text-xs text-slate-500">{file.name}</p>
+                        </div>
+                        <a href={file.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-blue-700 hover:text-blue-900">
+                          Buka / Unduh
+                        </a>
+                      </div>
+                      {extension === 'pdf' ? (
+                        <iframe title={`Pratinjau ${label}`} src={file.url} className="h-[32rem] w-full bg-slate-100" />
+                      ) : ['jpg', 'jpeg', 'png'].includes(extension) ? (
+                        <div className="flex max-h-[32rem] justify-center overflow-auto bg-slate-100 p-4">
+                          <img src={file.url} alt={`Pratinjau ${label}`} className="h-auto max-w-full object-contain" />
+                        </div>
+                      ) : (
+                        <p className="p-4 text-xs text-slate-500">Buka atau unduh dokumen untuk meninjau isinya.</p>
+                      )}
+                    </div>
+                  );
+                })}
+            </section>
+          )}
         </div>
 
         {/* Workflow Action Cards for Roles */}
@@ -182,9 +273,10 @@ export default function Show({ suratTugas, userRole }) {
             <h3 className="font-bold text-slate-900 text-sm mb-3">Status Workflow</h3>
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Tahap Terakhir:</span>
-                <span className="font-bold text-amber-600">{suratTugas.status}</span>
+                <span className="text-slate-500">Status Proses:</span>
+                <span className="font-bold text-amber-600">{workflowStatus.label}</span>
               </div>
+              <p className="leading-relaxed text-slate-700">{workflowStatus.message}</p>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Digital TTD PPK:</span>
                 {suratTugas.is_ppk_signed ? (
@@ -212,7 +304,7 @@ export default function Show({ suratTugas, userRole }) {
                   onChange={(e) => kapusForm.setData('kapus_decision', e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold"
                 >
-                  <option value="YA">Persetujuan / Ya (Lanjut TU)</option>
+                  <option value="YA">Setuju (Lanjut ke Draft Sespalu)</option>
                   <option value="REVISI">Minta Revisi ke Sespalu</option>
                   <option value="STOP">Hentikan (Stop)</option>
                 </select>
@@ -229,13 +321,23 @@ export default function Show({ suratTugas, userRole }) {
                 ></textarea>
               </div>
 
-              <button
-                type="submit"
-                disabled={kapusForm.processing}
-                className="w-full bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-xl transition shadow"
-              >
-                Simpan Disposisi Kapus
-              </button>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => kapusForm.post(`/surat-tugas/${suratTugas.id}/actor-draft`, { preserveScroll: true })}
+                  disabled={kapusForm.processing}
+                  className="w-full rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                >
+                  Simpan Draft Kapus
+                </button>
+                <button
+                  type="submit"
+                  disabled={kapusForm.processing}
+                  className="w-full bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-xl transition shadow disabled:opacity-60"
+                >
+                  Proses Disposisi Kapus
+                </button>
+              </div>
             </form>
           </div>
           )}
@@ -273,13 +375,23 @@ export default function Show({ suratTugas, userRole }) {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={tuForm.processing}
-                className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs py-2.5 rounded-xl transition shadow"
-              >
-                Simpan Penomoran TU & Terbitkan
-              </button>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => tuForm.post(`/surat-tugas/${suratTugas.id}/actor-draft`, { preserveScroll: true })}
+                  disabled={tuForm.processing}
+                  className="w-full rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                >
+                  Simpan Draft TU
+                </button>
+                <button
+                  type="submit"
+                  disabled={tuForm.processing}
+                  className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs py-2.5 rounded-xl transition shadow disabled:opacity-60"
+                >
+                  Simpan Penomoran TU & Terbitkan
+                </button>
+              </div>
             </form>
           </div>
           )}
@@ -292,21 +404,41 @@ export default function Show({ suratTugas, userRole }) {
               <span>Sematkan TTD Digital PPK</span>
             </div>
 
-            <form onSubmit={handlePpkSubmit}>
-              <button
-                type="submit"
-                disabled={ppkForm.processing}
-                className={`w-full font-bold text-xs py-2.5 rounded-xl transition shadow flex items-center justify-center space-x-2 ${
-                  suratTugas.is_ppk_signed
-                    ? 'bg-amber-500 text-slate-950 hover:bg-amber-400'
-                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                }`}
-              >
-                <Stamp className="w-4 h-4" />
-                <span>
-                  {suratTugas.is_ppk_signed ? 'Batalkan TTD Digital PPK' : 'Sematkan TTD Digital PPK'}
-                </span>
-              </button>
+            <form onSubmit={handlePpkSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan review PPK (opsional)</label>
+                <textarea
+                  rows="2"
+                  value={ppkForm.data.catatan_ppk}
+                  onChange={(e) => ppkForm.setData('catatan_ppk', e.target.value)}
+                  placeholder="Simpan catatan sebelum menyematkan TTD"
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs"
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => ppkForm.post(`/surat-tugas/${suratTugas.id}/actor-draft`, { preserveScroll: true })}
+                  disabled={ppkForm.processing}
+                  className="w-full rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                >
+                  Simpan Draft PPK
+                </button>
+                <button
+                  type="submit"
+                  disabled={ppkForm.processing}
+                  className={`w-full font-bold text-xs py-2.5 rounded-xl transition shadow flex items-center justify-center space-x-2 disabled:opacity-60 ${
+                    suratTugas.is_ppk_signed
+                      ? 'bg-amber-500 text-slate-950 hover:bg-amber-400'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  }`}
+                >
+                  <Stamp className="w-4 h-4" />
+                  <span>
+                    {suratTugas.is_ppk_signed ? 'Batalkan TTD Digital PPK' : 'Sematkan TTD Digital PPK'}
+                  </span>
+                </button>
+              </div>
             </form>
           </div>
           )}

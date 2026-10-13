@@ -22,19 +22,22 @@ import {
   Users, 
   Sparkles,
   ShieldCheck,
+  Save,
   Coins,
   Truck,
   FileText
 } from 'lucide-react';
 
-export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBiayaList, jenisAngkutanList, userRole }) {
-  const [activeStep, setActiveStep] = useState(1);
-  const [selectedPegawaiIds, setSelectedPegawaiIds] = useState([]);
+export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBiayaList, jenisAngkutanList, userRole, draft = null, draftData = {}, draftStep = 1, draftAttachments = {} }) {
+  const [activeStep, setActiveStep] = useState(draftStep || 1);
+  const [selectedPegawaiIds, setSelectedPegawaiIds] = useState((draftData.pegawai_ids || []).map(Number));
   const [selectedMasterId, setSelectedMasterId] = useState('');
   const [attachmentUrls, setAttachmentUrls] = useState({});
   const [docxPreviews, setDocxPreviews] = useState({});
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [submitNotice, setSubmitNotice] = useState('');
 
-  const { data, setData, post, processing, errors } = useForm({
+  const { data, setData, post, transform, processing, errors } = useForm({
     kategori_perjalanan: '',
     sumber_asal: '',
     nomor_nota: '',
@@ -57,6 +60,11 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
     tanggal_surat: '',
     durasi_hari: 1,
     pegawai_ids: [],
+    ...draftData,
+    file_undangan: null,
+    file_izin_setneg: null,
+    draft_id: draft?.id || null,
+    draft_step: draftStep || 1,
   });
 
   useEffect(() => {
@@ -64,21 +72,30 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       invitation: data.file_undangan,
       setneg: data.file_izin_setneg,
     };
-    const urls = Object.fromEntries(
+    const localUrls = Object.fromEntries(
       Object.entries(files)
         .filter(([, file]) => file)
         .map(([key, file]) => [key, URL.createObjectURL(file)])
     );
+    const urls = {
+      invitation: localUrls.invitation || draftAttachments.invitation?.url,
+      setneg: localUrls.setneg || draftAttachments.setneg?.url,
+    };
     let cancelled = false;
 
     setAttachmentUrls(urls);
     setDocxPreviews({});
 
     Object.entries(files).forEach(async ([key, file]) => {
-      if (!file?.name.toLowerCase().endsWith('.docx')) return;
+      const savedAttachment = draftAttachments[key];
+      const fileName = file?.name || savedAttachment?.name || '';
+      if (!fileName.toLowerCase().endsWith('.docx')) return;
 
       try {
-        const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+        const arrayBuffer = file
+          ? await file.arrayBuffer()
+          : await fetch(savedAttachment.url).then((response) => response.arrayBuffer());
+        const result = await mammoth.extractRawText({ arrayBuffer });
         if (!cancelled) setDocxPreviews((previews) => ({ ...previews, [key]: result.value }));
       } catch {
         if (!cancelled) setDocxPreviews((previews) => ({ ...previews, [key]: 'Isi DOCX tidak dapat dipratinjau. Buka atau unduh berkas asli untuk memeriksanya.' }));
@@ -87,9 +104,9 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
     return () => {
       cancelled = true;
-      Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
+      Object.values(localUrls).forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [data.file_undangan, data.file_izin_setneg]);
+  }, [data.file_undangan, data.file_izin_setneg, draftAttachments.invitation?.url, draftAttachments.setneg?.url]);
 
   const handleAddPegawai = () => {
     if (!selectedMasterId) return;
@@ -138,25 +155,74 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (selectedPegawaiIds.length === 0) {
+    setSubmitNotice('');
+    if (activeStep >= 3 && selectedPegawaiIds.length === 0) {
       alert('Pilih setidaknya 1 pegawai untuk ditugaskan!');
       return;
     }
+
+    transform((formData) => ({
+      ...formData,
+      draft_step: activeStep,
+      pegawai_ids: selectedPegawaiIds,
+    }));
     post('/surat-tugas');
   };
+
+  const handleInvalidCapture = (event) => {
+    const fieldLabel = event.target.closest('label')?.innerText
+      || event.target.closest('div')?.querySelector('label')?.innerText
+      || event.target.placeholder
+      || 'kolom wajib';
+    setSubmitNotice(`Lengkapi ${fieldLabel.replace(/\*/g, '').trim()} sebelum mengirim nota ke Kapus.`);
+  };
+
+  const validationErrorEntries = Object.entries(errors).filter(([, message]) => Boolean(message));
+
+  const handleSaveDraft = () => {
+    router.post(
+      draft ? `/surat-tugas/${draft.id}/draft` : '/surat-tugas/draft',
+      { ...data, pegawai_ids: selectedPegawaiIds, draft_step: activeStep },
+      {
+        onStart: () => setSavingDraft(true),
+        onFinish: () => setSavingDraft(false),
+      }
+    );
+  };
+
+  const stageTwoAttachments = [
+    { key: 'invitation', label: 'Nota / Undangan', file: data.file_undangan, saved: draftAttachments.invitation },
+    ...(data.kategori_perjalanan === 'LUAR_NEGERI'
+      ? [{ key: 'setneg', label: 'Izin Setneg / Keppres', file: data.file_izin_setneg, saved: draftAttachments.setneg }]
+      : []),
+  ].map((attachment) => ({
+    ...attachment,
+    file: attachment.file || (attachment.saved ? { name: attachment.saved.name } : null),
+  })).filter(({ file }) => file);
 
   return (
     <AdminLayout title="Generate Surat Tugas & SPD Baru">
       <Head title="Generate Surat Tugas & SPD Baru - e-SPD Pusdiklat Kemlu" />
 
       {/* Title */}
-      <div className="mb-6">
-        <div className="flex items-center space-x-2 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
-          <FileSignature className="w-4 h-4" />
-          <span>Formulir 5-Tahap Terintegrasi</span>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="flex items-center space-x-2 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
+            <FileSignature className="w-4 h-4" />
+            <span>Formulir 5-Tahap Terintegrasi</span>
+          </div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{draft ? 'Lanjutkan Draft Surat Tugas' : 'Generate Surat Tugas & SPD Online'}</h1>
+          <p className="text-xs text-slate-500">Isi Formulir 5-Tahap sesuai Alur Operasional Pusdiklat Kemlu</p>
         </div>
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Generate Surat Tugas & SPD Online</h1>
-        <p className="text-xs text-slate-500">Isi Formulir 5-Tahap sesuai Alur Operasional Pusdiklat Kemlu</p>
+        <button
+          type="button"
+          onClick={handleSaveDraft}
+          disabled={savingDraft || processing}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-amber-400 hover:bg-amber-50 disabled:cursor-wait disabled:opacity-60"
+        >
+          <Save className="h-4 w-4" />
+          <span>{savingDraft ? 'Menyimpan Draft...' : 'Simpan Draft & Keluar'}</span>
+        </button>
       </div>
 
       {/* 5-Step Interactive Step Bar */}
@@ -257,7 +323,18 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} onInvalidCapture={handleInvalidCapture} onChangeCapture={() => setSubmitNotice('')}>
+        {(submitNotice || validationErrorEntries.length > 0) && (
+          <div role="alert" className="mb-4 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <p className="font-bold">Nota belum terkirim</p>
+            <p className="mt-1">{submitNotice || 'Periksa kembali kolom wajib berikut sebelum dikirim ke Kapus.'}</p>
+            {validationErrorEntries.length > 0 && (
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
+                {validationErrorEntries.map(([field, message]) => <li key={field}>{message}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
         {/* ================= TAHAP 1: INPUT NOTA / UNDANGAN ================= */}
         {activeStep === 1 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
@@ -394,7 +471,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                     className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                   />
                   <Upload className="h-5 w-5 text-slate-400" />
-                  <span>{data.file_undangan?.name || 'Klik untuk mengunggah scan undangan'}</span>
+                  <span>{data.file_undangan?.name || draftAttachments.invitation?.name || 'Klik untuk mengunggah scan undangan'}</span>
                   <span className="text-[10px] text-slate-400">PDF, JPG, atau PNG</span>
                 </label>
                 {errors.file_undangan && <p className="mt-1 text-xs text-red-600">{errors.file_undangan}</p>}
@@ -407,12 +484,12 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                     <input
                       type="file"
                       accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                      required
+                      required={!draftAttachments.setneg?.url && !data.file_izin_setneg}
                       onChange={(e) => setData('file_izin_setneg', e.target.files[0] || null)}
                       className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                     />
                     <Upload className="h-5 w-5 text-amber-600" />
-                    <span>{data.file_izin_setneg?.name || 'Klik untuk mengunggah Surat Persetujuan Setneg'}</span>
+                    <span>{data.file_izin_setneg?.name || draftAttachments.setneg?.name || 'Klik untuk mengunggah Surat Persetujuan Setneg'}</span>
                     <span className="text-[10px] text-amber-700">PDF atau DOCX, maks. 10 MB</span>
                   </label>
                   {errors.file_izin_setneg && <p className="mt-1 text-xs text-red-600">{errors.file_izin_setneg}</p>}
@@ -422,11 +499,10 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
             <div className="pt-4 flex justify-end">
               <button
-                type="button"
-                onClick={() => setActiveStep(2)}
+                type="submit"
                 className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition"
               >
-                <span>Lanjut ke Disposisi Kapus (Tahap 2)</span>
+                <span>Kirim Nota ke Kepala Pusat (Kapus)</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -434,7 +510,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
         )}
 
         {/* ================= TAHAP 2: DISPOSISI KAPUS ================= */}
-        {activeStep === 2 && (
+        {draft && activeStep === 2 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
@@ -467,19 +543,9 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                 <span className="text-xs text-slate-500">Berkas yang diunggah pada Tahap 1</span>
               </div>
 
-              {[
-                { key: 'invitation', label: 'Nota / Undangan', file: data.file_undangan },
-                ...(data.kategori_perjalanan === 'LUAR_NEGERI'
-                  ? [{ key: 'setneg', label: 'Izin Setneg / Keppres', file: data.file_izin_setneg }]
-                  : []),
-              ].filter(({ file }) => file).length > 0 ? (
+              {stageTwoAttachments.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
-                  {[
-                    { key: 'invitation', label: 'Nota / Undangan', file: data.file_undangan },
-                    ...(data.kategori_perjalanan === 'LUAR_NEGERI'
-                      ? [{ key: 'setneg', label: 'Izin Setneg / Keppres', file: data.file_izin_setneg }]
-                      : []),
-                  ].filter(({ file }) => file).map(({ key, label, file }) => {
+                  {stageTwoAttachments.map(({ key, label, file }) => {
                     const extension = file.name.split('.').pop().toLowerCase();
 
                     return (
@@ -508,9 +574,9 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                           <div className="flex max-h-[32rem] justify-center overflow-auto bg-slate-100 p-4">
                             <img src={attachmentUrls[key]} alt={`Pratinjau ${label}`} className="h-auto max-w-full object-contain" />
                           </div>
-                        ) : extension === 'docx' ? (
+                        ) : extension === 'docx' && docxPreviews[key] ? (
                           <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap p-4 text-xs leading-6 text-slate-700">
-                            {docxPreviews[key] ?? 'Memuat pratinjau dokumen...'}
+                            {docxPreviews[key]}
                           </pre>
                         ) : (
                           <p className="p-4 text-xs text-slate-500">Gunakan tombol Buka / Unduh untuk melihat berkas ini.</p>
@@ -560,7 +626,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
         )}
 
         {/* ================= TAHAP 3: DRAFT PERSONEL & DETAIL PERJALANAN ================= */}
-        {activeStep === 3 && (
+        {draft && activeStep === 3 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
@@ -816,11 +882,11 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             <div className="pt-4 flex justify-between">
               <button
                 type="button"
-                onClick={() => setActiveStep(2)}
+                onClick={() => setActiveStep(1)}
                 className="inline-flex items-center space-x-1 text-slate-600 hover:text-slate-800 font-semibold text-xs"
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span>Kembali ke Tahap 2</span>
+                <span>Kembali ke Nota</span>
               </button>
 
               <button
@@ -836,7 +902,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
         )}
 
         {/* ================= TAHAP 4: PENOMORAN REGISTRASI TU ================= */}
-        {activeStep === 4 && (
+        {draft && activeStep === 4 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>

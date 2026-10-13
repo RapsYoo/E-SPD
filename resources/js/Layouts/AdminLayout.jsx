@@ -152,23 +152,25 @@ export default function AdminLayout({ children, title }) {
                       <span>Daftar ST & SPD</span>
                     </Link>
 
-                    <Link
-                      href="/surat-tugas/create"
-                      className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
-                        currentRoute === '/surat-tugas/create'
-                          ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                      }`}
-                    >
-                      <PlusCircle className="w-4 h-4 text-emerald-400" />
-                      <span>Buat Surat Baru</span>
-                    </Link>
+                    {(auth?.user?.role === 'pemohon' || auth?.user?.role === 'sespalu' || auth?.user?.role === 'admin') && (
+                      <Link
+                        href="/surat-tugas/create"
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
+                          currentRoute === '/surat-tugas/create'
+                            ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <PlusCircle className="w-4 h-4 text-emerald-400" />
+                        <span>Buat Surat Baru</span>
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
 
               {/* Group 2: Master Database (Admin Access) */}
-              {(auth?.user?.role === 'admin' || auth?.user?.role === 'tu') && (
+              {auth?.user?.role === 'admin' && (
                 <div className="pt-2">
                   <button
                     onClick={() => setMasterMenuOpen(!masterMenuOpen)}

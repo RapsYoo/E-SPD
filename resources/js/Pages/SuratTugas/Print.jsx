@@ -33,7 +33,11 @@ export default function Print({ suratTugas }) {
   const tujuanPerjalanan = [suratTugas.tempat_tujuan, suratTugas.kategori_perjalanan === 'LUAR_NEGERI' ? suratTugas.negara_tujuan : null]
     .filter(Boolean)
     .join(', ') || '-';
-  const tanggalSurat = formatDate(suratTugas.tanggal_surat);
+  const tuDraft = suratTugas.draft_data?.tu || {};
+  const nomorST = suratTugas.nomor_st || tuDraft.nomor_st || '-';
+  const nomorSPD = suratTugas.nomor_spd || tuDraft.nomor_spd || '-';
+  const tanggalSuratRaw = suratTugas.tanggal_surat || tuDraft.tanggal_surat;
+  const tanggalSurat = formatDate(tanggalSuratRaw);
   const tanggalBerangkat = formatDate(suratTugas.tanggal_berangkat);
   const tanggalKembali = formatDate(suratTugas.tanggal_kembali);
   const ppkNama = suratTugas.ppk_nama_snapshot || suratTugas.ppk?.nama || '-';
@@ -41,11 +45,11 @@ export default function Print({ suratTugas }) {
   const ppkSigned = Boolean(suratTugas.is_ppk_signed);
   const multiPegawai = pegawaiList.length > 1;
   const pengikutList = pegawaiList.slice(1);
-  const tahunAnggaran = suratTugas.tanggal_surat?.slice(0, 4) || suratTugas.tanggal_berangkat?.slice(0, 4) || '-';
+  const tahunAnggaran = tanggalSuratRaw?.slice(0, 4) || suratTugas.tanggal_berangkat?.slice(0, 4) || '-';
 
   return (
     <div className="print-document-flow min-h-screen bg-slate-200 font-sans text-black">
-      <Head title={`Cetak ST & SPD - ${suratTugas.nomor_st || 'Resmi'}`} />
+      <Head title={`Pratinjau ST & SPD - ${nomorST}`} />
       <style>{`.print-document-flow { display: flex; flex-direction: column; } .print-document-sheet { order: 1; } .print-break-lampiran { order: 2; } .print-sheet-lampiran { order: 3; } .print-break-visum { order: 4; } .print-sheet-visum { order: 5; } .print-sheet-lampiran, .print-sheet-visum { box-sizing: border-box; width: 100%; max-width: 210mm; margin: 1.5rem auto; padding: 2rem 3rem; background: white; border: 1px solid #cbd5e1; box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.12); } @media print { @page { size: A4; margin: 14mm; } .no-print { display: none !important; } .print-document-flow { display: block; background: white; } .print-document-sheet, .print-sheet-lampiran, .print-sheet-visum { max-width: none; margin: 0; padding: 0; box-shadow: none; border: 0; } .print-page-break { display: none !important; } .print-hide-border { border: 0 !important; } }`}</style>
       <style>{`.spd-brand img { width: 25mm; height: 19mm; object-fit: contain; }
         .spd-brand-name { margin-top: 0.5mm; font-size: 8pt; font-weight: 700; line-height: 1; }
@@ -130,7 +134,7 @@ export default function Print({ suratTugas }) {
           </header>
 
           <div className="space-y-1 text-[11px]">
-            <p><span className="inline-block w-32">Nomor</span>: {suratTugas.nomor_spd || '-'}</p>
+            <p><span className="inline-block w-32">Nomor</span>: {nomorSPD}</p>
             <p><span className="inline-block w-32">Tanggal</span>: {tanggalSurat}</p>
             <p className="pt-2"><span className="inline-block w-32">DAFTAR PESERTA KEGIATAN</span>: {suratTugas.perihal_nota || '-'}</p>
             <p className="pt-2"><span className="inline-block w-32">TANGGAL PENYELENGGARAAN</span>: {tanggalBerangkat}{tanggalKembali !== '-' ? ` s.d. ${tanggalKembali}` : ''}</p>
@@ -172,7 +176,7 @@ export default function Print({ suratTugas }) {
                   <td className="border border-black p-1">{suratTugas.tempat_berangkat || '-'}</td>
                   <td className="border border-black p-1">{suratTugas.tingkat_biaya_kode || '-'}</td>
                   <td className="border border-black p-1">{suratTugas.jenis_angkutan_nama || '-'}</td>
-                  <td className="border border-black p-1 break-words">{suratTugas.nomor_st || '-'}</td>
+                  <td className="border border-black p-1 break-words">{nomorST}</td>
                   <td className="border border-black p-1">{tanggalSurat}</td>
                   <td className="border border-black p-1">{formatShortDate(suratTugas.tanggal_berangkat)}</td>
                   <td className="border border-black p-1">{formatShortDate(suratTugas.tanggal_kembali)}</td>
@@ -309,7 +313,7 @@ export default function Print({ suratTugas }) {
           {/* Judul Surat Tugas */}
           <div className="text-center space-y-1">
             <h1 className="font-bold text-base underline uppercase tracking-wider">SURAT TUGAS</h1>
-            <p className="font-mono text-xs font-bold">Nomor: {suratTugas.nomor_st || '-'}</p>
+            <p className="font-mono text-xs font-bold">Nomor: {nomorST}</p>
           </div>
 
           <div className="space-y-4 text-[13px] leading-relaxed">
@@ -345,7 +349,7 @@ export default function Print({ suratTugas }) {
               untuk menghadiri <strong>{suratTugas.perihal_nota || '-'}</strong> di <strong>{tujuanPerjalanan}</strong> pada tanggal <strong>{tanggalBerangkat}{tanggalKembali !== '-' ? ` s.d. ${tanggalKembali}` : ''}</strong>.
             </p>
             <p className="text-justify">
-              Seluruh biaya yang berkaitan dengan pelaksanaan tugas ini dibebankan pada Daftar Isian Pelaksanaan Anggaran (DIPA) Pusat Pendidikan dan Pelatihan Tahun Anggaran {suratTugas.tanggal_surat?.slice(0, 4) || suratTugas.tanggal_berangkat?.slice(0, 4) || '-'}.
+              Seluruh biaya yang berkaitan dengan pelaksanaan tugas ini dibebankan pada Daftar Isian Pelaksanaan Anggaran (DIPA) Pusat Pendidikan dan Pelatihan Tahun Anggaran {tahunAnggaran}.
             </p>
             <p className="text-justify">
               Surat tugas ini disusun untuk dilaksanakan dan setelah dilaksanakan pelaksana tugas segera menyampaikan laporan kepada Kepala Pusat Pendidikan dan Pelatihan.
@@ -407,7 +411,7 @@ export default function Print({ suratTugas }) {
             <div className="grid grid-cols-[auto_auto] gap-x-2 leading-relaxed">
               <span>Lembar</span><span>: 1</span>
               <span>Kode</span><span>: -</span>
-              <span>Nomor</span><span>: {suratTugas.nomor_spd || '-'}</span>
+              <span>Nomor</span><span>: {nomorSPD}</span>
             </div>
           </div>
 
@@ -496,7 +500,7 @@ export default function Print({ suratTugas }) {
               <tr>
                 <td className="border border-slate-900 p-2 text-center font-bold">10</td>
                 <td className="border border-slate-900 p-2">Keterangan lain-lain</td>
-                <td colSpan="2" className="border border-slate-900 p-2">Surat Tugas No. {suratTugas.nomor_st || '-'} tanggal {tanggalSurat}</td>
+                <td colSpan="2" className="border border-slate-900 p-2">Surat Tugas No. {nomorST} tanggal {tanggalSurat}</td>
               </tr>
             </tbody>
           </table>

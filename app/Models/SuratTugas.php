@@ -41,6 +41,8 @@ class SuratTugas extends Model
         'tanggal_surat',
         'is_ppk_signed',
         'signed_at',
+        'draft_data',
+        'draft_step',
     ];
 
     protected $casts = [
@@ -50,6 +52,8 @@ class SuratTugas extends Model
         'tanggal_surat' => 'date:Y-m-d',
         'is_ppk_signed' => 'boolean',
         'signed_at' => 'datetime',
+        'draft_data' => 'array',
+        'draft_step' => 'integer',
     ];
 
     public function user()
