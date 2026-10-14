@@ -50,28 +50,76 @@ export default function Print({ suratTugas }) {
   return (
     <div className="print-document-flow min-h-screen bg-slate-200 font-sans text-black">
       <Head title={`Pratinjau ST & SPD - ${nomorST}`} />
-      <style>{`.print-document-flow { display: flex; flex-direction: column; } .print-document-sheet { order: 1; } .print-break-lampiran { order: 2; } .print-sheet-lampiran { order: 3; } .print-break-visum { order: 4; } .print-sheet-visum { order: 5; } .print-sheet-lampiran, .print-sheet-visum { box-sizing: border-box; width: 100%; max-width: 210mm; margin: 1.5rem auto; padding: 2rem 3rem; background: white; border: 1px solid #cbd5e1; box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.12); } @media print { @page { size: A4; margin: 14mm; } .no-print { display: none !important; } .print-document-flow { display: block; background: white; } .print-document-sheet, .print-sheet-lampiran, .print-sheet-visum { max-width: none; margin: 0; padding: 0; box-shadow: none; border: 0; } .print-page-break { display: none !important; } .print-hide-border { border: 0 !important; } }`}</style>
-      <style>{`.spd-brand img { width: 25mm; height: 19mm; object-fit: contain; }
-        .spd-brand-name { margin-top: 0.5mm; font-size: 8pt; font-weight: 700; line-height: 1; }
-        .spd-brand-country { margin-top: 1mm; font-size: 6pt; letter-spacing: 1.5pt; line-height: 1; color: #b4233a; }
+      <style>{`
+        .spd-brand img { width: 18mm; height: 16mm; object-fit: contain; }
+        .spd-brand-name { margin-top: 0.5mm; font-size: 8pt; font-weight: 800; line-height: 1.1; color: #0F2C59; }
+        .spd-brand-country { margin-top: 0.8mm; font-size: 6pt; letter-spacing: 1.5pt; line-height: 1; color: #b4233a; font-weight: 700; }
         .spd-annex { font-size: 5.5pt; line-height: 1.2; }
+        .print-sheet-st, .print-sheet-spd, .print-sheet-lampiran, .print-sheet-visum {
+          box-sizing: border-box;
+          width: 100%;
+          max-width: 210mm;
+          margin: 1.5rem auto;
+          background: white;
+          border: 1px solid #cbd5e1;
+          box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.12);
+          font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        }
         @media print {
-        @page { size: A4 portrait; margin: 8mm; }
-        .spd-document { box-sizing: border-box; display: flex; flex-direction: column; gap: 2mm; width: 194mm; height: 281mm; max-height: 281mm; overflow: hidden; font-size: 8pt; line-height: 1.05; }
-        .spd-document > :not([hidden]) ~ :not([hidden]) { margin-top: 0 !important; }
-        .spd-letterhead { height: 34mm; flex: 0 0 34mm; }
-        .spd-brand { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
-        .spd-info { min-height: 11mm; flex: 0 0 11mm; }
-        .spd-title { min-height: 8mm; flex: 0 0 8mm; padding: 0 !important; }
-        .spd-title h2 { font-size: 12pt; }
-        .spd-table { width: 100%; flex: 1 1 auto; table-layout: fixed; font-size: 7.2pt; line-height: 1.05; }
-        .spd-table td { padding: 0.6mm !important; line-height: 1 !important; }
-        .spd-table .h-20 { height: auto !important; min-height: 7mm; }
-        .spd-footer { min-height: 36mm; flex: 0 0 36mm; padding-top: 0.5mm !important; }
-        .spd-stamp-space { height: 18mm !important; min-height: 18mm; flex: 0 0 18mm; }
-        .spd-stamp-space .border-dashed { width: 14mm; height: 14mm; font-size: 5pt; }
-        .print-sheet-st { width: 194mm; margin: 0 auto; }
-      }`}</style>
+          @page { size: A4 portrait; margin: 15mm 20mm 15mm 20mm; }
+          .no-print { display: none !important; }
+          .hidden,
+          .print-sheet-st.hidden,
+          .print-sheet-spd.hidden,
+          .print-sheet-lampiran.hidden,
+          .print-sheet-visum.hidden,
+          .spd-document.hidden,
+          div.hidden,
+          section.hidden {
+            display: none !important;
+          }
+          .print-document-flow { display: block !important; background: white !important; }
+          .print-sheet-st, .print-sheet-spd, .print-sheet-lampiran, .print-sheet-visum {
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: 0 !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+          }
+          .print-sheet-st { width: 170mm !important; max-width: 170mm !important; margin: 0 auto !important; }
+          .spd-document:not(.hidden) {
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 2mm;
+            width: 170mm !important;
+            max-width: 170mm !important;
+            margin: 0 auto !important;
+            height: 265mm;
+            max-height: 265mm;
+            overflow: hidden;
+            font-size: 7.8pt;
+            line-height: 1.05;
+          }
+          .spd-document > :not([hidden]) ~ :not([hidden]) { margin-top: 0 !important; }
+          .spd-letterhead { height: 34mm; flex: 0 0 34mm; }
+          .spd-brand { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+          .spd-info { min-height: 11mm; flex: 0 0 11mm; }
+          .spd-title { min-height: 8mm; flex: 0 0 8mm; padding: 0 !important; }
+          .spd-title h2 { font-size: 11pt; font-weight: 700; }
+          .spd-table { width: 100%; flex: 1 1 auto; table-layout: fixed; font-size: 7pt; line-height: 1.05; }
+          .spd-table td { padding: 0.5mm !important; line-height: 1 !important; }
+          .spd-table .h-20 { height: auto !important; min-height: 7mm; }
+          .spd-footer { min-height: 34mm; flex: 0 0 34mm; padding-top: 0.5mm !important; }
+          .spd-stamp-space { height: 16mm !important; min-height: 16mm; flex: 0 0 16mm; }
+          .spd-stamp-space .border-dashed { width: 14mm; height: 14mm; font-size: 5pt; }
+          .print-page-break { display: none !important; }
+          .print-hide-border { border: 0 !important; }
+        }
+      `}</style>
 
       {/* Top Floating Control Bar (Hidden on Print) */}
       <div className="no-print bg-[#0F2C59] text-white p-4 shadow-lg border-b-4 border-amber-500 sticky top-0 z-50">
@@ -133,70 +181,109 @@ export default function Print({ suratTugas }) {
             </p>
           </header>
 
-          <div className="space-y-1 text-[11px]">
-            <p><span className="inline-block w-32">Nomor</span>: {nomorSPD}</p>
-            <p><span className="inline-block w-32">Tanggal</span>: {tanggalSurat}</p>
-            <p className="pt-2"><span className="inline-block w-32">DAFTAR PESERTA KEGIATAN</span>: {suratTugas.perihal_nota || '-'}</p>
-            <p className="pt-2"><span className="inline-block w-32">TANGGAL PENYELENGGARAAN</span>: {tanggalBerangkat}{tanggalKembali !== '-' ? ` s.d. ${tanggalKembali}` : ''}</p>
-            <p><span className="inline-block w-32">KOTA TEMPAT PENYELENGGARAAN</span>: {tujuanPerjalanan}</p>
-            <p><span className="inline-block w-32">SATUAN KERJA</span>: Pusat Pendidikan dan Pelatihan</p>
-            <p><span className="inline-block w-32">KEMENTERIAN NEGARA/LEMBAGA</span>: Kementerian Luar Negeri</p>
+          <div className="grid grid-cols-[200px_14px_1fr] text-[10px] leading-relaxed">
+            <span>Nomor</span><span>:</span><span>{nomorSPD}</span>
+            <span>Tanggal</span><span>:</span><span>{tanggalSurat}</span>
+            <span className="pt-2">DAFTAR PESERTA KEGIATAN</span><span className="pt-2">:</span><span className="pt-2">{suratTugas.perihal_nota || '-'}</span>
+            <span className="pt-2">TANGGAL PENYELENGGARAAN</span><span className="pt-2">:</span><span className="pt-2">{tanggalBerangkat}{tanggalKembali !== '-' ? ` s.d ${tanggalKembali}` : ''}</span>
+            <span>KOTA TEMPAT PENYELENGGARAAN</span><span>:</span><span>{tujuanPerjalanan}</span>
+            <span>SATUAN KERJA</span><span>:</span><span>Pusat Pendidikan dan Pelatihan</span>
+            <span>KEMENTERIAN NEGARA/LEMBAGA</span><span>:</span><span>Kementerian Luar Negeri</span>
           </div>
 
-          <table className="w-full table-fixed border-collapse text-center text-[8px] leading-tight">
+          <table className="w-full table-fixed border-collapse text-center text-[8.5px] leading-tight border border-black">
+            <colgroup>
+              <col className="w-[4%]" />
+              <col className="w-[22%]" />
+              <col className="w-[9%]" />
+              <col className="w-[7%]" />
+              <col className="w-[9%]" />
+              <col className="w-[14%]" />
+              <col className="w-[8%]" />
+              <col className="w-[8%]" />
+              <col className="w-[8%]" />
+              <col className="w-[6%]" />
+              <col className="w-[5%]" />
+            </colgroup>
             <thead>
-              <tr>
-                <th rowSpan="2" className="border border-black p-1">No</th>
-                <th rowSpan="2" className="border border-black p-1">Nama Pelaksana SPD / NIP / Jabatan / Pangkat Golongan</th>
-                <th rowSpan="2" className="border border-black p-1">Tempat Kedudukan Asal</th>
-                <th rowSpan="2" className="border border-black p-1">Tingkat Biaya</th>
-                <th rowSpan="2" className="border border-black p-1">Alat Angkutan</th>
-                <th colSpan="2" className="border border-black p-1">Surat Tugas</th>
-                <th colSpan="2" className="border border-black p-1">Tanggal</th>
-                <th rowSpan="2" className="border border-black p-1">Lama Dinas</th>
-                <th rowSpan="2" className="border border-black p-1">Ket</th>
+              <tr className="font-bold">
+                <th rowSpan="2" className="border border-black p-1 align-middle text-center">No</th>
+                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Nama Pelaksana SPD/NIP/Jabatan/Pangkat Golongan</th>
+                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Tempat Kedudukan Asal</th>
+                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Tingkat Biaya Perjalanan Dinas</th>
+                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Alat Angkutan yang digunakan</th>
+                <th colSpan="2" className="border border-black p-1 align-middle text-center">Surat Tugas</th>
+                <th colSpan="2" className="border border-black p-1 align-middle text-center">Tanggal</th>
+                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Lama dinas (hari)</th>
+                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Ket</th>
               </tr>
-              <tr>
-                <th className="border border-black p-1">Nomor</th>
-                <th className="border border-black p-1">Tanggal</th>
-                <th className="border border-black p-1">Berangkat</th>
-                <th className="border border-black p-1">Kembali</th>
+              <tr className="font-bold">
+                <th className="border border-black p-1 align-middle text-center">Nomor</th>
+                <th className="border border-black p-1 align-middle text-center">Tanggal</th>
+                <th className="border border-black p-1 align-middle text-center">Berangkat</th>
+                <th className="border border-black p-1 align-middle text-center">Kembali</th>
               </tr>
             </thead>
             <tbody>
-              {pegawaiList.length > 0 ? pegawaiList.map((pegawai, index) => (
-                <tr key={pegawai.id || pegawai.nip || index}>
-                  <td className="border border-black p-1">{index + 1}</td>
-                  <td className="border border-black p-1 text-left">
-                    <strong>{pegawai.nama || '-'}</strong><br />
-                    NIP. {pegawai.nip || '-'}<br />
-                    {pegawai.jabatan || '-'}<br />
-                    {pegawai.pangkat || '-'} / {pegawai.golongan || '-'}
-                  </td>
-                  <td className="border border-black p-1">{suratTugas.tempat_berangkat || '-'}</td>
-                  <td className="border border-black p-1">{suratTugas.tingkat_biaya_kode || '-'}</td>
-                  <td className="border border-black p-1">{suratTugas.jenis_angkutan_nama || '-'}</td>
-                  <td className="border border-black p-1 break-words">{nomorST}</td>
-                  <td className="border border-black p-1">{tanggalSurat}</td>
-                  <td className="border border-black p-1">{formatShortDate(suratTugas.tanggal_berangkat)}</td>
-                  <td className="border border-black p-1">{formatShortDate(suratTugas.tanggal_kembali)}</td>
-                  <td className="border border-black p-1">{suratTugas.durasi_hari || '-'} hari</td>
-                  <td className="border border-black p-1">-</td>
-                </tr>
-              )) : (
-                <tr><td colSpan="11" className="border border-black p-3">Belum ada data personel.</td></tr>
+              {pegawaiList.length > 0 ? pegawaiList.map((pegawai, index) => {
+                const isFirst = index === 0;
+                const formattedSuratTugasNo = nomorST.toLowerCase().startsWith('surat tugas')
+                  ? `${nomorST} tanggal ${tanggalSurat}`
+                  : `Surat Tugas No. ${nomorST} tanggal ${tanggalSurat}`;
+
+                return (
+                  <tr key={pegawai.id || pegawai.nip || index}>
+                    <td className="border border-black p-1 text-center align-middle">{index + 1}</td>
+                    <td className="border border-black p-2 text-center align-middle">
+                      <div>{pegawai.nama || '-'}</div>
+                      <div>NIP. {pegawai.nip || '-'}</div>
+                      <div>{pegawai.jabatan || '-'}</div>
+                      <div>{pegawai.pangkat && pegawai.golongan ? `${pegawai.pangkat} / ${pegawai.golongan}` : (pegawai.pangkat || pegawai.golongan || '-')}</div>
+                    </td>
+                    <td className="border border-black p-1 text-center align-middle">
+                      {isFirst ? (suratTugas.tempat_berangkat || '-') : 'idem'}
+                    </td>
+                    <td className="border border-black p-1 text-center align-middle">
+                      {isFirst ? (suratTugas.tingkat_biaya_kode || '-') : 'idem'}
+                    </td>
+                    <td className="border border-black p-1 text-center align-middle">
+                      {isFirst ? (suratTugas.jenis_angkutan_nama || '-') : 'idem'}
+                    </td>
+                    <td className="border border-black p-1 text-center align-middle break-words">
+                      {isFirst ? formattedSuratTugasNo : 'idem'}
+                    </td>
+                    <td className="border border-black p-1 text-center align-middle">
+                      {isFirst ? formatShortDate(tanggalSuratRaw) : 'idem'}
+                    </td>
+                    <td className="border border-black p-1 text-center align-middle">
+                      {formatShortDate(suratTugas.tanggal_berangkat)}
+                    </td>
+                    <td className="border border-black p-1 text-center align-middle">
+                      {formatShortDate(suratTugas.tanggal_kembali)}
+                    </td>
+                    <td className="border border-black p-1 text-center align-middle">
+                      {suratTugas.durasi_hari || '-'} Hari
+                    </td>
+                    <td className="border border-black p-1 text-center align-middle">
+                      {/* Ket */}
+                    </td>
+                  </tr>
+                );
+              }) : (
+                <tr><td colSpan="11" className="border border-black p-3 text-center">Belum ada data personel.</td></tr>
               )}
             </tbody>
           </table>
 
-          <footer className="ml-auto w-2/5 pt-2 text-[10px]">
+          <footer className="ml-auto w-64 pt-6 text-[10px] text-center space-y-1">
             <p>Jakarta, {tanggalSurat}</p>
-            <p className="pl-3">Mengetahui/Menyetujui:</p>
-            <p className="pl-3">Pejabat Pembuat Komitmen</p>
-            <div className="h-20" />
-            {ppkSigned && <p className="font-bold text-blue-800">TTD DIGITAL PPK</p>}
-            <p className="pl-3 font-bold underline">{ppkNama}</p>
-            <p className="pl-3">NIP. {ppkNip}</p>
+            <p>Mengetahui/Menyetujui:</p>
+            <p>Pejabat Pembuat Komitmen</p>
+            <div className="h-16 flex items-center justify-center">
+              {ppkSigned && <p className="font-bold text-blue-800 text-[9px]">TTD DIGITAL PPK</p>}
+            </div>
+            <p className="font-bold underline uppercase">{ppkNama}</p>
+            <p>NIP. {ppkNip}</p>
           </footer>
         </section>
 
@@ -299,21 +386,20 @@ export default function Print({ suratTugas }) {
           </table>
         </section>
 
-      {/* Document Sheet Container */}
-      <div className={`print-document-sheet max-w-[210mm] mx-auto my-6 bg-white p-8 sm:p-12 shadow-2xl border border-slate-300 doc-st print-hide-border ${['st', 'spd'].includes(activeDocument) ? '' : 'hidden'}`}>
-        {/* ================= DOKUMEN 1: SURAT TUGAS ================= */}
-        <div className={`print-sheet-st space-y-6 ${activeDocument === 'st' ? '' : 'hidden'}`}>
+      {/* ================= DOKUMEN 1: SURAT TUGAS ================= */}
+      <div className={`print-sheet-st max-w-[210mm] mx-auto my-6 bg-white px-12 sm:px-20 py-8 sm:py-12 shadow-2xl border border-slate-300 doc-st print-hide-border ${activeDocument === 'st' ? '' : 'hidden'}`}>
+        <div className="space-y-6">
           {/* Kop surat sesuai format ST */}
-          <div className="text-center pb-2 leading-tight">
-            <img src="/images/kemlu-logo.webp" alt="Lambang Kementerian Luar Negeri" className="mx-auto h-20 w-24 object-contain" />
-            <p className="mt-1 text-[9px] font-bold tracking-wide">KEMENTERIAN LUAR NEGERI</p>
-            <p className="text-[7px] tracking-[0.2em] text-rose-700">REPUBLIK INDONESIA</p>
+          <div className="text-center pb-2 flex flex-col items-center justify-center">
+            <img src="/images/kemlu-logo.webp" alt="Lambang Kementerian Luar Negeri" className="h-16 w-16 object-contain" />
+            <p className="mt-1.5 text-[12px] font-extrabold tracking-wide text-[#0F2C59] leading-tight">KEMENTERIAN LUAR NEGERI</p>
+            <p className="mt-0.5 text-[9px] font-bold tracking-[0.22em] text-[#B4233A] leading-tight">REPUBLIK INDONESIA</p>
           </div>
 
           {/* Judul Surat Tugas */}
           <div className="text-center space-y-1">
-            <h1 className="font-bold text-base underline uppercase tracking-wider">SURAT TUGAS</h1>
-            <p className="font-mono text-xs font-bold">Nomor: {nomorST}</p>
+            <h1 className="font-bold text-base uppercase tracking-wider text-black">SURAT TUGAS</h1>
+            <p className="font-bold text-xs text-black">Nomor: {nomorST}</p>
           </div>
 
           <div className="space-y-4 text-[13px] leading-relaxed">
@@ -358,16 +444,20 @@ export default function Print({ suratTugas }) {
           </div>
 
           {/* TTD Kepala Pusat */}
-          <div className="pt-8 flex justify-end text-xs">
-            <div className="text-center w-64 space-y-10 text-[13px]">
-              <div>
-                <p>Jakarta, {tanggalSurat}</p>
-                <p className="font-bold uppercase mt-1">Kepala Pusat Pendidikan dan Pelatihan</p>
+          <div className="pt-6 flex justify-end text-xs">
+            <div className="text-left w-72 text-[13px]">
+              <div className="leading-snug">
+                <p>Dikeluarkan di Jakarta</p>
+                <p>Pada tanggal {tanggalSurat}</p>
+                <p className="font-bold mt-1">Kepala Pusat Pendidikan dan Pelatihan</p>
               </div>
+
+              {/* Space tanda tangan antara jabatan dan nama yang lebih besar */}
+              <div className="h-24 sm:h-28" />
 
               <div>
                 <p className="font-bold underline">Khasan Ashari</p>
-                <p className="font-mono text-[11px]">NIP. 19750617 200003 1 001</p>
+                <p className="text-[12px]">NIP. 19750617 200003 1 001</p>
               </div>
             </div>
           </div>
@@ -381,18 +471,17 @@ export default function Print({ suratTugas }) {
             </ol>
           </div>
         </div>
+      </div>
 
-        {/* Page Break for Print */}
-        <div className="print-page-break print-break-spd hidden border-t-2 border-dashed border-slate-300 pt-12"></div>
-
-        {/* ================= DOKUMEN 2: SURAT PERJALANAN DINAS (SPD) ================= */}
-        <div className={`spd-document print-sheet-spd space-y-6 ${activeDocument === 'spd' ? '' : 'hidden'}`}>
+      {/* ================= DOKUMEN 2: SURAT PERJALANAN DINAS (SPD) ================= */}
+      <div className={`print-sheet-spd max-w-[210mm] mx-auto my-6 bg-white px-10 sm:px-16 py-6 sm:py-10 shadow-2xl border border-slate-300 doc-st print-hide-border ${activeDocument === 'spd' ? '' : 'hidden'}`}>
+        <div className={`spd-document space-y-6 ${activeDocument === 'spd' ? '' : 'hidden'}`}>
           <div className="spd-letterhead grid grid-cols-[1fr_auto_1fr] items-start gap-2">
             <div />
             <div className="spd-brand text-center">
-              <img src="/images/kemlu-logo.webp" alt="Lambang Kementerian Luar Negeri" className="mx-auto object-contain" />
-              <p className="spd-brand-name">KEMENTERIAN LUAR NEGERI</p>
-              <p className="spd-brand-country">REPUBLIK INDONESIA</p>
+              <img src="/images/kemlu-logo.webp" alt="Lambang Kementerian Luar Negeri" className="mx-auto h-14 w-14 object-contain" />
+              <p className="spd-brand-name font-extrabold text-[#0F2C59]">KEMENTERIAN LUAR NEGERI</p>
+              <p className="spd-brand-country font-bold tracking-[0.2em] text-[#B4233A]">REPUBLIK INDONESIA</p>
             </div>
             <div className="spd-annex pt-1 text-[8px] leading-relaxed">
               LAMPIRAN I<br />
@@ -416,7 +505,7 @@ export default function Print({ suratTugas }) {
           </div>
 
           <div className="spd-title text-center py-2">
-            <h2 className="font-bold text-lg uppercase">SURAT PERJALANAN DINAS</h2>
+            <h2 className="font-bold text-base uppercase tracking-wider text-black">SURAT PERJALANAN DINAS</h2>
           </div>
 
           {/* Tabel Isian SPD PMK 113 */}
@@ -504,25 +593,26 @@ export default function Print({ suratTugas }) {
               </tr>
             </tbody>
           </table>
+          <p className="text-[9px] text-slate-700 italic pt-1">*)coret yang tidak perlu</p>
 
           {/* Signature & Digital Stamp Overlay */}
-          <div className="spd-footer pt-6 flex justify-end text-xs relative">
-            <div className="text-center w-72 space-y-4 relative">
-              <div>
+          <div className="spd-footer pt-4 flex justify-end text-xs relative">
+            <div className="text-left w-72 space-y-3 relative">
+              <div className="leading-snug text-[11px]">
                 <p>Dikeluarkan di: Jakarta</p>
                 <p>Pada Tanggal: {tanggalSurat}</p>
                 <p className="font-bold uppercase mt-1">Pejabat Pembuat Komitmen (PPK)</p>
               </div>
 
-              <div className="spd-stamp-space h-20 flex items-center justify-center relative">
-                {ppkSigned && <div className="border-2 border-dashed border-blue-700 text-blue-900 rounded-full w-24 h-24 flex items-center justify-center text-[8px] font-bold uppercase text-center transform -rotate-12 opacity-80 shadow-sm">
+              <div className="spd-stamp-space h-16 flex items-center justify-center relative">
+                {ppkSigned && <div className="border-2 border-dashed border-blue-700 text-blue-900 rounded-full w-20 h-20 flex items-center justify-center text-[7.5px] font-bold uppercase text-center transform -rotate-12 opacity-80 shadow-sm">
                   <span>Pusdiklat Kemlu<br /><strong>VERIFIED PPK</strong><br />DIGITAL STAMP</span>
                 </div>}
               </div>
 
               <div>
                 <p className="font-bold underline uppercase">{ppkNama}</p>
-                <p className="font-mono text-[11px]">NIP. {ppkNip}</p>
+                <p className="text-[11px]">NIP. {ppkNip}</p>
               </div>
             </div>
           </div>
