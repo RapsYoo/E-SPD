@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SuratTugas extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'surat_tugas';
 
@@ -69,5 +70,10 @@ class SuratTugas extends Model
     public function pegawaiList()
     {
         return $this->hasMany(SuratTugasPegawai::class, 'surat_tugas_id')->orderBy('urutan');
+    }
+
+    public function logs()
+    {
+        return $this->hasMany(SuratTugasLog::class, 'surat_tugas_id')->orderByDesc('created_at');
     }
 }

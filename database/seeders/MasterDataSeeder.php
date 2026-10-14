@@ -47,14 +47,17 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($users as $userData) {
-            User::updateOrCreate(
+            $u = User::updateOrCreate(
                 ['email' => $userData['email']],
                 [
                     'name' => $userData['name'],
                     'password' => Hash::make('password'),
-                    'role' => $userData['role'],
                 ]
             );
+            // role di luar fillable (anti mass-assign) -> paksa via forceFill.
+            if ($u->role !== $userData['role']) {
+                $u->forceFill(['role' => $userData['role']])->save();
+            }
         }
 
         // 2. Seed Pegawai Master

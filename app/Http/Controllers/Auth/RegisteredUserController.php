@@ -42,6 +42,9 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
+        // P0: registrasi publik hanya boleh melahirkan role pemohon.
+        // Kolom role sengaja di luar $fillable agar tak bisa di-mass-assign dari request.
+        $user->forceFill(['role' => 'pemohon'])->save();
 
         event(new Registered($user));
 

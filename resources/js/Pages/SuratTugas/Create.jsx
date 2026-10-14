@@ -36,6 +36,23 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
   const [docxPreviews, setDocxPreviews] = useState({});
   const [savingDraft, setSavingDraft] = useState(false);
   const [submitNotice, setSubmitNotice] = useState('');
+  const [pegawaiSearch, setPegawaiSearch] = useState('');
+  const [pegawaiDropdownOpen, setPegawaiDropdownOpen] = useState(false);
+  const pegawaiDropdownRef = React.useRef(null);
+  // Jadwal mode: 'sama' = semua pegawai pakai tanggal yang sama, 'per_pegawai' = per-individu
+  const [jadwalMode, setJadwalMode] = useState('sama');
+  const [jadwalPerPegawai, setJadwalPerPegawai] = useState({});
+
+  // Tutup dropdown pegawai saat klik di luar
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (pegawaiDropdownRef.current && !pegawaiDropdownRef.current.contains(e.target)) {
+        setPegawaiDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const { data, setData, post, transform, processing, errors } = useForm({
     kategori_perjalanan: '',
@@ -115,6 +132,11 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       const updated = [...selectedPegawaiIds, id];
       setSelectedPegawaiIds(updated);
       setData('pegawai_ids', updated);
+      // Inisialisasi jadwal per pegawai baru dengan tanggal global (jika sudah diisi)
+      setJadwalPerPegawai((prev) => ({
+        ...prev,
+        [id]: { tanggal_berangkat: data.tanggal_berangkat || '', tanggal_kembali: data.tanggal_kembali || '' },
+      }));
     }
   };
 
@@ -122,6 +144,14 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
     const updated = selectedPegawaiIds.filter(item => item !== id);
     setSelectedPegawaiIds(updated);
     setData('pegawai_ids', updated);
+    setJadwalPerPegawai((prev) => { const next = { ...prev }; delete next[id]; return next; });
+  };
+
+  const handleJadwalPerPegawaiChange = (pegId, field, value) => {
+    setJadwalPerPegawai((prev) => ({
+      ...prev,
+      [pegId]: { ...prev[pegId], [field]: value },
+    }));
   };
 
   const calcDays = (start, end) => {
@@ -677,27 +707,62 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                 </span>
               </div>
 
-              {/* Control Select */}
+              {/* Searchable Combobox Pegawai */}
               <div className="flex flex-col sm:flex-row gap-2">
-                <select
-                  value={selectedMasterId}
-                  onChange={(e) => setSelectedMasterId(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:ring-amber-500"
-                >
-                  <option value="">-- Pilih Pegawai dari Master DB Pusdiklat Kemlu --</option>
-                  {pegawaiList && pegawaiList.map((peg) => (
-                    <option key={peg.id} value={peg.id}>
-                      {peg.nama} (NIP: {peg.nip}) — {peg.jabatan}
-                    </option>
-                  ))}
-                </select>
+                <div ref={pegawaiDropdownRef} className="relative flex-1">
+                  <input
+                    type="text"
+                    value={pegawaiSearch}
+                    onChange={(e) => { setPegawaiSearch(e.target.value); setSelectedMasterId(''); setPegawaiDropdownOpen(true); }}
+                    onFocus={() => setPegawaiDropdownOpen(true)}
+                    placeholder="Ketik nama atau NIP untuk cari pegawai..."
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {pegawaiDropdownOpen && (
+                    <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                      <ul className="max-h-48 overflow-y-auto divide-y divide-slate-100">
+                        {(pegawaiList || [])
+                          .filter((peg) => {
+                            const q = pegawaiSearch.toLowerCase();
+                            return !q || peg.nama.toLowerCase().includes(q) || (peg.nip || '').includes(q);
+                          })
+                          .slice(0, 30)
+                          .map((peg) => (
+                            <li
+                              key={peg.id}
+                              onClick={() => {
+                                setSelectedMasterId(String(peg.id));
+                                setPegawaiSearch(`${peg.nama} (NIP: ${peg.nip})`);
+                                setPegawaiDropdownOpen(false);
+                              }}
+                              className="px-3 py-2 cursor-pointer hover:bg-amber-50 text-xs"
+                            >
+                              <span className="font-semibold text-slate-800">{peg.nama}</span>
+                              <span className="text-slate-500 ml-1">— NIP: {peg.nip}</span>
+                              <div className="text-[10px] text-slate-400 truncate">{peg.jabatan}</div>
+                            </li>
+                          ))}
+                        {(pegawaiList || []).filter((peg) => {
+                          const q = pegawaiSearch.toLowerCase();
+                          return !q || peg.nama.toLowerCase().includes(q) || (peg.nip || '').includes(q);
+                        }).length === 0 && (
+                          <li className="px-3 py-3 text-xs text-slate-400 text-center">Pegawai tidak ditemukan</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
-                  onClick={handleAddPegawai}
+                  onClick={() => {
+                    handleAddPegawai();
+                    setPegawaiSearch('');
+                    setSelectedMasterId('');
+                  }}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center justify-center space-x-1 transition"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Tambah Pegawai</span>
+                  <span>Tambah</span>
                 </button>
               </div>
 
@@ -710,6 +775,13 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                       <th className="py-2.5 px-3">Nama / NIP</th>
                       <th className="py-2.5 px-3">Pangkat / Gol.</th>
                       <th className="py-2.5 px-3">Jabatan</th>
+                      {jadwalMode === 'per_pegawai' && (
+                        <>
+                          <th className="py-2.5 px-3 min-w-[130px]">Tgl. Berangkat</th>
+                          <th className="py-2.5 px-3 min-w-[130px]">Tgl. Kembali</th>
+                          <th className="py-2.5 px-3 text-center w-16">Hari</th>
+                        </>
+                      )}
                       <th className="py-2.5 px-3 text-center w-16">Hapus</th>
                     </tr>
                   </thead>
@@ -718,6 +790,8 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                       selectedPegawaiIds.map((id, index) => {
                         const peg = pegawaiList.find((p) => p.id === id);
                         if (!peg) return null;
+                        const jadwal = jadwalPerPegawai[id] || { tanggal_berangkat: '', tanggal_kembali: '' };
+                        const hariPeg = calcDays(jadwal.tanggal_berangkat, jadwal.tanggal_kembali);
                         return (
                           <tr key={peg.id} className="hover:bg-slate-50">
                             <td className="py-2.5 px-3 text-center font-bold text-slate-500">{index + 1}</td>
@@ -730,6 +804,32 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                               <div className="text-[11px] text-slate-500">Gol. {peg.golongan}</div>
                             </td>
                             <td className="py-2.5 px-3 font-medium text-slate-700">{peg.jabatan}</td>
+                            {jadwalMode === 'per_pegawai' && (
+                              <>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="date"
+                                    value={jadwal.tanggal_berangkat}
+                                    onChange={(e) => handleJadwalPerPegawaiChange(peg.id, 'tanggal_berangkat', e.target.value)}
+                                    className="w-full px-2 py-1 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                                  />
+                                </td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="date"
+                                    value={jadwal.tanggal_kembali}
+                                    min={jadwal.tanggal_berangkat || undefined}
+                                    onChange={(e) => handleJadwalPerPegawaiChange(peg.id, 'tanggal_kembali', e.target.value)}
+                                    className="w-full px-2 py-1 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                                  />
+                                </td>
+                                <td className="py-2 px-3 text-center">
+                                  <span className="inline-block bg-blue-50 text-blue-800 font-bold text-[11px] px-2 py-0.5 rounded-full">
+                                    {jadwal.tanggal_berangkat && jadwal.tanggal_kembali ? `${hariPeg}h` : '—'}
+                                  </span>
+                                </td>
+                              </>
+                            )}
                             <td className="py-2.5 px-3 text-center">
                               <button
                                 type="button"
@@ -744,7 +844,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                       })
                     ) : (
                       <tr>
-                        <td colSpan="5" className="py-6 text-center text-slate-400">
+                        <td colSpan={jadwalMode === 'per_pegawai' ? 8 : 5} className="py-6 text-center text-slate-400">
                           Belum ada pegawai ditambahkan. Silakan pilih dari dropdown di atas.
                         </td>
                       </tr>
@@ -792,10 +892,45 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
             {/* Travel Parameters */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
-                <MapPin className="w-4 h-4 text-amber-500" />
-                <span>Lokasi & Waktu Perjalanan Dinas</span>
-              </h3>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
+                  <MapPin className="w-4 h-4 text-amber-500" />
+                  <span>Lokasi &amp; Waktu Perjalanan Dinas</span>
+                </h3>
+
+                {/* Toggle mode jadwal */}
+                <div className="flex items-center gap-1 bg-slate-200 rounded-xl p-1">
+                  <button
+                    type="button"
+                    onClick={() => setJadwalMode('sama')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                      jadwalMode === 'sama'
+                        ? 'bg-white text-slate-800 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Jadwal Sama
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setJadwalMode('per_pegawai')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                      jadwalMode === 'per_pegawai'
+                        ? 'bg-amber-500 text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Jadwal per Pegawai
+                  </button>
+                </div>
+              </div>
+
+              {jadwalMode === 'per_pegawai' && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs text-amber-800">
+                  <Calendar className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-500" />
+                  <span>Mode <strong>Jadwal per Pegawai</strong> aktif — isi tanggal berangkat &amp; kembali langsung di tabel pegawai di atas. Tempat berangkat &amp; tujuan tetap berlaku untuk semua.</span>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
@@ -850,33 +985,62 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                   </>
                 )}
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Berangkat *</label>
-                  <input
-                    type="date"
-                    required
-                    value={data.tanggal_berangkat}
-                    onChange={(e) => handleDateChange('tanggal_berangkat', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
-                  />
-                </div>
+                {jadwalMode === 'sama' && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Berangkat *</label>
+                      <input
+                        type="date"
+                        required
+                        value={data.tanggal_berangkat}
+                        onChange={(e) => handleDateChange('tanggal_berangkat', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Kembali *</label>
-                  <input
-                    type="date"
-                    required
-                    value={data.tanggal_kembali}
-                    onChange={(e) => handleDateChange('tanggal_kembali', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Kembali *</label>
+                      <input
+                        type="date"
+                        required
+                        value={data.tanggal_kembali}
+                        min={data.tanggal_berangkat || undefined}
+                        onChange={(e) => handleDateChange('tanggal_kembali', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
-              <div className="flex items-center justify-between text-xs text-blue-900 bg-blue-50 p-3 rounded-xl border border-blue-200">
-                <span>Kalkulasi Otomatis Durasi Dinas:</span>
-                <strong className="text-sm font-extrabold text-blue-950">{data.durasi_hari} Hari Perjalanan</strong>
-              </div>
+              {/* Kalkulasi durasi */}
+              {jadwalMode === 'sama' ? (
+                <div className="flex items-center justify-between text-xs text-blue-900 bg-blue-50 p-3 rounded-xl border border-blue-200">
+                  <span>Kalkulasi Otomatis Durasi Dinas:</span>
+                  <strong className="text-sm font-extrabold text-blue-950">{data.durasi_hari} Hari Perjalanan</strong>
+                </div>
+              ) : selectedPegawaiIds.length > 0 ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                  <p className="text-xs font-bold text-blue-800 mb-2">Ringkasan Durasi per Pegawai:</p>
+                  <div className="divide-y divide-blue-100">
+                    {selectedPegawaiIds.map((id) => {
+                      const peg = pegawaiList.find((p) => p.id === id);
+                      const jadwal = jadwalPerPegawai[id] || {};
+                      const hari = calcDays(jadwal.tanggal_berangkat, jadwal.tanggal_kembali);
+                      return (
+                        <div key={id} className="flex items-center justify-between py-1.5 text-xs">
+                          <span className="text-blue-900 font-medium">{peg?.nama}</span>
+                          <span className="font-bold text-blue-950">
+                            {jadwal.tanggal_berangkat && jadwal.tanggal_kembali
+                              ? `${hari} Hari`
+                              : <span className="text-amber-600">Belum diisi</span>}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="pt-4 flex justify-between">

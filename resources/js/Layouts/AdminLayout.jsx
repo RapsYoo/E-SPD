@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  UserCheck, 
-  Building2, 
-  ChevronDown, 
-  Menu, 
-  X, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Users,
+  UserCheck,
+  Building2,
+  ChevronDown,
+  Menu,
+  X,
+  LogOut,
   Database,
   Layers,
   FileSignature,
@@ -42,9 +42,9 @@ export default function AdminLayout({ children, title }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
+    <div className="h-screen bg-slate-50 font-sans text-slate-800 flex flex-col overflow-hidden">
       {/* Top Header Navigation */}
-      <header className="bg-[#0F2C59] text-white shadow-md border-b border-slate-700/50 sticky top-0 z-40">
+      <header className="bg-[#0F2C59] text-white shadow-md border-b border-slate-700/50 flex-shrink-0 z-40">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Left section: Logo & Mobile Toggle */}
@@ -114,9 +114,8 @@ export default function AdminLayout({ children, title }) {
 
         {/* Sidebar Navigation */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-30 w-64 bg-[#0B2247] text-slate-200 shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0 flex flex-col justify-between border-r border-slate-800 ${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+          className={`fixed lg:static inset-y-0 left-0 z-30 w-64 flex-shrink-0 h-full bg-[#0B2247] text-slate-200 shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0 flex flex-col justify-between border-r border-slate-800 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
         >
           <div className="p-4 space-y-6 overflow-y-auto">
             {/* Quick Title */}
@@ -142,11 +141,10 @@ export default function AdminLayout({ children, title }) {
                   <div className="mt-1 pl-4 space-y-1 border-l-2 border-slate-700/60 ml-4">
                     <Link
                       href="/surat-tugas"
-                      className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
-                        currentRoute === '/surat-tugas'
+                      className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${currentRoute === '/surat-tugas'
                           ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
                           : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                      }`}
+                        }`}
                     >
                       <FileText className="w-4 h-4" />
                       <span>Daftar ST & SPD</span>
@@ -155,11 +153,10 @@ export default function AdminLayout({ children, title }) {
                     {(auth?.user?.role === 'pemohon' || auth?.user?.role === 'sespalu' || auth?.user?.role === 'admin') && (
                       <Link
                         href="/surat-tugas/create"
-                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
-                          currentRoute === '/surat-tugas/create'
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${currentRoute === '/surat-tugas/create'
                             ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
                             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                        }`}
+                          }`}
                       >
                         <PlusCircle className="w-4 h-4 text-emerald-400" />
                         <span>Buat Surat Baru</span>
@@ -187,11 +184,10 @@ export default function AdminLayout({ children, title }) {
                     <div className="mt-1 pl-4 space-y-1 border-l-2 border-slate-700/60 ml-4">
                       <Link
                         href="/admin"
-                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
-                          currentRoute === '/admin'
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${currentRoute === '/admin'
                             ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
                             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                        }`}
+                          }`}
                       >
                         <LayoutDashboard className="w-4 h-4" />
                         <span>Overview Master</span>
@@ -199,11 +195,10 @@ export default function AdminLayout({ children, title }) {
 
                       <Link
                         href="/admin/pegawai"
-                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
-                          isActive('/admin/pegawai')
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/pegawai')
                             ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
                             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                        }`}
+                          }`}
                       >
                         <Users className="w-4 h-4" />
                         <span>Data Pegawai</span>
@@ -211,11 +206,10 @@ export default function AdminLayout({ children, title }) {
 
                       <Link
                         href="/admin/ppk"
-                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
-                          isActive('/admin/ppk')
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/ppk')
                             ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
                             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                        }`}
+                          }`}
                       >
                         <UserCheck className="w-4 h-4" />
                         <span>Data PPK</span>
@@ -223,11 +217,10 @@ export default function AdminLayout({ children, title }) {
 
                       <Link
                         href="/admin/unit-kerja"
-                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
-                          isActive('/admin/unit-kerja')
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/unit-kerja')
                             ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
                             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                        }`}
+                          }`}
                       >
                         <Building2 className="w-4 h-4" />
                         <span>Unit Kerja</span>
@@ -235,11 +228,10 @@ export default function AdminLayout({ children, title }) {
 
                       <Link
                         href="/admin/referensi"
-                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${
-                          isActive('/admin/referensi')
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/referensi')
                             ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
                             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                        }`}
+                          }`}
                       >
                         <Layers className="w-4 h-4" />
                         <span>Biaya & Angkutan</span>
@@ -255,7 +247,7 @@ export default function AdminLayout({ children, title }) {
           <div className="p-4 border-t border-slate-800 bg-[#081935] text-xs text-slate-400 flex flex-col space-y-1">
             <div className="flex items-center justify-between text-slate-300">
               <span className="font-semibold text-amber-400">e-SPD Pusdiklat</span>
-              <span>v1.0.0</span>
+              <span> Beta v1.3</span>
             </div>
             <p className="text-[11px] text-slate-300">Kementerian Luar Negeri RI</p>
           </div>

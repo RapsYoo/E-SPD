@@ -11,8 +11,20 @@ class EnsureUserHasRole
     {
         $user = $request->user();
 
-        if ($user && in_array($user->role, $roles, true)) {
+        // P0: dukung 'role:admin' maupun 'role:a,b,c' (Laravel bisa kirim sebagai satu string).
+        $allowed = collect($roles)
+            ->flatMap(fn ($r) => explode(',', $r))
+            ->map(fn ($r) => trim($r))
+            ->filter()
+            ->all();
+
+        if ($user && in_array($user->role, $allowed, true)) {
             return $next($request);
+        }
+
+        // P0: jangan redirect untuk API — kembalikan 403 JSON agar tidak bocor ke login HTML.
+        if ($request->expectsJson() || $request->is('api/*')) {
+            abort(403, 'Anda tidak memiliki akses ke resource ini.');
         }
 
         if ($user) {

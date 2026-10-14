@@ -38,12 +38,20 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
     router.delete(`/surat-tugas/${surat.id}`, { preserveScroll: true });
   };
 
+  const getPegawaiList = (st) => st.pegawaiList ?? st.pegawai_list ?? st.pegawai_list_data ?? [];
+
   const getStatusBadge = (status, kapusDecision) => {
     switch (status) {
       case 'DRAFT':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
             <FileText className="w-3.5 h-3.5 mr-1" /> Draft Sespalu
+          </span>
+        );
+      case 'MENUNGGU_DISPOSISI_KAPUS':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+            <Clock className="w-3.5 h-3.5 mr-1" /> Nota Masuk Kapus - Menunggu Persetujuan
           </span>
         );
       case 'DISPOSISI_KAPUS_YA':
@@ -207,23 +215,26 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                     </td>
 
                     <td className="py-3.5 px-4">
-                      {st.pegawai_list && st.pegawai_list.length > 0 ? (
+                      {(() => {
+                        const list = getPegawaiList(st);
+                        return list && list.length > 0 ? (
                         <div className="space-y-1">
-                          {st.pegawai_list.slice(0, 2).map((peg, idx) => (
-                            <div key={idx} className="text-xs font-semibold text-slate-800 flex items-center space-x-1">
+                          {list.slice(0, 2).map((peg, idx) => (
+                            <div key={peg.id || peg.nip || idx} className="text-xs font-semibold text-slate-800 flex items-center space-x-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                               <span>{peg.nama}</span>
                             </div>
                           ))}
-                          {st.pegawai_list.length > 2 && (
+                          {list.length > 2 && (
                             <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
-                              +{st.pegawai_list.length - 2} Pegawai Lainnya
+                              +{list.length - 2} Pegawai Lainnya
                             </span>
                           )}
                         </div>
                       ) : (
                         <span className="text-xs text-slate-400 italic">Belum ada pegawai</span>
-                      )}
+                      );
+                      })()}
                     </td>
 
                     <td className="py-3.5 px-4 text-center">

@@ -51,6 +51,9 @@ class AuthApiController extends Controller
             'email'    => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
+        // P0: registrasi publik (termasuk API) hanya boleh melahirkan role pemohon.
+        // Kolom role di luar $fillable agar tak bisa di-mass-assign dari request.
+        $user->forceFill(['role' => 'pemohon'])->save();
 
         event(new Registered($user));
 
@@ -64,6 +67,7 @@ class AuthApiController extends Controller
                 'id'    => $user->id,
                 'name'  => $user->name,
                 'email' => $user->email,
+                'role'  => $user->role,
             ],
         ], 201);
     }
@@ -109,6 +113,7 @@ class AuthApiController extends Controller
                 'id'    => $user->id,
                 'name'  => $user->name,
                 'email' => $user->email,
+                'role'  => $user->role,
             ],
         ]);
     }
@@ -141,7 +146,7 @@ class AuthApiController extends Controller
     public function me(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $request->user()->only('id', 'name', 'email', 'created_at'),
+            'data' => $request->user()->only('id', 'name', 'email', 'role', 'created_at'),
         ]);
     }
 }

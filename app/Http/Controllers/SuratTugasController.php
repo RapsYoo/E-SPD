@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SuratTugas;
+use App\Models\SuratTugasLog;
 use App\Models\SuratTugasPegawai;
 use App\Models\Pegawai;
 use App\Models\Ppk;
@@ -11,6 +12,7 @@ use App\Models\TingkatBiaya;
 use App\Models\JenisAngkutan;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class SuratTugasController extends Controller
@@ -18,6 +20,11 @@ class SuratTugasController extends Controller
     public function index(Request $request)
     {
         $query = SuratTugas::with(['pegawaiList', 'ppk', 'user']);
+
+        // P0-3: pemohon/sespalu hanya boleh melihat usulannya sendiri.
+        if (in_array(auth()->user()?->role, ['pemohon', 'sespalu'], true)) {
+            $query->where('user_id', auth()->id());
+        }
 
         if ($request->has('search') && $request->search) {
             $search = $request->search;
@@ -159,16 +166,33 @@ class SuratTugasController extends Controller
         ]);
 
         $draftData = collect($validated)->except(['file_undangan', 'file_izin_setneg', 'draft_step'])->all();
-        $fileUndangan = $suratTugas?->file_undangan;
-        $fileIzinSetneg = $suratTugas?->file_izin_setneg;
+        $oldUndangan = $suratTugas?->file_undangan;
+        $oldSetneg = $suratTugas?->file_izin_setneg;
+        // P0-verifikasi: bawa nama file lama + sub-draft actor agar tidak hilang saat update parsial.
+        $existingDraft = $suratTugas?->draft_data ?? [];
+        foreach (['file_undangan_name', 'file_izin_setneg_name', 'kapus', 'tu', 'ppk'] as $keep) {
+            if (!array_key_exists($keep, $draftData) && array_key_exists($keep, $existingDraft)) {
+                $draftData[$keep] = $existingDraft[$keep];
+            }
+        }
+        // pegawai_ids kondisional LUAR_NEGERI/DALAM_NEGERI: jangan timpa dengan kosong bila tidak dikirim.
+        if (!array_key_exists('pegawai_ids', $validated) && array_key_exists('pegawai_ids', $existingDraft)) {
+            $draftData['pegawai_ids'] = $existingDraft['pegawai_ids'];
+        }
+        $fileUndangan = $oldUndangan;
+        $fileIzinSetneg = $oldSetneg;
+        $newUndangan = null;
+        $newSetneg = null;
 
         if ($request->hasFile('file_undangan')) {
-            $fileUndangan = $request->file('file_undangan')->store('undangan', 'public');
+            $newUndangan = $request->file('file_undangan')->store('undangan', 'public');
+            $fileUndangan = $newUndangan;
             $draftData['file_undangan_name'] = $request->file('file_undangan')->getClientOriginalName();
         }
 
         if ($request->hasFile('file_izin_setneg')) {
-            $fileIzinSetneg = $request->file('file_izin_setneg')->store('setneg', 'public');
+            $newSetneg = $request->file('file_izin_setneg')->store('setneg', 'public');
+            $fileIzinSetneg = $newSetneg;
             $draftData['file_izin_setneg_name'] = $request->file('file_izin_setneg')->getClientOriginalName();
         }
 
@@ -183,7 +207,7 @@ class SuratTugasController extends Controller
             'perihal_nota' => $validated['perihal_nota'] ?? '[Draft belum lengkap]',
             'file_undangan' => $fileUndangan,
             'file_izin_setneg' => $fileIzinSetneg,
-            'status' => 'DRAFT',
+            'status' => $suratTugas?->status ?? 'DRAFT',
             'ppk_id' => $ppk?->id,
             'ppk_nama_snapshot' => $ppk?->nama,
             'ppk_nip_snapshot' => $ppk?->nip,
@@ -201,28 +225,49 @@ class SuratTugasController extends Controller
             'draft_step' => $validated['draft_step'],
         ];
 
-        if ($suratTugas) {
-            $suratTugas->update($values);
-        } else {
-            $suratTugas = SuratTugas::create($values);
+        $pegawaiIds = $validated['pegawai_ids']
+            ?? $draftData['pegawai_ids']
+            ?? [];
+
+        try {
+            DB::transaction(function () use ($values, $pegawaiIds, &$suratTugas) {
+                if ($suratTugas) {
+                    $suratTugas->update($values);
+                } else {
+                    $suratTugas = SuratTugas::create($values);
+                }
+
+                $suratTugas->pegawaiList()->delete();
+                foreach ($pegawaiIds as $index => $pegawaiId) {
+                    $pegawai = Pegawai::find($pegawaiId);
+                    if (!$pegawai) continue;
+
+                    SuratTugasPegawai::create([
+                        'surat_tugas_id' => $suratTugas->id,
+                        'pegawai_id'     => $pegawai->id,
+                        'nama'           => $pegawai->nama,
+                        'nip'            => $pegawai->nip ?? '',
+                        'pangkat'        => $pegawai->pangkat ?? '',
+                        'golongan'       => $pegawai->golongan ?? '',
+                        'jabatan'        => $pegawai->jabatan ?? '',
+                        'unit_kerja'     => $pegawai->unit_kerja ?: 'Pusdiklat Kemlu',
+                        'urutan'         => $index + 1,
+                    ]);
+                }
+            });
+        } catch (\Throwable $e) {
+            // Rollback file baru agar tidak yatim saat DB gagal.
+            if ($newUndangan) Storage::disk('public')->delete($newUndangan);
+            if ($newSetneg) Storage::disk('public')->delete($newSetneg);
+            throw $e;
         }
 
-        $suratTugas->pegawaiList()->delete();
-        foreach ($validated['pegawai_ids'] ?? [] as $index => $pegawaiId) {
-            $pegawai = Pegawai::find($pegawaiId);
-            if (!$pegawai) continue;
-
-            SuratTugasPegawai::create([
-                'surat_tugas_id' => $suratTugas->id,
-                'pegawai_id' => $pegawai->id,
-                'nama' => $pegawai->nama,
-                'nip' => $pegawai->nip,
-                'pangkat' => $pegawai->pangkat,
-                'golongan' => $pegawai->golongan,
-                'jabatan' => $pegawai->jabatan,
-                'unit_kerja' => $pegawai->unit_kerja ?: 'Pusdiklat Kemlu',
-                'urutan' => $index + 1,
-            ]);
+        // Hapus file lama hanya setelah DB sukses diganti.
+        if ($newUndangan && $oldUndangan && $newUndangan !== $oldUndangan) {
+            Storage::disk('public')->delete($oldUndangan);
+        }
+        if ($newSetneg && $oldSetneg && $newSetneg !== $oldSetneg) {
+            Storage::disk('public')->delete($oldSetneg);
         }
 
         return redirect()->route('surat-tugas.index')->with('success', 'Draft Surat Tugas berhasil disimpan. Anda dapat melanjutkannya kapan saja.');
@@ -239,6 +284,23 @@ class SuratTugasController extends Controller
             403,
             'Anda tidak memiliki akses ke draft ini.'
         );
+    }
+
+    private function catatLog(SuratTugas $suratTugas, string $aksi, ?string $dari, ?string $ke, ?string $catatan = null): void
+    {
+        try {
+            SuratTugasLog::create([
+                'surat_tugas_id' => $suratTugas->id,
+                'user_id' => auth()->id(),
+                'aksi' => $aksi,
+                'dari_status' => $dari,
+                'ke_status' => $ke,
+                'catatan' => $catatan,
+            ]);
+        } catch (\Throwable $e) {
+            // P1: log audit tidak boleh menggagalkan transaksi utama.
+            report($e);
+        }
     }
 
     private function submitNote(Request $request)
@@ -264,14 +326,21 @@ class SuratTugasController extends Controller
             'file_izin_setneg' => $setnegFileRule,
         ]);
 
-        $fileUndangan = $draft?->file_undangan;
+        $oldUndangan = $draft?->file_undangan;
+        $oldSetneg = $draft?->file_izin_setneg;
+        $fileUndangan = $oldUndangan;
+        $fileSetneg = $oldSetneg;
+        $newUndangan = null;
+        $newSetneg = null;
+
         if ($request->hasFile('file_undangan')) {
-            $fileUndangan = $request->file('file_undangan')->store('undangan', 'public');
+            $newUndangan = $request->file('file_undangan')->store('undangan', 'public');
+            $fileUndangan = $newUndangan;
         }
 
-        $fileSetneg = $draft?->file_izin_setneg;
         if ($request->hasFile('file_izin_setneg')) {
-            $fileSetneg = $request->file('file_izin_setneg')->store('setneg', 'public');
+            $newSetneg = $request->file('file_izin_setneg')->store('setneg', 'public');
+            $fileSetneg = $newSetneg;
         }
 
         $draftData = $draft?->draft_data ?? [];
@@ -283,8 +352,7 @@ class SuratTugasController extends Controller
             $draftData['file_izin_setneg_name'] = $request->file('file_izin_setneg')->getClientOriginalName();
         }
 
-        $suratTugas = $draft ?? new SuratTugas();
-        $suratTugas->fill([
+        $values = [
             'user_id' => $draft?->user_id ?? auth()->id(),
             'kategori_perjalanan' => $validated['kategori_perjalanan'],
             'sumber_asal' => $validated['sumber_asal'],
@@ -299,8 +367,28 @@ class SuratTugasController extends Controller
             'catatan_kapus' => null,
             'draft_data' => $draftData ?: null,
             'draft_step' => null,
-        ]);
-        $suratTugas->save();
+        ];
+
+        try {
+            DB::transaction(function () use ($draft, $values, &$suratTugas) {
+                $suratTugas = $draft ?? new SuratTugas();
+                $suratTugas->fill($values);
+                $suratTugas->save();
+            });
+        } catch (\Throwable $e) {
+            if ($newUndangan) Storage::disk('public')->delete($newUndangan);
+            if ($newSetneg) Storage::disk('public')->delete($newSetneg);
+            throw $e;
+        }
+
+        if ($newUndangan && $oldUndangan && $newUndangan !== $oldUndangan) {
+            Storage::disk('public')->delete($oldUndangan);
+        }
+        if ($newSetneg && $oldSetneg && $newSetneg !== $oldSetneg) {
+            Storage::disk('public')->delete($oldSetneg);
+        }
+
+        $this->catatLog($suratTugas, 'KIRIM_KE_KAPUS', $draft?->status ?? 'DRAFT', 'MENUNGGU_DISPOSISI_KAPUS', 'Nota dikirim ke Kapus');
 
         return redirect()->route('surat-tugas.show', $suratTugas->id)
             ->with('success', 'Nota/undangan berhasil dikirim ke Kapus untuk mendapat persetujuan.');
@@ -404,14 +492,21 @@ class SuratTugasController extends Controller
 
         $ppk = Ppk::findOrFail($validated['ppk_id']);
 
-        $filePathUndangan = $draft?->file_undangan;
+        $oldUndangan = $draft?->file_undangan;
+        $oldSetneg = $draft?->file_izin_setneg;
+        $filePathUndangan = $oldUndangan;
+        $filePathSetneg = $oldSetneg;
+        $newUndangan = null;
+        $newSetneg = null;
+
         if ($request->hasFile('file_undangan')) {
-            $filePathUndangan = $request->file('file_undangan')->store('undangan', 'public');
+            $newUndangan = $request->file('file_undangan')->store('undangan', 'public');
+            $filePathUndangan = $newUndangan;
         }
 
-        $filePathSetneg = $draft?->file_izin_setneg;
         if ($request->hasFile('file_izin_setneg')) {
-            $filePathSetneg = $request->file('file_izin_setneg')->store('setneg', 'public');
+            $newSetneg = $request->file('file_izin_setneg')->store('setneg', 'public');
+            $filePathSetneg = $newSetneg;
         }
 
         $suratValues = [
@@ -442,47 +537,71 @@ class SuratTugasController extends Controller
             'draft_step' => null,
         ];
 
-        $suratTugas = $draft ?? new SuratTugas();
-        $suratTugas->fill($suratValues);
-        $suratTugas->save();
+        $pegawaiIds = $validated['pegawai_ids'];
 
-        if ($draft) {
-            $suratTugas->pegawaiList()->delete();
+        $suratTugas = null;
+        try {
+            DB::transaction(function () use ($draft, $suratValues, $pegawaiIds, &$suratTugas) {
+                $suratTugas = $draft ?? new SuratTugas();
+                $suratTugas->fill($suratValues);
+                $suratTugas->save();
+
+                if ($draft) {
+                    $suratTugas->pegawaiList()->delete();
+                }
+
+                // Save officer snapshots
+                foreach ($pegawaiIds as $index => $pegawaiId) {
+                    $pegawai = Pegawai::find($pegawaiId);
+                    if (!$pegawai) continue;
+                    SuratTugasPegawai::create([
+                        'surat_tugas_id' => $suratTugas->id,
+                        'pegawai_id'     => $pegawai->id,
+                        'nama'           => $pegawai->nama,
+                        'nip'            => $pegawai->nip ?? '',
+                        'pangkat'        => $pegawai->pangkat ?? '',
+                        'golongan'       => $pegawai->golongan ?? '',
+                        'jabatan'        => $pegawai->jabatan ?? '',
+                        'unit_kerja'     => $pegawai->unit_kerja ?: 'Pusdiklat Kemlu',
+                        'urutan'         => $index + 1,
+                    ]);
+                }
+            });
+        } catch (\Throwable $e) {
+            if ($newUndangan) Storage::disk('public')->delete($newUndangan);
+            if ($newSetneg) Storage::disk('public')->delete($newSetneg);
+            throw $e;
         }
 
-        // Save officer snapshots
-        foreach ($validated['pegawai_ids'] as $index => $pegawaiId) {
-            $pegawai = Pegawai::find($pegawaiId);
-            if ($pegawai) {
-                SuratTugasPegawai::create([
-                    'surat_tugas_id' => $suratTugas->id,
-                    'pegawai_id' => $pegawai->id,
-                    'nama' => $pegawai->nama,
-                    'nip' => $pegawai->nip,
-                    'pangkat' => $pegawai->pangkat,
-                    'golongan' => $pegawai->golongan,
-                    'jabatan' => $pegawai->jabatan,
-                    'unit_kerja' => $pegawai->unit_kerja || 'Pusdiklat Kemlu',
-                    'urutan' => $index + 1,
-                ]);
-            }
+        if ($newUndangan && $oldUndangan && $newUndangan !== $oldUndangan) {
+            Storage::disk('public')->delete($oldUndangan);
+        }
+        if ($newSetneg && $oldSetneg && $newSetneg !== $oldSetneg) {
+            Storage::disk('public')->delete($oldSetneg);
         }
 
         $message = $suratTugas->status === 'MENUNGGU_PENOMORAN_TU'
             ? 'Draft Surat Tugas & SPD berhasil dikirim ke TU untuk verifikasi dan penomoran.'
             : 'Nota/undangan berhasil dikirim ke Kapus dan sedang menunggu persetujuan.';
 
+        $this->catatLog($suratTugas, $suratTugas->status === 'MENUNGGU_PENOMORAN_TU' ? 'KIRIM_KE_TU' : 'KIRIM_KE_KAPUS', $draft?->status ?? 'DRAFT', $suratTugas->status, $message);
+
         return redirect()->route('surat-tugas.show', $suratTugas->id)->with('success', $message);
     }
 
     public function show(SuratTugas $suratTugas)
     {
-        $suratTugas->load(['pegawaiList', 'ppk', 'user']);
+        // P0-3: pemilik boleh lihat miliknya; kapus/tu/ppk/admin boleh lihat semua tahapan kerja.
+        if (in_array(auth()->user()?->role, ['pemohon', 'sespalu'], true)) {
+            abort_unless($suratTugas->user_id === auth()->id(), 403, 'Anda tidak memiliki akses ke surat ini.');
+        }
+        $suratTugas->load(['pegawaiList', 'ppk', 'user', 'logs.user']);
 
         return Inertia::render('SuratTugas/Show', [
             'suratTugas' => $suratTugas,
             'userRole' => auth()->user()?->role ?? 'pemohon',
             'authUserId' => auth()->id(),
+            'logs' => $suratTugas->logs,
             'attachments' => [
                 'invitation' => $suratTugas->file_undangan ? [
                     'name' => basename($suratTugas->file_undangan),
@@ -524,12 +643,14 @@ class SuratTugasController extends Controller
         $draftData = $suratTugas->draft_data ?? [];
         unset($draftData['kapus']);
 
+        $dari = $suratTugas->status;
         $suratTugas->update([
             'kapus_decision' => $validated['kapus_decision'],
             'catatan_kapus' => $validated['catatan_kapus'],
             'status' => $status,
             'draft_data' => $draftData ?: null,
         ]);
+        $this->catatLog($suratTugas->fresh(), 'DISPOSISI_'.$validated['kapus_decision'], $dari, $status, $validated['catatan_kapus'] ?? null);
 
         return redirect()->back()->with('success', 'Disposisi Kepala Pusat (Kapus) berhasil disimpan!');
     }
@@ -546,21 +667,31 @@ class SuratTugasController extends Controller
         }
 
         $validated = $request->validate([
-            'nomor_st' => 'required|string|max:255',
-            'nomor_spd' => 'required|string|max:255',
+            'nomor_st' => 'required|string|max:255|unique:surat_tugas,nomor_st,' . $suratTugas->id,
+            'nomor_spd' => 'required|string|max:255|unique:surat_tugas,nomor_spd,' . $suratTugas->id,
             'tanggal_surat' => 'required|date',
         ]);
 
         $draftData = $suratTugas->draft_data ?? [];
         unset($draftData['tu']);
 
-        $suratTugas->update([
-            'nomor_st' => $validated['nomor_st'],
-            'nomor_spd' => $validated['nomor_spd'],
-            'tanggal_surat' => $validated['tanggal_surat'],
-            'status' => 'SELESAI_TERBIT',
-            'draft_data' => $draftData ?: null,
-        ]);
+        try {
+            // P1: lock baris agar dua TU tidak bisa rebut nomor yang sama.
+            $dari = $suratTugas->status;
+            DB::transaction(function () use ($suratTugas, $validated, $draftData) {
+                SuratTugas::whereKey($suratTugas->id)->lockForUpdate()->firstOrFail();
+                $suratTugas->update([
+                    'nomor_st' => $validated['nomor_st'],
+                    'nomor_spd' => $validated['nomor_spd'],
+                    'tanggal_surat' => $validated['tanggal_surat'],
+                    'status' => 'SELESAI_TERBIT',
+                    'draft_data' => $draftData ?: null,
+                ]);
+            });
+            $this->catatLog($suratTugas->fresh(), 'PENOMORAN', $dari, 'SELESAI_TERBIT', 'ST: '.$validated['nomor_st'].' | SPD: '.$validated['nomor_spd']);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            return redirect()->back()->with('error', 'Nomor ST/SPD sudah dipakai surat lain. Gunakan nomor berbeda.');
+        }
 
         return redirect()->back()->with('success', 'Penomoran resmi Surat Tugas & SPD berhasil diterbitkan oleh Tata Usaha!');
     }
@@ -585,19 +716,25 @@ class SuratTugasController extends Controller
             'signed_at' => $isSigned ? now() : null,
             'draft_data' => $draftData ?: null,
         ]);
+        $this->catatLog($suratTugas->fresh(), $isSigned ? 'TTD_PPK' : 'BATAL_TTD_PPK', 'SELESAI_TERBIT', 'SELESAI_TERBIT', $isSigned ? 'PPK menandatangani SPD' : 'TTD PPK dibatalkan');
 
         $msg = $isSigned ? 'Tanda tangan digital PPK telah resmi disematkan pada Lembar SPD.' : 'Tanda tangan digital PPK dibatalkan.';
         return redirect()->back()->with('success', $msg);
     }
 
-    // Print Document View Generator
+    // Print Document View Generator — P1: akses luas (TU/admin/kapus/ppk + pemilik), status minimal disetujui Kapus.
     public function cetak(SuratTugas $suratTugas)
     {
-        if (!in_array(auth()->user()?->role, ['tu', 'admin']) || !in_array($suratTugas->status, ['MENUNGGU_PENOMORAN_TU', 'SELESAI_TERBIT'], true)) {
-            return redirect()->route('surat-tugas.show', $suratTugas->id)->with('error', 'Pratinjau dokumen hanya tersedia untuk TU setelah draft Sespalu disetujui Kapus.');
+        $role = auth()->user()?->role;
+        $isOwner = $suratTugas->user_id === auth()->id();
+        $allowedRole = in_array($role, ['tu', 'admin', 'kapus', 'ppk'], true) || $isOwner;
+        $allowedStatus = in_array($suratTugas->status, ['MENUNGGU_PENOMORAN_TU', 'SELESAI_TERBIT'], true);
+        if (!$allowedRole || !$allowedStatus) {
+            return redirect()->route('surat-tugas.show', $suratTugas->id)->with('error', 'Pratinjau dokumen hanya tersedia setelah draft disetujui Kapus (untuk TU/Kapus/PPK/pemilik).');
         }
 
         $suratTugas->load(['pegawaiList', 'ppk', 'user']);
+        $this->catatLog($suratTugas, 'CETAK', $suratTugas->status, $suratTugas->status, 'Dokumen dicetak oleh '.$role);
 
         return Inertia::render('SuratTugas/Print', [
             'suratTugas' => $suratTugas,
@@ -608,14 +745,11 @@ class SuratTugasController extends Controller
     {
         abort_unless(auth()->user()?->role === 'admin', 403, 'Hanya Admin yang dapat menghapus histori Surat Tugas.');
 
-        foreach ([$suratTugas->file_undangan, $suratTugas->file_izin_setneg] as $filePath) {
-            if ($filePath) {
-                Storage::disk('public')->delete($filePath);
-            }
-        }
-
+        // P1: soft-delete recoverable — jangan hapus file/snapshot permanen di sini.
+        // File fisik hanya dihapus saat forceDelete (via tinker/console), bukan dari UI.
+        $this->catatLog($suratTugas, 'HAPUS', $suratTugas->status, null, 'Soft-delete oleh admin');
         $suratTugas->delete();
 
-        return redirect()->route('surat-tugas.index')->with('success', 'Histori Surat Tugas dan lampirannya berhasil dihapus.');
+        return redirect()->route('surat-tugas.index')->with('success', 'Surat Tugas dipindahkan ke arsip (soft-delete). Dapat dipulihkan bila diperlukan.');
     }
 }

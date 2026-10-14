@@ -19,10 +19,12 @@ import {
   PenTool,
   Sparkles,
   Stamp,
-  UserCog
+  UserCog,
+  History,
+  ScrollText
 } from 'lucide-react';
 
-export default function Show({ suratTugas, userRole, authUserId, attachments = {} }) {
+export default function Show({ suratTugas, userRole, authUserId, attachments = {}, logs = [] }) {
   const actorDrafts = suratTugas.draft_data || {};
 
   // Kapus Disposisi Form
@@ -136,6 +138,20 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
               <Printer className="w-4 h-4" />
               <span>{suratTugas.status === 'SELESAI_TERBIT' ? 'Cetak Dokumen Resmi PDF' : 'Pratinjau Dokumen'}</span>
             </Link>
+          )}
+
+          {/* Cetak luas: kapus/ppk/pemilik saat sudah terbit */}
+          {['kapus','ppk','pemohon','sespalu'].includes(userRole) && suratTugas.status === 'SELESAI_TERBIT' && (
+            ((userRole === 'pemohon' || userRole === 'sespalu') ? suratTugas.user_id === authUserId : true) && (
+              <a
+                href={`/surat-tugas/${suratTugas.id}/cetak`}
+                target="_blank"
+                className="inline-flex items-center justify-center space-x-2 bg-slate-900 hover:bg-slate-700 text-white font-bold px-5 py-2.5 rounded-xl shadow transition text-sm"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Cetak PDF</span>
+              </a>
+            )
           )}
         </div>
       </div>
@@ -443,6 +459,56 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
           </div>
           )}
         </div>
+      </div>
+
+      {/* Audit Trail / Riwayat Proses */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+        <div className="flex items-center space-x-2 mb-1">
+          <History className="w-5 h-5 text-slate-700" />
+          <h3 className="font-bold text-slate-900 text-sm">Jejak Audit Proses</h3>
+          <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">{logs?.length || 0} aktivitas</span>
+        </div>
+        <p className="text-xs text-slate-500 mb-4 flex items-center gap-1">
+          <ScrollText className="w-3.5 h-3.5" /> Setiap perubahan status, disposisi, penomoran, TTD, cetak, dan hapus tercatat otomatis.
+        </p>
+        {(!logs || logs.length === 0) ? (
+          <div className="text-xs text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-xl p-4 text-center">
+            Belum ada riwayat tercatat untuk surat ini.
+          </div>
+        ) : (
+          <div className="relative">
+            <div className="absolute left-[7px] top-2 bottom-2 w-px bg-slate-200" />
+            <div className="space-y-3">
+              {logs.map((log) => (
+                <div key={log.id} className="relative pl-6">
+                  <span className={`absolute left-0 top-1.5 w-[15px] h-[15px] rounded-full border-2 border-white shadow ring-1 ring-slate-200 ${
+                    log.aksi?.includes('HAPUS') ? 'bg-red-500' :
+                    log.aksi?.includes('TTD') ? 'bg-emerald-500' :
+                    log.aksi?.includes('CETAK') ? 'bg-blue-500' :
+                    log.aksi?.includes('DISPOSISI') || log.aksi?.includes('PENOMORAN') ? 'bg-amber-500' : 'bg-slate-400'
+                  }`} />
+                  <div className="bg-slate-50 border border-slate-200/70 rounded-xl px-3 py-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-slate-900">{log.aksi}</span>
+                      <span className="text-[11px] text-slate-500 font-mono">{log.created_at ? new Date(log.created_at).toLocaleString('id-ID') : '-'}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 mt-1">
+                      {(log.dari_status || log.ke_status) && (
+                        <span className="font-mono bg-white border border-slate-200 rounded px-1.5 py-0.5 mr-2">
+                          {log.dari_status || '-'} → {log.ke_status || '-'}
+                        </span>
+                      )}
+                      <span>oleh <strong className="text-slate-800">{log.user?.name || 'Sistem'} ({log.user?.role || '-'})</strong></span>
+                    </div>
+                    {(log.catatan || log.keterangan) && (
+                      <p className="text-[11px] text-slate-500 mt-1 italic">“{log.catatan || log.keterangan}”</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
