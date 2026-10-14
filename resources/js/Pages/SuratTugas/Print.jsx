@@ -21,6 +21,20 @@ function formatShortDate(value) {
   return `${day}-${shortMonths[Number(month) - 1]}-${year.slice(-2)}`;
 }
 
+function durationDays(start, end) {
+  const startMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(start || '');
+  const endMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(end || '');
+  if (!startMatch || !endMatch) return null;
+
+  const [, startYear, startMonth, startDay] = startMatch;
+  const [, endYear, endMonth, endDay] = endMatch;
+  const startTime = Date.UTC(Number(startYear), Number(startMonth) - 1, Number(startDay));
+  const endTime = Date.UTC(Number(endYear), Number(endMonth) - 1, Number(endDay));
+  if (endTime < startTime) return null;
+
+  return Math.floor((endTime - startTime) / 86400000) + 1;
+}
+
 function spellNumber(value) {
   const words = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh'];
   return words[value] || String(value || '-');
@@ -278,9 +292,14 @@ export default function Print({ suratTugas }) {
                   <td className="border border-black p-1">{suratTugas.jenis_angkutan_nama || '-'}</td>
                   <td className="border border-black p-1 break-words">{suratTugas.nomor_st || '-'}</td>
                   <td className="border border-black p-1">{tanggalSurat}</td>
-                  <td className="border border-black p-1">{formatShortDate(suratTugas.tanggal_berangkat)}</td>
-                  <td className="border border-black p-1">{formatShortDate(suratTugas.tanggal_kembali)}</td>
-                  <td className="border border-black p-1">{suratTugas.durasi_hari || '-'} hari</td>
+                  <td className="border border-black p-1">{formatShortDate(pegawai.tanggal_berangkat || suratTugas.tanggal_berangkat)}</td>
+                  <td className="border border-black p-1">{formatShortDate(pegawai.tanggal_kembali || suratTugas.tanggal_kembali)}</td>
+                  <td className="border border-black p-1">
+                    {durationDays(
+                      pegawai.tanggal_berangkat || suratTugas.tanggal_berangkat,
+                      pegawai.tanggal_kembali || suratTugas.tanggal_kembali
+                    ) || suratTugas.durasi_hari || '-'} hari
+                  </td>
                   <td className="border border-black p-1">-</td>
                 </tr>
               )) : (

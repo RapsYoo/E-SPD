@@ -12,6 +12,7 @@ use App\Models\SuratTugasPegawai;
 use App\Models\TingkatBiaya;
 use App\Models\UnitKerja;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -170,8 +171,13 @@ class SuratTugasController extends Controller
             'tanggal_berangkat' => 'nullable|date',
             'tanggal_kembali' => 'nullable|date',
             'durasi_hari' => 'nullable|integer|min:1',
+            'pegawai_ids_provided' => 'sometimes|boolean',
             'pegawai_ids' => 'sometimes|array',
             'pegawai_ids.*' => 'exists:pegawai,id',
+            'pegawai_tanggal' => 'sometimes|array',
+            'pegawai_tanggal.*' => 'array',
+            'pegawai_tanggal.*.tanggal_berangkat' => 'nullable|date',
+            'pegawai_tanggal.*.tanggal_kembali' => 'nullable|date',
         ]);
 
         $suratTugas = ! empty($validated['workflow_id'])
@@ -241,19 +247,33 @@ class SuratTugasController extends Controller
         $suratTugas->save();
 
         // Sync pegawai if present
-        if (array_key_exists('pegawai_ids', $validated)) {
+        if (array_key_exists('pegawai_ids', $validated) || ($validated['pegawai_ids_provided'] ?? false)) {
+            $existingPegawaiDates = $suratTugas->pegawaiList()->get()->keyBy('pegawai_id');
             $suratTugas->pegawaiList()->delete();
             $suratTugas->biayaList()->delete();
 
-            $durasi = max(1, (int) $suratTugas->durasi_hari);
-            $malam = max(0, $durasi - 1);
             $tarifHarian = 370000;
             $tarifTransport = 170000;
             $tarifHotel = 350000;
+            $tanggalBerangkatList = [];
+            $tanggalKembaliList = [];
 
-            foreach ($validated['pegawai_ids'] as $index => $pegawaiId) {
+            foreach ($validated['pegawai_ids'] ?? [] as $index => $pegawaiId) {
                 $pegawai = Pegawai::find($pegawaiId);
                 if ($pegawai) {
+                    $tanggalPegawai = $validated['pegawai_tanggal'][$pegawaiId] ?? [
+                        'tanggal_berangkat' => $existingPegawaiDates->get($pegawaiId)?->tanggal_berangkat?->format('Y-m-d'),
+                        'tanggal_kembali' => $existingPegawaiDates->get($pegawaiId)?->tanggal_kembali?->format('Y-m-d'),
+                    ];
+                    $tanggalBerangkat = $tanggalPegawai['tanggal_berangkat'] ?? null;
+                    $tanggalKembali = $tanggalPegawai['tanggal_kembali'] ?? null;
+                    $durasi = $this->travelDuration(
+                        $tanggalBerangkat,
+                        $tanggalKembali,
+                        max(1, (int) $suratTugas->durasi_hari)
+                    );
+                    $malam = max(0, $durasi - 1);
+
                     $stPegawai = SuratTugasPegawai::create([
                         'surat_tugas_id' => $suratTugas->id,
                         'pegawai_id' => $pegawai->id,
@@ -268,7 +288,15 @@ class SuratTugasController extends Controller
                         'nama_bank' => $pegawai->nama_bank,
                         'no_rekening' => $pegawai->no_rekening,
                         'urutan' => $index + 1,
+                        'tanggal_berangkat' => $tanggalBerangkat,
+                        'tanggal_kembali' => $tanggalKembali,
                     ]);
+                    if ($tanggalBerangkat) {
+                        $tanggalBerangkatList[] = $tanggalBerangkat;
+                    }
+                    if ($tanggalKembali) {
+                        $tanggalKembaliList[] = $tanggalKembali;
+                    }
 
                     $uangHarianTotal = $durasi * $tarifHarian;
                     $transAsalTotal = 2 * $tarifTransport;
@@ -310,6 +338,18 @@ class SuratTugasController extends Controller
                     ]);
                 }
             }
+
+            $suratTugas->tanggal_berangkat = $tanggalBerangkatList !== [] ? min($tanggalBerangkatList) : null;
+            $suratTugas->tanggal_kembali = $tanggalKembaliList !== [] ? max($tanggalKembaliList) : null;
+            if ($suratTugas->tanggal_berangkat && $suratTugas->tanggal_kembali) {
+                $suratTugas->durasi_hari = $this->travelDuration(
+                    $suratTugas->tanggal_berangkat->format('Y-m-d'),
+                    $suratTugas->tanggal_kembali->format('Y-m-d')
+                );
+            } else {
+                $suratTugas->durasi_hari = 1;
+            }
+            $suratTugas->save();
         }
 
         return redirect()->route('surat-tugas.create', [
@@ -413,12 +453,24 @@ class SuratTugasController extends Controller
             'tempat_tujuan' => 'required|string',
             'negara_tujuan' => 'required_if:kategori_perjalanan,LUAR_NEGERI|nullable|string|max:255',
             'no_setneg' => 'required_if:kategori_perjalanan,LUAR_NEGERI|nullable|string|max:255',
-            'tanggal_berangkat' => 'required|date',
-            'tanggal_kembali' => 'required|date|after_or_equal:tanggal_berangkat',
-            'durasi_hari' => 'required|integer|min:1',
             'pegawai_ids' => 'required|array|min:1',
             'pegawai_ids.*' => 'exists:pegawai,id',
+            'pegawai_tanggal' => 'required|array',
+            'pegawai_tanggal.*' => 'array',
         ];
+
+        foreach ((array) $request->input('pegawai_ids', []) as $pegawaiId) {
+            if (filter_var($pegawaiId, FILTER_VALIDATE_INT) === false) {
+                continue;
+            }
+
+            $rules["pegawai_tanggal.{$pegawaiId}.tanggal_berangkat"] = 'required|date';
+            $rules["pegawai_tanggal.{$pegawaiId}.tanggal_kembali"] = [
+                'required',
+                'date',
+                "after_or_equal:pegawai_tanggal.{$pegawaiId}.tanggal_berangkat",
+            ];
+        }
 
         $rules['file_undangan'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240';
 
@@ -455,6 +507,13 @@ class SuratTugasController extends Controller
             $filePathSetneg = $request->file('file_izin_setneg')->store('setneg', 'public');
         }
 
+        $tanggalPeserta = collect($validated['pegawai_ids'])
+            ->map(fn ($pegawaiId) => $validated['pegawai_tanggal'][$pegawaiId]);
+        $tanggalBerangkatList = $tanggalPeserta->pluck('tanggal_berangkat')->all();
+        $tanggalKembaliList = $tanggalPeserta->pluck('tanggal_kembali')->all();
+        $tanggalBerangkatKeseluruhan = min($tanggalBerangkatList);
+        $tanggalKembaliKeseluruhan = max($tanggalKembaliList);
+
         $dataToSave = [
             'user_id' => $suratTugas->user_id,
             'kategori_perjalanan' => $validated['kategori_perjalanan'],
@@ -480,10 +539,10 @@ class SuratTugasController extends Controller
             'tempat_tujuan' => $validated['tempat_tujuan'],
             'negara_tujuan' => $validated['negara_tujuan'] ?? null,
             'no_setneg' => $validated['no_setneg'] ?? null,
-            'tanggal_berangkat' => $validated['tanggal_berangkat'],
-            'tanggal_kembali' => $validated['tanggal_kembali'],
+            'tanggal_berangkat' => $tanggalBerangkatKeseluruhan,
+            'tanggal_kembali' => $tanggalKembaliKeseluruhan,
             'tanggal_surat' => null,
-            'durasi_hari' => $validated['durasi_hari'],
+            'durasi_hari' => $this->travelDuration($tanggalBerangkatKeseluruhan, $tanggalKembaliKeseluruhan),
             'nomor_st' => null,
             'nomor_spd' => null,
             'akun_anggaran' => 'DIPA Pusdiklat Kemlu',
@@ -494,8 +553,6 @@ class SuratTugasController extends Controller
         $suratTugas->biayaList()->delete();
 
         // Save officer snapshots & default biaya
-        $durasi = (int) $validated['durasi_hari'];
-        $malam = max(0, $durasi - 1);
         $tarifHarian = 370000;
         $tarifTransport = 170000;
         $tarifHotel = 350000;
@@ -503,6 +560,13 @@ class SuratTugasController extends Controller
         foreach ($validated['pegawai_ids'] as $index => $pegawaiId) {
             $pegawai = Pegawai::find($pegawaiId);
             if ($pegawai) {
+                $tanggalPegawai = $validated['pegawai_tanggal'][$pegawaiId];
+                $durasi = $this->travelDuration(
+                    $tanggalPegawai['tanggal_berangkat'],
+                    $tanggalPegawai['tanggal_kembali']
+                );
+                $malam = max(0, $durasi - 1);
+
                 $stPegawai = SuratTugasPegawai::create([
                     'surat_tugas_id' => $suratTugas->id,
                     'pegawai_id' => $pegawai->id,
@@ -517,6 +581,8 @@ class SuratTugasController extends Controller
                     'nama_bank' => $pegawai->nama_bank,
                     'no_rekening' => $pegawai->no_rekening,
                     'urutan' => $index + 1,
+                    'tanggal_berangkat' => $tanggalPegawai['tanggal_berangkat'],
+                    'tanggal_kembali' => $tanggalPegawai['tanggal_kembali'],
                 ]);
 
                 // Hitung biaya estimasi awal
@@ -738,6 +804,15 @@ class SuratTugasController extends Controller
         return Inertia::render('SuratTugas/Print', [
             'suratTugas' => $suratTugas,
         ]);
+    }
+
+    private function travelDuration(?string $tanggalBerangkat, ?string $tanggalKembali, int $fallback = 1): int
+    {
+        if (! $tanggalBerangkat || ! $tanggalKembali || $tanggalKembali < $tanggalBerangkat) {
+            return max(1, $fallback);
+        }
+
+        return (int) Carbon::parse($tanggalBerangkat)->diffInDays(Carbon::parse($tanggalKembali)) + 1;
     }
 
     private function draftQueryFor(User $user): Builder

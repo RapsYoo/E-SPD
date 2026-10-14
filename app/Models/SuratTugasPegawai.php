@@ -25,6 +25,13 @@ class SuratTugasPegawai extends Model
         'nama_bank',
         'no_rekening',
         'urutan',
+        'tanggal_berangkat',
+        'tanggal_kembali',
+    ];
+
+    protected $casts = [
+        'tanggal_berangkat' => 'date:Y-m-d',
+        'tanggal_kembali' => 'date:Y-m-d',
     ];
 
     public function suratTugas()
@@ -41,4 +48,5 @@ class SuratTugasPegawai extends Model
     {
         return $this->hasOne(SuratTugasBiaya::class, 'surat_tugas_pegawai_id');
     }
+    
 }

@@ -275,6 +275,13 @@ class SuratTugasAccessTest extends TestCase
             'golongan' => 'III/c',
             'jabatan' => 'Analis',
         ]);
+        $pegawaiKedua = Pegawai::create([
+            'nama' => 'Pegawai Uji Kedua',
+            'nip' => '198000000000000003',
+            'pangkat' => 'Penata',
+            'golongan' => 'III/c',
+            'jabatan' => 'Analis',
+        ]);
 
         $this->actingAs($owner)
             ->post(route('surat-tugas.complete', $surat), [
@@ -289,16 +296,43 @@ class SuratTugasAccessTest extends TestCase
                 'jenis_angkutan_nama' => 'Perjalanan Darat',
                 'tempat_berangkat' => 'Jakarta',
                 'tempat_tujuan' => 'Bandung',
-                'tanggal_berangkat' => '2026-10-20',
-                'tanggal_kembali' => '2026-10-21',
-                'durasi_hari' => 2,
-                'pegawai_ids' => [$pegawai->id],
+                'pegawai_ids' => [$pegawai->id, $pegawaiKedua->id],
+                'pegawai_tanggal' => [
+                    $pegawai->id => [
+                        'tanggal_berangkat' => '2026-10-20',
+                        'tanggal_kembali' => '2026-10-21',
+                    ],
+                    $pegawaiKedua->id => [
+                        'tanggal_berangkat' => '2026-10-22',
+                        'tanggal_kembali' => '2026-10-24',
+                    ],
+                ],
             ])
             ->assertRedirect(route('surat-tugas.show', $surat));
         $this->assertDatabaseHas('surat_tugas', [
             'id' => $surat->id,
             'status' => 'MENUNGGU_PENOMORAN_TU',
             'kapus_decision' => 'YA',
+            'tanggal_berangkat' => '2026-10-20',
+            'tanggal_kembali' => '2026-10-24',
+            'durasi_hari' => 5,
+        ]);
+        $this->assertDatabaseHas('surat_tugas_pegawai', [
+            'surat_tugas_id' => $surat->id,
+            'pegawai_id' => $pegawai->id,
+            'tanggal_berangkat' => '2026-10-20',
+            'tanggal_kembali' => '2026-10-21',
+        ]);
+        $this->assertDatabaseHas('surat_tugas_pegawai', [
+            'surat_tugas_id' => $surat->id,
+            'pegawai_id' => $pegawaiKedua->id,
+            'tanggal_berangkat' => '2026-10-22',
+            'tanggal_kembali' => '2026-10-24',
+        ]);
+        $this->assertDatabaseHas('surat_tugas_biaya', [
+            'surat_tugas_id' => $surat->id,
+            'surat_tugas_pegawai_id' => $surat->pegawaiList()->where('pegawai_id', $pegawaiKedua->id)->value('id'),
+            'uang_harian_hari' => 3,
         ]);
 
         $this->actingAs(User::factory()->create(['role' => 'tu']))
@@ -332,6 +366,124 @@ class SuratTugasAccessTest extends TestCase
             'id' => $anotherSurat->id,
             'status' => 'SELESAI_TERBIT',
             'nomor_st' => 'ST-002',
+        ]);
+    }
+
+    public function test_draft_saves_individual_travel_dates_for_each_participant(): void
+    {
+        $owner = User::factory()->create(['role' => 'sespalu']);
+        $pegawai = Pegawai::create([
+            'nama' => 'Pegawai Draft',
+            'nip' => '198000000000000004',
+            'pangkat' => 'Penata',
+            'golongan' => 'III/c',
+            'jabatan' => 'Analis',
+        ]);
+
+        $this->actingAs($owner)
+            ->post(route('surat-tugas.draft'), [
+                'draft_step' => 3,
+                'pegawai_ids' => [$pegawai->id],
+                'pegawai_tanggal' => [
+                    $pegawai->id => [
+                        'tanggal_berangkat' => '2026-11-10',
+                        'tanggal_kembali' => '2026-11-12',
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $draft = SuratTugas::where('user_id', $owner->id)->where('status', 'DRAFT')->firstOrFail();
+        $this->assertDatabaseHas('surat_tugas_pegawai', [
+            'surat_tugas_id' => $draft->id,
+            'pegawai_id' => $pegawai->id,
+            'tanggal_berangkat' => '2026-11-10',
+            'tanggal_kembali' => '2026-11-12',
+        ]);
+
+        $this->post(route('surat-tugas.draft'), [
+            'draft_id' => $draft->id,
+            'draft_step' => 3,
+            'pegawai_ids' => [$pegawai->id],
+            'pegawai_tanggal' => [
+                $pegawai->id => [
+                    'tanggal_berangkat' => '2026-11-11',
+                    'tanggal_kembali' => '2026-11-13',
+                ],
+            ],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('surat_tugas_pegawai', [
+            'surat_tugas_id' => $draft->id,
+            'pegawai_id' => $pegawai->id,
+            'tanggal_berangkat' => '2026-11-11',
+            'tanggal_kembali' => '2026-11-13',
+        ]);
+
+        $this->post(route('surat-tugas.draft'), [
+            'draft_id' => $draft->id,
+            'draft_step' => 3,
+            'pegawai_ids_provided' => '1',
+        ])->assertRedirect();
+
+        $this->assertDatabaseMissing('surat_tugas_pegawai', [
+            'surat_tugas_id' => $draft->id,
+            'pegawai_id' => $pegawai->id,
+        ]);
+        $this->assertDatabaseHas('surat_tugas', [
+            'id' => $draft->id,
+            'tanggal_berangkat' => null,
+            'tanggal_kembali' => null,
+        ]);
+    }
+
+    public function test_completion_rejects_a_participant_return_date_before_departure(): void
+    {
+        $owner = User::factory()->create(['role' => 'sespalu']);
+        $surat = SuratTugas::create([
+            'user_id' => $owner->id,
+            'nomor_nota' => 'NOTA-TANGGAL-001',
+            'perihal_nota' => 'Perjalanan dinas',
+            'file_undangan' => 'undangan/nota.pdf',
+            'status' => 'DISPOSISI_KAPUS_YA',
+        ]);
+        $ppk = Ppk::create(['nama' => 'PPK Uji', 'nip' => '198000000000000005']);
+        TingkatBiaya::create(['kode' => 'C', 'nama' => 'Tingkat C']);
+        JenisAngkutan::create(['kode' => 'DARAT', 'nama' => 'Perjalanan Darat']);
+        $pegawai = Pegawai::create([
+            'nama' => 'Pegawai Uji',
+            'nip' => '198000000000000006',
+            'pangkat' => 'Penata',
+            'golongan' => 'III/c',
+            'jabatan' => 'Analis',
+        ]);
+
+        $response = $this->actingAs($owner)
+            ->post(route('surat-tugas.complete', $surat), [
+                'kategori_perjalanan' => 'DALAM_NEGERI',
+                'sumber_asal' => 'EKSTERNAL',
+                'nomor_nota' => 'NOTA-TANGGAL-001',
+                'pengirim_nota' => 'Unit Pengirim',
+                'tanggal_nota' => '2026-10-12',
+                'perihal_nota' => 'Perjalanan dinas',
+                'ppk_id' => $ppk->id,
+                'tingkat_biaya_kode' => 'C',
+                'jenis_angkutan_nama' => 'Perjalanan Darat',
+                'tempat_berangkat' => 'Jakarta',
+                'tempat_tujuan' => 'Bandung',
+                'pegawai_ids' => [$pegawai->id],
+                'pegawai_tanggal' => [
+                    $pegawai->id => [
+                        'tanggal_berangkat' => '2026-10-20',
+                        'tanggal_kembali' => '2026-10-19',
+                    ],
+                ],
+            ]);
+
+        $response->assertSessionHasErrors(["pegawai_tanggal.{$pegawai->id}.tanggal_kembali"]);
+        $this->assertDatabaseHas('surat_tugas', [
+            'id' => $surat->id,
+            'status' => 'DISPOSISI_KAPUS_YA',
         ]);
     }
 }

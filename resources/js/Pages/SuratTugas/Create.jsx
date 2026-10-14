@@ -55,6 +55,8 @@ export default function Create({
   const dropdownRef = useRef(null);
   const [attachmentUrls, setAttachmentUrls] = useState({});
   const [docxPreviews, setDocxPreviews] = useState({});
+  const legacyDepartureDate = draft?.tanggal_berangkat ? String(draft.tanggal_berangkat).split('T')[0] : '';
+  const legacyReturnDate = draft?.tanggal_kembali ? String(draft.tanggal_kembali).split('T')[0] : '';
 
   const { data, setData, post, processing, errors } = useForm({
     draft_id: draft?.status === 'DRAFT' ? draft.id : null,
@@ -79,9 +81,17 @@ export default function Create({
     tempat_tujuan: draft?.tempat_tujuan || '',
     negara_tujuan: draft?.negara_tujuan || '',
     no_setneg: draft?.no_setneg || '',
-    tanggal_berangkat: draft?.tanggal_berangkat ? String(draft.tanggal_berangkat).split('T')[0] : '',
-    tanggal_kembali: draft?.tanggal_kembali ? String(draft.tanggal_kembali).split('T')[0] : '',
-    durasi_hari: draft?.durasi_hari || 1,
+    pegawai_tanggal: Object.fromEntries((draft?.pegawai_list || []).map((pegawai) => [
+      pegawai.pegawai_id,
+      {
+        tanggal_berangkat: pegawai.tanggal_berangkat
+          ? String(pegawai.tanggal_berangkat).split('T')[0]
+          : legacyDepartureDate,
+        tanggal_kembali: pegawai.tanggal_kembali
+          ? String(pegawai.tanggal_kembali).split('T')[0]
+          : legacyReturnDate,
+      },
+    ])),
     pegawai_ids: draft?.pegawai_list ? draft.pegawai_list.map((p) => p.pegawai_id) : [],
   });
 
@@ -158,10 +168,12 @@ export default function Create({
     if (data.tempat_tujuan) formData.append('tempat_tujuan', data.tempat_tujuan);
     if (data.negara_tujuan) formData.append('negara_tujuan', data.negara_tujuan);
     if (data.no_setneg) formData.append('no_setneg', data.no_setneg);
-    if (data.tanggal_berangkat) formData.append('tanggal_berangkat', data.tanggal_berangkat);
-    if (data.tanggal_kembali) formData.append('tanggal_kembali', data.tanggal_kembali);
-    if (data.durasi_hari) formData.append('durasi_hari', data.durasi_hari);
-    selectedPegawaiIds.forEach((id) => formData.append('pegawai_ids[]', id));
+    formData.append('pegawai_ids_provided', '1');
+    selectedPegawaiIds.forEach((id) => {
+      formData.append('pegawai_ids[]', id);
+      formData.append(`pegawai_tanggal[${id}][tanggal_berangkat]`, data.pegawai_tanggal?.[id]?.tanggal_berangkat || '');
+      formData.append(`pegawai_tanggal[${id}][tanggal_kembali]`, data.pegawai_tanggal?.[id]?.tanggal_kembali || '');
+    });
 
     router.post('/surat-tugas/draft', formData, {
       onSuccess: (page) => {
@@ -190,7 +202,14 @@ export default function Create({
     if (!selectedPegawaiIds.includes(id)) {
       const updated = [...selectedPegawaiIds, id];
       setSelectedPegawaiIds(updated);
-      setData('pegawai_ids', updated);
+      setData({
+        ...data,
+        pegawai_ids: updated,
+        pegawai_tanggal: {
+          ...data.pegawai_tanggal,
+          [id]: { tanggal_berangkat: '', tanggal_kembali: '' },
+        },
+      });
     }
     setSelectedMasterId('');
     setPegawaiSearchTerm('');
@@ -207,27 +226,35 @@ export default function Create({
   const handleRemovePegawai = (id) => {
     const updated = selectedPegawaiIds.filter(item => item !== id);
     setSelectedPegawaiIds(updated);
-    setData('pegawai_ids', updated);
-  };
-
-  const calcDays = (start, end) => {
-    if (!start || !end) return 1;
-    const d1 = new Date(start);
-    const d2 = new Date(end);
-    const diffTime = Math.abs(d2 - d1);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays > 0 ? diffDays : 1;
-  };
-
-  const handleDateChange = (field, value) => {
-    const newData = { ...data, [field]: value };
-    const days = calcDays(
-      field === 'tanggal_berangkat' ? value : data.tanggal_berangkat,
-      field === 'tanggal_kembali' ? value : data.tanggal_kembali
-    );
+    const remainingDates = { ...(data.pegawai_tanggal || {}) };
+    delete remainingDates[id];
     setData({
-      ...newData,
-      durasi_hari: days,
+      ...data,
+      pegawai_ids: updated,
+      pegawai_tanggal: remainingDates,
+    });
+  };
+
+  const handleDateChange = (pegawaiId, field, value) => {
+    setData('pegawai_tanggal', {
+      ...data.pegawai_tanggal,
+      [pegawaiId]: {
+        ...data.pegawai_tanggal?.[pegawaiId],
+        [field]: value,
+      },
+    });
+  };
+
+  const handleCopyFirstParticipantDates = () => {
+    const firstParticipantDates = data.pegawai_tanggal?.[selectedPegawaiIds[0]];
+    if (!firstParticipantDates?.tanggal_berangkat || !firstParticipantDates?.tanggal_kembali) return;
+
+    setData('pegawai_tanggal', {
+      ...data.pegawai_tanggal,
+      ...Object.fromEntries(selectedPegawaiIds.slice(1).map((pegawaiId) => [
+        pegawaiId,
+        { ...firstParticipantDates },
+      ])),
     });
   };
 
@@ -264,9 +291,19 @@ export default function Create({
       if (!data.negara_tujuan?.trim()) return 'Negara Tujuan wajib diisi untuk dinas Luar Negeri.';
       if (!data.no_setneg?.trim()) return 'Nomor Surat Izin Setneg wajib diisi untuk dinas Luar Negeri.';
     }
-    if (!data.tanggal_berangkat) return 'Tanggal Berangkat wajib diisi.';
-    if (!data.tanggal_kembali) return 'Tanggal Kembali wajib diisi.';
-    if (data.tanggal_kembali < data.tanggal_berangkat) return 'Tanggal Kembali tidak boleh lebih awal dari Tanggal Berangkat.';
+    for (const pegawaiId of selectedPegawaiIds) {
+      const pegawai = pegawaiList.find((item) => item.id === pegawaiId);
+      const tanggalPegawai = data.pegawai_tanggal?.[pegawaiId];
+      if (!tanggalPegawai?.tanggal_berangkat) {
+        return `Tanggal Berangkat untuk ${pegawai?.nama || 'setiap peserta'} wajib diisi.`;
+      }
+      if (!tanggalPegawai?.tanggal_kembali) {
+        return `Tanggal Kembali untuk ${pegawai?.nama || 'setiap peserta'} wajib diisi.`;
+      }
+      if (tanggalPegawai.tanggal_kembali < tanggalPegawai.tanggal_berangkat) {
+        return `Tanggal Kembali ${pegawai?.nama || 'peserta'} tidak boleh lebih awal dari Tanggal Berangkat.`;
+      }
+    }
     return null;
   };
 
@@ -977,6 +1014,24 @@ export default function Create({
                 )}
               </div>
 
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-slate-500">
+                  Tanggal berangkat dan kembali diisi masing-masing untuk setiap peserta.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCopyFirstParticipantDates}
+                  disabled={
+                    selectedPegawaiIds.length < 2
+                    || !data.pegawai_tanggal?.[selectedPegawaiIds[0]]?.tanggal_berangkat
+                    || !data.pegawai_tanggal?.[selectedPegawaiIds[0]]?.tanggal_kembali
+                  }
+                  className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Samakan tanggal peserta lain dengan peserta pertama
+                </button>
+              </div>
+
               {/* Table of Selected Pegawai */}
               <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                 <table className="w-full text-left text-xs text-slate-600">
@@ -995,27 +1050,69 @@ export default function Create({
                         const peg = pegawaiList.find((p) => p.id === id);
                         if (!peg) return null;
                         return (
-                          <tr key={peg.id} className="hover:bg-slate-50">
-                            <td className="py-2.5 px-3 text-center font-bold text-slate-500">{index + 1}</td>
-                            <td className="py-2.5 px-3">
-                              <div className="font-bold text-slate-900">{peg.nama}</div>
-                              <div className="text-[11px] text-slate-500 font-mono">NIP: {peg.nip}</div>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <div className="text-slate-800">{peg.pangkat}</div>
-                              <div className="text-[11px] text-slate-500">Gol. {peg.golongan}</div>
-                            </td>
-                            <td className="py-2.5 px-3 font-medium text-slate-700">{peg.jabatan}</td>
-                            <td className="py-2.5 px-3 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleRemovePegawai(peg.id)}
-                                className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
+                          <React.Fragment key={peg.id}>
+                            <tr className="hover:bg-slate-50">
+                              <td className="py-2.5 px-3 text-center font-bold text-slate-500">{index + 1}</td>
+                              <td className="py-2.5 px-3">
+                                <div className="font-bold text-slate-900">{peg.nama}</div>
+                                <div className="text-[11px] text-slate-500 font-mono">NIP: {peg.nip}</div>
+                              </td>
+                              <td className="py-2.5 px-3">
+                                <div className="text-slate-800">{peg.pangkat}</div>
+                                <div className="text-[11px] text-slate-500">Gol. {peg.golongan}</div>
+                              </td>
+                              <td className="py-2.5 px-3 font-medium text-slate-700">{peg.jabatan}</td>
+                              <td className="py-2.5 px-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemovePegawai(peg.id)}
+                                  className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                                  aria-label={`Hapus ${peg.nama}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                            <tr className="bg-blue-50/60">
+                              <td colSpan="5" className="px-3 pb-3 pt-2">
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                  <div>
+                                    <label htmlFor={`pegawai-${id}-tanggal-berangkat`} className="mb-1 block text-xs font-semibold text-slate-700">
+                                      Tanggal Berangkat *
+                                    </label>
+                                    <input
+                                      id={`pegawai-${id}-tanggal-berangkat`}
+                                      type="date"
+                                      required
+                                      value={data.pegawai_tanggal?.[id]?.tanggal_berangkat || ''}
+                                      onChange={(e) => handleDateChange(id, 'tanggal_berangkat', e.target.value)}
+                                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs"
+                                    />
+                                    {errors?.[`pegawai_tanggal.${id}.tanggal_berangkat`] && (
+                                      <p className="mt-1 text-xs text-red-600">{errors[`pegawai_tanggal.${id}.tanggal_berangkat`]}</p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <label htmlFor={`pegawai-${id}-tanggal-kembali`} className="mb-1 block text-xs font-semibold text-slate-700">
+                                      Tanggal Kembali *
+                                    </label>
+                                    <input
+                                      id={`pegawai-${id}-tanggal-kembali`}
+                                      type="date"
+                                      required
+                                      min={data.pegawai_tanggal?.[id]?.tanggal_berangkat || undefined}
+                                      value={data.pegawai_tanggal?.[id]?.tanggal_kembali || ''}
+                                      onChange={(e) => handleDateChange(id, 'tanggal_kembali', e.target.value)}
+                                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs"
+                                    />
+                                    {errors?.[`pegawai_tanggal.${id}.tanggal_kembali`] && (
+                                      <p className="mt-1 text-xs text-red-600">{errors[`pegawai_tanggal.${id}.tanggal_kembali`]}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          </React.Fragment>
                         );
                       })
                     ) : (
@@ -1126,33 +1223,10 @@ export default function Create({
                   </>
                 )}
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Berangkat *</label>
-                  <input
-                    type="date"
-                    required
-                    value={data.tanggal_berangkat}
-                    onChange={(e) => handleDateChange('tanggal_berangkat', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Kembali *</label>
-                  <input
-                    type="date"
-                    required
-                    value={data.tanggal_kembali}
-                    onChange={(e) => handleDateChange('tanggal_kembali', e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
-                  />
-                </div>
               </div>
-
-              <div className="flex items-center justify-between text-xs text-blue-900 bg-blue-50 p-3 rounded-xl border border-blue-200">
-                <span>Kalkulasi Otomatis Durasi Dinas:</span>
-                <strong className="text-sm font-extrabold text-blue-950">{data.durasi_hari} Hari Perjalanan</strong>
-              </div>
+              <p className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+                Tanggal berangkat dan kembali diisi masing-masing untuk setiap peserta di atas.
+              </p>
             </div>
 
             <div className="pt-4 flex justify-between">
