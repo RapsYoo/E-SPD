@@ -26,4 +26,9 @@ class Pegawai extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function user()
+    {
+        return $this->hasOne(User::class);
+    }
 }

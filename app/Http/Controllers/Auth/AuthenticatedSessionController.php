@@ -33,11 +33,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $destination = auth()->user()?->role === 'admin'
-            ? route('admin.dashboard', absolute: false)
-            : route('surat-tugas.index', absolute: false);
-
-        return redirect()->to($destination);
+        return redirect()->to(route('dashboard', absolute: false));
     }
 
     /**

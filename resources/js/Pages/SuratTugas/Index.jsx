@@ -19,7 +19,8 @@ import {
   ArrowRight,
   ShieldCheck,
   ChevronRight,
-  Trash2
+  Trash2,
+  User
 } from 'lucide-react';
 
 export default function Index({ suratTugas, filters, userRole, authUserId }) {
@@ -39,6 +40,27 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
   };
 
   const getPegawaiList = (st) => st.pegawaiList ?? st.pegawai_list ?? st.pegawai_list_data ?? [];
+
+  const getActorPosition = (status) => {
+    switch (status) {
+      case 'DRAFT':
+        return { label: 'Sespalu / Pemohon', role: 'Konseptor', color: 'text-slate-700 bg-slate-100 border-slate-200' };
+      case 'MENUNGGU_DISPOSISI_KAPUS':
+        return { label: 'Kapus (Kepala Pusat)', role: 'Disposisi', color: 'text-purple-700 bg-purple-50 border-purple-200' };
+      case 'DISPOSISI_KAPUS_YA':
+        return { label: 'Sespalu / Pemohon', role: 'Draft Personel & SPD', color: 'text-blue-700 bg-blue-50 border-blue-200' };
+      case 'DISPOSISI_KAPUS_REVISI':
+        return { label: 'Sespalu / Pemohon', role: 'Perlu Revisi Nota', color: 'text-amber-700 bg-amber-50 border-amber-200' };
+      case 'DISPOSISI_KAPUS_STOP':
+        return { label: 'Selesai (Stop)', role: 'Dihentikan', color: 'text-red-700 bg-red-50 border-red-200' };
+      case 'MENUNGGU_PENOMORAN_TU':
+        return { label: 'Tata Usaha (TU)', role: 'Penomoran', color: 'text-indigo-700 bg-indigo-50 border-indigo-200' };
+      case 'SELESAI_TERBIT':
+        return { label: 'PPK / Terbit Resmi', role: 'Selesai', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' };
+      default:
+        return { label: 'Sistem', role: '-', color: 'text-slate-600 bg-slate-100 border-slate-200' };
+    }
+  };
 
   const getStatusBadge = (status, kapusDecision) => {
     switch (status) {
@@ -199,6 +221,13 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                       <div className="text-[10px] text-slate-400 font-mono mt-0.5">
                         Nota: {st.status === 'DRAFT' ? (st.draft_data?.nomor_nota || 'Belum diisi') : st.nomor_nota}
                       </div>
+                      <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 rounded-md px-2 py-0.5">
+                          <User className="w-3 h-3 text-indigo-600" />
+                          <span>Diajukan: <strong>{st.user?.name || 'Sistem'}</strong></span>
+                          <span className="text-[9px] bg-white text-slate-500 px-1 rounded uppercase font-bold">({st.user?.role || 'user'})</span>
+                        </span>
+                      </div>
                     </td>
 
                     <td className="py-3.5 px-4 text-xs">
@@ -238,7 +267,18 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                     </td>
 
                     <td className="py-3.5 px-4 text-center">
-                      {getStatusBadge(st.status, st.kapus_decision)}
+                      <div>{getStatusBadge(st.status, st.kapus_decision)}</div>
+                      {(() => {
+                        const actor = getActorPosition(st.status);
+                        return (
+                          <div className="mt-2 flex items-center justify-center">
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${actor.color}`}>
+                              <UserCheck className="w-3 h-3" />
+                              <span>Posisi: {actor.label}</span>
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     <td className="py-3.5 px-4 text-center">

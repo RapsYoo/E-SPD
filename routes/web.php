@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\PegawaiController;
 use App\Http\Controllers\Admin\PpkController;
 use App\Http\Controllers\Admin\UnitKerjaController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ReferensiController;
 use App\Http\Controllers\SuratTugasController;
 use Illuminate\Foundation\Application;
@@ -16,12 +18,10 @@ Route::get('/', function () {
         return redirect()->route('login');
     }
 
-    return redirect()->route(auth()->user()->role === 'admin' ? 'admin.dashboard' : 'surat-tugas.index');
+    return redirect()->route('dashboard');
 });
 
-Route::get('/dashboard', function () {
-    return redirect()->route(auth()->user()->role === 'admin' ? 'admin.dashboard' : 'surat-tugas.index');
-})->middleware('auth')->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -58,13 +58,16 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     // Master Pegawai
     Route::resource('pegawai', PegawaiController::class)->except(['create', 'edit', 'show']);
 
     // Master PPK
     Route::resource('ppk', PpkController::class)->except(['create', 'edit', 'show']);
+
+    // Manajemen Akun Pengguna (akun dibuat dari data pegawai)
+    Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
 
     // Master Unit Kerja
     Route::resource('unit-kerja', UnitKerjaController::class)->except(['create', 'edit', 'show']);

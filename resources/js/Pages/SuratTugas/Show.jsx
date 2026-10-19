@@ -161,11 +161,17 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
         {/* Document Info Card */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Detail Ringkasan</span>
-              <span className="bg-slate-100 text-slate-700 text-xs font-mono font-bold px-2.5 py-0.5 rounded">
-                Kategori: {suratTugas.kategori_perjalanan}
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Detail Ringkasan</span>
+                <span className="bg-slate-100 text-slate-700 text-xs font-mono font-bold px-2.5 py-0.5 rounded">
+                  Kategori: {suratTugas.kategori_perjalanan}
+                </span>
+              </div>
+              <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-lg">
+                Diajukan oleh: <strong className="text-slate-800">{suratTugas.user?.name || 'Sistem'}</strong>
+                <span className="ml-1 text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase font-bold">({suratTugas.user?.role || 'user'})</span>
+              </div>
             </div>
 
             <div>
@@ -389,6 +395,18 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
                   placeholder="Masukkan nomor SPD"
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Surat Tugas & SPD</label>
+                <input
+                  type="date"
+                  required
+                  value={tuForm.data.tanggal_surat}
+                  onChange={(e) => tuForm.setData('tanggal_surat', e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Tanggal yang dicantumkan pada dokumen resmi</p>
               </div>
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

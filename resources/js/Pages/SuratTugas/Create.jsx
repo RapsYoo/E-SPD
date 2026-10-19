@@ -55,29 +55,28 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
   }, []);
 
   const { data, setData, post, transform, processing, errors } = useForm({
-    kategori_perjalanan: '',
-    sumber_asal: '',
-    nomor_nota: '',
-    pengirim_nota: '',
-    tanggal_nota: '',
-    perihal_nota: '',
-    file_undangan: null,
-    file_izin_setneg: null,
+    kategori_perjalanan: draftData.kategori_perjalanan || '',
+    sumber_asal: draftData.sumber_asal || '',
+    nomor_nota: draftData.nomor_nota || '',
+    pengirim_nota: draftData.pengirim_nota || '',
+    tanggal_nota: draftData.tanggal_nota || '',
+    perihal_nota: draftData.perihal_nota || '',
     
     // Step 3
-    ppk_id: '',
-    tingkat_biaya_kode: '',
-    jenis_angkutan_nama: '',
-    tempat_berangkat: '',
-    tempat_tujuan: '',
-    negara_tujuan: '',
-    no_setneg: '',
-    tanggal_berangkat: '',
-    tanggal_kembali: '',
-    tanggal_surat: '',
-    durasi_hari: 1,
-    pegawai_ids: [],
-    ...draftData,
+    ppk_id: draftData.ppk_id || '',
+    tingkat_biaya_kode: draftData.tingkat_biaya_kode || '',
+    jenis_angkutan_nama: draftData.jenis_angkutan_nama || '',
+    tempat_berangkat: draftData.tempat_berangkat || '',
+    tempat_tujuan: draftData.tempat_tujuan || '',
+    negara_tujuan: draftData.negara_tujuan || '',
+    no_setneg: draftData.no_setneg || '',
+    tanggal_berangkat: draftData.tanggal_berangkat || '',
+    tanggal_kembali: draftData.tanggal_kembali || '',
+    tanggal_surat: draftData.tanggal_surat || '',
+    durasi_hari: draftData.durasi_hari || 1,
+    pegawai_ids: draftData.pegawai_ids || [],
+    
+    // Files always null on init
     file_undangan: null,
     file_izin_setneg: null,
     draft_id: draft?.id || null,
@@ -191,6 +190,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       return;
     }
 
+    // Submit via store() untuk tahap 1 & 3
     transform((formData) => ({
       ...formData,
       draft_step: activeStep,
@@ -1054,100 +1054,18 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               </button>
 
               <button
-                type="button"
-                onClick={() => setActiveStep(4)}
-                className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition"
-              >
-                <span>Lanjut ke Penomoran TU (Tahap 4)</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAHAP 4: PENOMORAN REGISTRASI TU ================= */}
-        {draft && activeStep === 4 && (
-          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                  <FileDigit className="w-5 h-5 text-amber-500" />
-                  <span>Tahap 4: Registrasi & Penomoran Resmi Naskah Dinas TU</span>
-                </h2>
-                <p className="text-xs text-slate-500">Penomoran resmi Surat Tugas dan Lembar SPD oleh Tata Usaha</p>
-              </div>
-              <span className="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full">
-                Aktor: Tata Usaha (TU)
-              </span>
-            </div>
-
-            <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-4">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-amber-900 flex items-center space-x-1.5">
-                <Hash className="w-4 h-4 text-amber-600" />
-                <span>Nomor Surat Resmi & Tanggal Registrasi</span>
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nomor Surat Tugas Resmi (Diisi TU)</label>
-                  <input
-                    type="text"
-                    value=""
-                    readOnly
-                    placeholder="Diisi oleh Tata Usaha"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono font-bold bg-white text-slate-900 focus:outline-none"
-                  />
-                  <span className="text-[10px] text-slate-500 mt-1 block">Format: ST/KP/[NO_URUT]/[BULAN]/[TAHUN]/[KODE]</span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nomor SPD Resmi (Diisi TU)</label>
-                  <input
-                    type="text"
-                    value=""
-                    readOnly
-                    placeholder="Diisi oleh Tata Usaha"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono font-bold bg-white text-slate-900 focus:outline-none"
-                  />
-                  <span className="text-[10px] text-slate-500 mt-1 block">Format: [NO_URUT]/DL-SPD/[ROMAWI]/[TAHUN]/[KODE]</span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Surat Tugas & SPD *</label>
-                  <input
-                    type="date"
-                    required
-                    value={data.tanggal_surat}
-                    onChange={(e) => setData('tanggal_surat', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                  {errors.tanggal_surat && <p className="mt-1 text-xs text-red-600">{errors.tanggal_surat}</p>}
-                  <span className="text-[10px] text-slate-500 mt-1 block">Tanggal yang dicantumkan pada Surat Tugas dan SPD</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 flex justify-between">
-              <button
-                type="button"
-                onClick={() => setActiveStep(3)}
-                className="inline-flex items-center space-x-1 text-slate-600 hover:text-slate-800 font-semibold text-xs"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Kembali ke Tahap 3</span>
-              </button>
-
-              <button
                 type="submit"
                 disabled={processing || selectedPegawaiIds.length === 0}
                 className="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Simpan & Generate Dokumen Resmi</span>
+                <span>Kirim Draft ST & SPD ke TU</span>
               </button>
             </div>
           </div>
         )}
+
+        {/* Tahap 4 dihapus - Penomoran TU dilakukan di halaman Show.jsx */}
       </form>
     </AdminLayout>
   );

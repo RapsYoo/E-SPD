@@ -21,10 +21,7 @@ class SuratTugasController extends Controller
     {
         $query = SuratTugas::with(['pegawaiList', 'ppk', 'user']);
 
-        // P0-3: pemohon/sespalu hanya boleh melihat usulannya sendiri.
-        if (in_array(auth()->user()?->role, ['pemohon', 'sespalu'], true)) {
-            $query->where('user_id', auth()->id());
-        }
+        // Akses terbuka untuk semua aktor (track pengaju dicatat per dokumen)
 
         if ($request->has('search') && $request->search) {
             $search = $request->search;
@@ -591,10 +588,7 @@ class SuratTugasController extends Controller
 
     public function show(SuratTugas $suratTugas)
     {
-        // P0-3: pemilik boleh lihat miliknya; kapus/tu/ppk/admin boleh lihat semua tahapan kerja.
-        if (in_array(auth()->user()?->role, ['pemohon', 'sespalu'], true)) {
-            abort_unless($suratTugas->user_id === auth()->id(), 403, 'Anda tidak memiliki akses ke surat ini.');
-        }
+        // Akses detail terbuka untuk semua aktor terautentikasi
         $suratTugas->load(['pegawaiList', 'ppk', 'user', 'logs.user']);
 
         return Inertia::render('SuratTugas/Show', [
