@@ -51,8 +51,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <Link
               href="/dashboard"
               className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition ${currentRoute === '/dashboard'
-                  ? 'bg-amber-500 text-slate-950 font-bold shadow'
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
                 }`}
             >
               <LayoutDashboard
@@ -81,8 +81,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                   <Link
                     href="/surat-tugas"
                     className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${currentRoute === '/surat-tugas'
-                        ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                       }`}
                   >
                     <FileText className="w-4 h-4" />
@@ -95,8 +95,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                       <Link
                         href="/surat-tugas/create"
                         className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${currentRoute === '/surat-tugas/create'
-                            ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                          ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                           }`}
                       >
                         <PlusCircle className="w-4 h-4 text-emerald-400" />
@@ -128,8 +128,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                     <Link
                       href="/admin"
                       className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${currentRoute === '/admin'
-                          ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
                     >
                       <LayoutDashboard className="w-4 h-4" />
@@ -139,8 +139,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                     <Link
                       href="/admin/pegawai"
                       className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/pegawai')
-                          ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
                     >
                       <Users className="w-4 h-4" />
@@ -148,21 +148,10 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                     </Link>
 
                     <Link
-                      href="/admin/ppk"
-                      className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/ppk')
-                          ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                        }`}
-                    >
-                      <UserCheck className="w-4 h-4" />
-                      <span>Data PPK</span>
-                    </Link>
-
-                    <Link
                       href="/admin/unit-kerja"
                       className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/unit-kerja')
-                          ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
                     >
                       <Building2 className="w-4 h-4" />
@@ -172,8 +161,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                     <Link
                       href="/admin/users"
                       className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/users')
-                          ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
                     >
                       <KeyRound className="w-4 h-4" />
@@ -183,8 +172,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                     <Link
                       href="/admin/referensi"
                       className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/referensi')
-                          ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
                     >
                       <Layers className="w-4 h-4" />
@@ -201,7 +190,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
         <div className="p-4 border-t border-slate-800 bg-[#081935] text-xs text-slate-400 flex flex-col space-y-1">
           <div className="flex items-center justify-between text-slate-300">
             <span className="font-semibold text-amber-400">e-SPD Pusdiklat</span>
-            <span className="font-mono text-slate-300">Beta v1.4</span>
+            <span className="font-mono text-slate-300">Beta v1.4.1</span>
           </div>
           <p className="text-[11px] text-slate-400">Kementerian Luar Negeri RI</p>
         </div>

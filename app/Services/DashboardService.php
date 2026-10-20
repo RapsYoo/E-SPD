@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\JenisAngkutan;
 use App\Models\Pegawai;
-use App\Models\Ppk;
 use App\Models\SuratTugas;
 use App\Models\TingkatBiaya;
 use App\Models\UnitKerja;
@@ -43,7 +42,7 @@ class DashboardService
             'stats' => [
                 'totalPegawai' => Pegawai::count(),
                 'pegawaiAktif' => Pegawai::where('is_active', true)->count(),
-                'totalPpk' => Ppk::where('is_active', true)->count(),
+                'totalPpk' => User::where('role', 'ppk')->count(),
                 'totalUnitKerja' => UnitKerja::where('is_active', true)->count(),
                 'totalTingkatBiaya' => TingkatBiaya::where('is_active', true)->count(),
                 'totalJenisAngkutan' => JenisAngkutan::where('is_active', true)->count(),

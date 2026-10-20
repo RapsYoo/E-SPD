@@ -2,7 +2,6 @@
 
 namespace App\Services\SuratTugas;
 
-use App\Models\Ppk;
 use App\Models\SuratTugas;
 use App\Models\User;
 use App\Support\SuratTugasStatus;
@@ -85,7 +84,9 @@ class SubmissionService
      */
     public function submitFull(array $validated, ?UploadedFile $undangan, ?UploadedFile $setneg, User $user, ?SuratTugas $draft = null): SuratTugas
     {
-        $ppk = Ppk::findOrFail($validated['ppk_id']);
+        $ppk = User::with('pegawai')->where('role', 'ppk')->findOrFail($validated['ppk_id']);
+        $ppkNama = $ppk->pegawai?->nama ?? $ppk->name;
+        $ppkNip = $ppk->pegawai?->nip ?? '';
         $files = $this->attachments->store($undangan, $setneg, $draft);
 
         $values = [
@@ -102,8 +103,8 @@ class SubmissionService
                 ? SuratTugasStatus::MENUNGGU_PENOMORAN_TU
                 : SuratTugasStatus::MENUNGGU_DISPOSISI_KAPUS,
             'ppk_id' => $ppk->id,
-            'ppk_nama_snapshot' => $ppk->nama,
-            'ppk_nip_snapshot' => $ppk->nip,
+            'ppk_nama_snapshot' => $ppkNama,
+            'ppk_nip_snapshot' => $ppkNip,
             'tingkat_biaya_kode' => $validated['tingkat_biaya_kode'],
             'jenis_angkutan_nama' => $validated['jenis_angkutan_nama'],
             'tempat_berangkat' => $validated['tempat_berangkat'],

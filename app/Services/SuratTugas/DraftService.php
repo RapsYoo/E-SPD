@@ -4,7 +4,6 @@ namespace App\Services\SuratTugas;
 
 use App\Models\JenisAngkutan;
 use App\Models\Pegawai;
-use App\Models\Ppk;
 use App\Models\SuratTugas;
 use App\Models\TingkatBiaya;
 use App\Models\UnitKerja;
@@ -29,7 +28,17 @@ class DraftService
     {
         return [
             'pegawaiList' => Pegawai::where('is_active', true)->orderBy('nama')->get(),
-            'ppkList' => Ppk::where('is_active', true)->orderBy('nama')->get(),
+            'ppkList' => User::where('role', 'ppk')
+                ->with('pegawai')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (User $u) => [
+                    'id' => $u->id,
+                    'nama' => $u->pegawai?->nama ?? $u->name,
+                    'nip' => $u->pegawai?->nip ?? '-',
+                    'jabatan' => $u->pegawai?->jabatan ?: 'Pejabat Pembuat Komitmen (PPK)',
+                    'email' => $u->email,
+                ]),
             'unitKerjaList' => UnitKerja::where('is_active', true)->orderBy('nama')->get(),
             'tingkatBiayaList' => TingkatBiaya::where('is_active', true)->orderBy('kode')->get(),
             'jenisAngkutanList' => JenisAngkutan::where('is_active', true)->orderBy('nama')->get(),
@@ -103,7 +112,12 @@ class DraftService
         $files = $this->attachments->store($undangan, $setneg, $suratTugas);
         $draftData = array_merge($draftData, $files->names);
 
-        $ppk = !empty($validated['ppk_id']) ? Ppk::find($validated['ppk_id']) : null;
+        $ppk = !empty($validated['ppk_id'])
+            ? User::with('pegawai')->where('role', 'ppk')->find($validated['ppk_id'])
+            : null;
+        $ppkNama = $ppk ? ($ppk->pegawai?->nama ?? $ppk->name) : null;
+        $ppkNip = $ppk ? ($ppk->pegawai?->nip ?? '') : null;
+
         $values = [
             'user_id' => $suratTugas?->user_id ?? $user->id,
             'kategori_perjalanan' => $validated['kategori_perjalanan'] ?? 'DALAM_NEGERI',
@@ -116,8 +130,8 @@ class DraftService
             'file_izin_setneg' => $files->setneg,
             'status' => $suratTugas?->status ?? SuratTugasStatus::DRAFT,
             'ppk_id' => $ppk?->id,
-            'ppk_nama_snapshot' => $ppk?->nama,
-            'ppk_nip_snapshot' => $ppk?->nip,
+            'ppk_nama_snapshot' => $ppkNama,
+            'ppk_nip_snapshot' => $ppkNip,
             'tingkat_biaya_kode' => $validated['tingkat_biaya_kode'] ?? 'C',
             'jenis_angkutan_nama' => $validated['jenis_angkutan_nama'] ?? 'Perjalanan Darat',
             'tempat_berangkat' => $validated['tempat_berangkat'] ?? 'Jakarta',

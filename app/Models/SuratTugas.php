@@ -64,7 +64,7 @@ class SuratTugas extends Model
 
     public function ppk()
     {
-        return $this->belongsTo(Ppk::class);
+        return $this->belongsTo(User::class, 'ppk_id');
     }
 
     public function pegawaiList()

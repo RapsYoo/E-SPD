@@ -1,38 +1,22 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import { Printer, ArrowLeft } from 'lucide-react';
-
-const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-
-function formatDate(value) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value || '');
-  if (!match) return '-';
-
-  const [, year, month, day] = match;
-  return `${Number(day)} ${monthNames[Number(month) - 1]} ${year}`;
-}
-
-function formatShortDate(value) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value || '');
-  if (!match) return '-';
-
-  const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const [, year, month, day] = match;
-  return `${day}-${shortMonths[Number(month) - 1]}-${year.slice(-2)}`;
-}
-
-function spellNumber(value) {
-  const words = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh'];
-  return words[value] || String(value || '-');
-}
+import { formatDate } from './Partials/printHelpers';
+import SuratTugasSheet from './Partials/SuratTugasSheet';
+import SpdSheet from './Partials/SpdSheet';
+import LampiranMatriksSheet from './Partials/LampiranMatriksSheet';
+import VisumRampunganSheet from './Partials/VisumRampunganSheet';
 
 export default function Print({ suratTugas }) {
   const [activeDocument, setActiveDocument] = useState('st');
   const pegawaiList = Array.isArray(suratTugas.pegawai_list) ? suratTugas.pegawai_list : [];
-  const pegawaiMain = pegawaiList[0] || { nama: '-', nip: '-', pangkat: '-', golongan: '-', jabatan: '-' };
-  const tujuanPerjalanan = [suratTugas.tempat_tujuan, suratTugas.kategori_perjalanan === 'LUAR_NEGERI' ? suratTugas.negara_tujuan : null]
+  const tujuanPerjalanan = [
+    suratTugas.tempat_tujuan,
+    suratTugas.kategori_perjalanan === 'LUAR_NEGERI' ? suratTugas.negara_tujuan : null,
+  ]
     .filter(Boolean)
     .join(', ') || '-';
+
   const tuDraft = suratTugas.draft_data?.tu || {};
   const nomorST = suratTugas.nomor_st || tuDraft.nomor_st || '-';
   const nomorSPD = suratTugas.nomor_spd || tuDraft.nomor_spd || '-';
@@ -40,12 +24,33 @@ export default function Print({ suratTugas }) {
   const tanggalSurat = formatDate(tanggalSuratRaw);
   const tanggalBerangkat = formatDate(suratTugas.tanggal_berangkat);
   const tanggalKembali = formatDate(suratTugas.tanggal_kembali);
-  const ppkNama = suratTugas.ppk_nama_snapshot || suratTugas.ppk?.nama || '-';
-  const ppkNip = suratTugas.ppk_nip_snapshot || suratTugas.ppk?.nip || '-';
+  const ppkNama = suratTugas.ppk_nama_snapshot || suratTugas.ppk?.pegawai?.nama || suratTugas.ppk?.name || suratTugas.ppk?.nama || '-';
+  const ppkNip = suratTugas.ppk_nip_snapshot || suratTugas.ppk?.pegawai?.nip || suratTugas.ppk?.nip || '-';
   const ppkSigned = Boolean(suratTugas.is_ppk_signed);
-  const multiPegawai = pegawaiList.length > 1;
-  const pengikutList = pegawaiList.slice(1);
   const tahunAnggaran = tanggalSuratRaw?.slice(0, 4) || suratTugas.tanggal_berangkat?.slice(0, 4) || '-';
+
+  const documentTabs = [
+    { id: 'st', label: '1. Surat Tugas (ST)' },
+    { id: 'spd', label: '2. SPD Lembar 1' },
+    { id: 'lampiran', label: '3. Lampiran Matriks SPD' },
+    { id: 'visum', label: '4. Lembar Visum Rampungan' },
+  ];
+
+  const commonProps = {
+    suratTugas,
+    pegawaiList,
+    nomorST,
+    nomorSPD,
+    tanggalSurat,
+    tanggalSuratRaw,
+    tanggalBerangkat,
+    tanggalKembali,
+    tujuanPerjalanan,
+    tahunAnggaran,
+    ppkNama,
+    ppkNip,
+    ppkSigned,
+  };
 
   return (
     <div className="print-document-flow min-h-screen bg-slate-200 font-sans text-black">
@@ -142,16 +147,11 @@ export default function Print({ suratTugas }) {
             </button>
           </div>
         </div>
-
       </div>
 
+      {/* Tab Navigation (Hidden on Print) */}
       <div className="no-print mx-auto mb-4 flex w-full max-w-5xl gap-2 overflow-x-auto border-b border-slate-300 px-4">
-        {[
-          { id: 'st', label: '1. Surat Tugas (ST)' },
-          { id: 'spd', label: '2. SPD Lembar 1' },
-          { id: 'lampiran', label: '3. Lampiran Matriks SPD' },
-          { id: 'visum', label: '4. Lembar Visum Rampungan' },
-        ].map((document) => (
+        {documentTabs.map((document) => (
           <button
             key={document.id}
             type="button"
@@ -169,455 +169,29 @@ export default function Print({ suratTugas }) {
         ))}
       </div>
 
-        <div className="print-page-break print-break-lampiran hidden border-t-2 border-dashed border-slate-300 pt-12"></div>
+      {/* 1. SURAT TUGAS (ST) */}
+      <SuratTugasSheet
+        {...commonProps}
+        isActive={activeDocument === 'st'}
+      />
 
-        {/* ================= DOKUMEN 3: LAMPIRAN SPD ================= */}
-        <section className={`print-sheet-lampiran space-y-5 text-[10px] leading-snug ${activeDocument === 'lampiran' ? '' : 'hidden'}`}>
-          <header className="flex items-start justify-between gap-6">
-            <h2 className="pt-5 text-sm font-bold">Lampiran SPD</h2>
-            <p className="max-w-[58%] text-[8px] leading-relaxed">
-              LAMPIRAN IV<br />
-              PERATURAN DIRJEN PERBENDAHARAAN NOMOR PER-22/PB/2011 TENTANG KETENTUAN LEBIH LANJUT PELAKSANAAN PERJALANAN DINAS DALAM NEGERI BAGI PEJABAT NEGARA, PEGAWAI NEGERI DAN PEGAWAI TIDAK TETAP
-            </p>
-          </header>
+      {/* 2. SURAT PERJALANAN DINAS (SPD LEMBAR 1) */}
+      <SpdSheet
+        {...commonProps}
+        isActive={activeDocument === 'spd'}
+      />
 
-          <div className="grid grid-cols-[200px_14px_1fr] text-[10px] leading-relaxed">
-            <span>Nomor</span><span>:</span><span>{nomorSPD}</span>
-            <span>Tanggal</span><span>:</span><span>{tanggalSurat}</span>
-            <span className="pt-2">DAFTAR PESERTA KEGIATAN</span><span className="pt-2">:</span><span className="pt-2">{suratTugas.perihal_nota || '-'}</span>
-            <span className="pt-2">TANGGAL PENYELENGGARAAN</span><span className="pt-2">:</span><span className="pt-2">{tanggalBerangkat}{tanggalKembali !== '-' ? ` s.d ${tanggalKembali}` : ''}</span>
-            <span>KOTA TEMPAT PENYELENGGARAAN</span><span>:</span><span>{tujuanPerjalanan}</span>
-            <span>SATUAN KERJA</span><span>:</span><span>Pusat Pendidikan dan Pelatihan</span>
-            <span>KEMENTERIAN NEGARA/LEMBAGA</span><span>:</span><span>Kementerian Luar Negeri</span>
-          </div>
+      {/* 3. LAMPIRAN MATRIKS SPD */}
+      <LampiranMatriksSheet
+        {...commonProps}
+        isActive={activeDocument === 'lampiran'}
+      />
 
-          <table className="w-full table-fixed border-collapse text-center text-[8.5px] leading-tight border border-black">
-            <colgroup>
-              <col className="w-[4%]" />
-              <col className="w-[22%]" />
-              <col className="w-[9%]" />
-              <col className="w-[7%]" />
-              <col className="w-[9%]" />
-              <col className="w-[14%]" />
-              <col className="w-[8%]" />
-              <col className="w-[8%]" />
-              <col className="w-[8%]" />
-              <col className="w-[6%]" />
-              <col className="w-[5%]" />
-            </colgroup>
-            <thead>
-              <tr className="font-bold">
-                <th rowSpan="2" className="border border-black p-1 align-middle text-center">No</th>
-                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Nama Pelaksana SPD/NIP/Jabatan/Pangkat Golongan</th>
-                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Tempat Kedudukan Asal</th>
-                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Tingkat Biaya Perjalanan Dinas</th>
-                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Alat Angkutan yang digunakan</th>
-                <th colSpan="2" className="border border-black p-1 align-middle text-center">Surat Tugas</th>
-                <th colSpan="2" className="border border-black p-1 align-middle text-center">Tanggal</th>
-                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Lama dinas (hari)</th>
-                <th rowSpan="2" className="border border-black p-1 align-middle text-center">Ket</th>
-              </tr>
-              <tr className="font-bold">
-                <th className="border border-black p-1 align-middle text-center">Nomor</th>
-                <th className="border border-black p-1 align-middle text-center">Tanggal</th>
-                <th className="border border-black p-1 align-middle text-center">Berangkat</th>
-                <th className="border border-black p-1 align-middle text-center">Kembali</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pegawaiList.length > 0 ? pegawaiList.map((pegawai, index) => {
-                const isFirst = index === 0;
-                const formattedSuratTugasNo = nomorST.toLowerCase().startsWith('surat tugas')
-                  ? `${nomorST} tanggal ${tanggalSurat}`
-                  : `Surat Tugas No. ${nomorST} tanggal ${tanggalSurat}`;
-
-                return (
-                  <tr key={pegawai.id || pegawai.nip || index}>
-                    <td className="border border-black p-1 text-center align-middle">{index + 1}</td>
-                    <td className="border border-black p-2 text-center align-middle">
-                      <div>{pegawai.nama || '-'}</div>
-                      <div>NIP. {pegawai.nip || '-'}</div>
-                      <div>{pegawai.jabatan || '-'}</div>
-                      <div>{pegawai.pangkat && pegawai.golongan ? `${pegawai.pangkat} / ${pegawai.golongan}` : (pegawai.pangkat || pegawai.golongan || '-')}</div>
-                    </td>
-                    <td className="border border-black p-1 text-center align-middle">
-                      {isFirst ? (suratTugas.tempat_berangkat || '-') : 'idem'}
-                    </td>
-                    <td className="border border-black p-1 text-center align-middle">
-                      {isFirst ? (suratTugas.tingkat_biaya_kode || '-') : 'idem'}
-                    </td>
-                    <td className="border border-black p-1 text-center align-middle">
-                      {isFirst ? (suratTugas.jenis_angkutan_nama || '-') : 'idem'}
-                    </td>
-                    <td className="border border-black p-1 text-center align-middle break-words">
-                      {isFirst ? formattedSuratTugasNo : 'idem'}
-                    </td>
-                    <td className="border border-black p-1 text-center align-middle">
-                      {isFirst ? formatShortDate(tanggalSuratRaw) : 'idem'}
-                    </td>
-                    <td className="border border-black p-1 text-center align-middle">
-                      {formatShortDate(suratTugas.tanggal_berangkat)}
-                    </td>
-                    <td className="border border-black p-1 text-center align-middle">
-                      {formatShortDate(suratTugas.tanggal_kembali)}
-                    </td>
-                    <td className="border border-black p-1 text-center align-middle">
-                      {suratTugas.durasi_hari || '-'} Hari
-                    </td>
-                    <td className="border border-black p-1 text-center align-middle">
-                      {/* Ket */}
-                    </td>
-                  </tr>
-                );
-              }) : (
-                <tr><td colSpan="11" className="border border-black p-3 text-center">Belum ada data personel.</td></tr>
-              )}
-            </tbody>
-          </table>
-
-          <footer className="ml-auto w-64 pt-6 text-[10px] text-center space-y-1">
-            <p>Jakarta, {tanggalSurat}</p>
-            <p>Mengetahui/Menyetujui:</p>
-            <p>Pejabat Pembuat Komitmen</p>
-            <div className="h-16 flex items-center justify-center">
-              {ppkSigned && <p className="font-bold text-blue-800 text-[9px]">TTD DIGITAL PPK</p>}
-            </div>
-            <p className="font-bold underline uppercase">{ppkNama}</p>
-            <p>NIP. {ppkNip}</p>
-          </footer>
-        </section>
-
-        <div className="print-page-break print-break-visum hidden border-t-2 border-dashed border-slate-300 pt-12"></div>
-
-        {/* ================= DOKUMEN 4: VISUM RAMPUNGAN ================= */}
-        <section className={`print-sheet-visum space-y-4 text-[10px] leading-snug ${activeDocument === 'visum' ? '' : 'hidden'}`}>
-          <header className="text-center">
-            <img src="/images/kemlu-logo.webp" alt="Lambang Kementerian Luar Negeri" className="mx-auto h-20 w-auto object-contain" />
-            <h2 className="font-bold tracking-wide">KEMENTERIAN LUAR NEGERI</h2>
-            <p className="text-[9px] tracking-[0.2em]">REPUBLIK INDONESIA</p>
-            <p className="mt-3 font-bold">- 2 -</p>
-          </header>
-
-          <table className="w-full table-fixed border-collapse text-[9px] leading-snug">
-            <colgroup><col className="w-[6%]" /><col className="w-[47%]" /><col className="w-[47%]" /></colgroup>
-            <tbody>
-              <tr className="h-32">
-                <td colSpan="2" className="border border-black p-2" />
-                <td className="border border-black p-2 align-top">
-                  <p><strong className="mr-2">I</strong>Berangkat dari (tempat kedudukan): {suratTugas.tempat_berangkat || '-'}</p>
-                  <p className="mt-1">ke: {tujuanPerjalanan}</p>
-                  <p className="mt-1">Pada tanggal: {tanggalBerangkat}</p>
-                  <div className="mt-2 text-center">Pejabat Pembuat Komitmen</div>
-                  <div className="h-10" />
-                  {ppkSigned && <div className="text-center font-bold text-blue-800">TTD DIGITAL PPK</div>}
-                  <p className="text-center font-bold underline">{ppkNama}</p>
-                  <p className="text-center">NIP. {ppkNip}</p>
-                </td>
-              </tr>
-              <tr className="h-28">
-                <td className="border border-black p-2 text-center">II</td>
-                <td className="border border-black p-2 align-top">
-                  <p>Tiba di: {tujuanPerjalanan}</p>
-                  <p className="mt-1">Pada tanggal: {tanggalBerangkat}</p>
-                  <p className="mt-1">Kepala: ____________________</p>
-                  <div className="mt-8 text-center">(__________________)</div>
-                  <p className="text-center">NIP. __________________</p>
-                </td>
-                <td className="border border-black p-2 align-top">
-                  <p>Berangkat dari: {tujuanPerjalanan}</p>
-                  <p className="mt-1">ke: {suratTugas.tempat_berangkat || '-'}</p>
-                  <p className="mt-1">Pada tanggal: {tanggalKembali}</p>
-                  <p className="mt-1">Kepala: ____________________</p>
-                  <div className="mt-4 text-center">(__________________)</div>
-                  <p className="text-center">NIP. __________________</p>
-                </td>
-              </tr>
-              {['III', 'IV', 'V'].map((nomor) => (
-                <tr key={nomor} className="h-24">
-                  <td className="border border-black p-2 text-center">{nomor}</td>
-                  <td className="border border-black p-2 align-top">
-                    <p>Tiba di: ____________________</p>
-                    <p className="mt-1">Pada tanggal: ______________</p>
-                    <p className="mt-1">Kepala: ___________________</p>
-                    <div className="mt-5 text-center">(__________________)</div>
-                    <p className="text-center">NIP. __________________</p>
-                  </td>
-                  <td className="border border-black p-2 align-top">
-                    <p>Berangkat dari: ______________</p>
-                    <p className="mt-1">ke: _______________________</p>
-                    <p className="mt-1">Pada tanggal: ______________</p>
-                    <p className="mt-1">Kepala: ___________________</p>
-                    <div className="mt-3 text-center">(__________________)</div>
-                    <p className="text-center">NIP. __________________</p>
-                  </td>
-                </tr>
-              ))}
-              <tr className="h-32">
-                <td className="border border-black p-2 text-center">VI</td>
-                <td className="border border-black p-2 align-top">
-                  <p>Tiba di (tempat kedudukan): {suratTugas.tempat_berangkat || '-'}</p>
-                  <p className="mt-1">Pada tanggal: {tanggalKembali}</p>
-                  <div className="mt-2 text-center">Pejabat Pembuat Komitmen</div>
-                  <div className="h-8" />
-                  {ppkSigned && <div className="text-center font-bold text-blue-800">TTD DIGITAL PPK</div>}
-                  <p className="text-center font-bold underline">{ppkNama}</p>
-                  <p className="text-center">NIP. {ppkNip}</p>
-                </td>
-                <td className="border border-black p-2 align-top">
-                  <p>Telah diperiksa dengan keterangan bahwa perjalanan tersebut atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.</p>
-                  <div className="mt-2 text-center">Pejabat Pembuat Komitmen</div>
-                  <div className="h-8" />
-                  {ppkSigned && <div className="text-center font-bold text-blue-800">TTD DIGITAL PPK</div>}
-                  <p className="text-center font-bold underline">{ppkNama}</p>
-                  <p className="text-center">NIP. {ppkNip}</p>
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black p-2 text-center">VII</td>
-                <td colSpan="2" className="border border-black p-2">Catatan Lain-lain:</td>
-              </tr>
-              <tr>
-                <td className="border border-black p-2 text-center align-top">VIII</td>
-                <td colSpan="2" className="border border-black p-2">
-                  PERHATIAN: PPK yang menerbitkan SPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan negara apabila negara menderita rugi akibat kesalahan, kelalaian, dan kealpaannya.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-      {/* ================= DOKUMEN 1: SURAT TUGAS ================= */}
-      <div className={`print-sheet-st max-w-[210mm] mx-auto my-6 bg-white px-12 sm:px-20 py-8 sm:py-12 shadow-2xl border border-slate-300 doc-st print-hide-border ${activeDocument === 'st' ? '' : 'hidden'}`}>
-        <div className="space-y-6">
-          {/* Kop surat sesuai format ST */}
-          <div className="text-center pb-2 flex flex-col items-center justify-center">
-            <img src="/images/kemlu-logo.webp" alt="Lambang Kementerian Luar Negeri" className="h-16 w-16 object-contain" />
-            <p className="mt-1.5 text-[12px] font-extrabold tracking-wide text-[#0F2C59] leading-tight">KEMENTERIAN LUAR NEGERI</p>
-            <p className="mt-0.5 text-[9px] font-bold tracking-[0.22em] text-[#B4233A] leading-tight">REPUBLIK INDONESIA</p>
-          </div>
-
-          {/* Judul Surat Tugas */}
-          <div className="text-center space-y-1">
-            <h1 className="font-bold text-base uppercase tracking-wider text-black">SURAT TUGAS</h1>
-            <p className="font-bold text-xs text-black">Nomor: {nomorST}</p>
-          </div>
-
-          <div className="space-y-4 text-[13px] leading-relaxed">
-            <p className="text-justify">
-              Dalam rangka <strong>{suratTugas.perihal_nota || '-'}</strong>, sesuai {suratTugas.sumber_asal === 'INTERNAL' ? 'Nota Dinas' : 'Undangan'} dari <strong>{suratTugas.pengirim_nota || '-'}</strong> Nomor <strong>{suratTugas.nomor_nota || '-'}</strong> tanggal {formatDate(suratTugas.tanggal_nota)}, dengan ini kami menugaskan:
-            </p>
-
-            <table className="w-full table-fixed border-collapse text-[12px]">
-              <colgroup><col className="w-[8%]" /><col className="w-[36%]" /><col className="w-[28%]" /><col className="w-[28%]" /></colgroup>
-              <thead>
-                <tr className="font-bold">
-                  <th className="border border-slate-900 p-2 text-center">No</th>
-                  <th className="border border-slate-900 p-2 text-center">Nama/NIP</th>
-                  <th className="border border-slate-900 p-2 text-center">Pangkat/Golongan</th>
-                  <th className="border border-slate-900 p-2 text-center">Jabatan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pegawaiList.length > 0 ? pegawaiList.map((pegawai, index) => (
-                  <tr key={pegawai.id || pegawai.nip || index}>
-                    <td className="border border-slate-900 p-2 text-center">{index + 1}</td>
-                    <td className="border border-slate-900 p-2">{pegawai.nama || '-'}<br />NIP. {pegawai.nip || '-'}</td>
-                    <td className="border border-slate-900 p-2">{pegawai.pangkat || '-'} / {pegawai.golongan || '-'}</td>
-                    <td className="border border-slate-900 p-2">{pegawai.jabatan || '-'}</td>
-                  </tr>
-                )) : (
-                  <tr><td colSpan="4" className="border border-slate-900 p-2 text-center">Belum ada data personel.</td></tr>
-                )}
-              </tbody>
-            </table>
-
-            <p className="text-justify">
-              untuk menghadiri <strong>{suratTugas.perihal_nota || '-'}</strong> di <strong>{tujuanPerjalanan}</strong> pada tanggal <strong>{tanggalBerangkat}{tanggalKembali !== '-' ? ` s.d. ${tanggalKembali}` : ''}</strong>.
-            </p>
-            <p className="text-justify">
-              Seluruh biaya yang berkaitan dengan pelaksanaan tugas ini dibebankan pada Daftar Isian Pelaksanaan Anggaran (DIPA) Pusat Pendidikan dan Pelatihan Tahun Anggaran {tahunAnggaran}.
-            </p>
-            <p className="text-justify">
-              Surat tugas ini disusun untuk dilaksanakan dan setelah dilaksanakan pelaksana tugas segera menyampaikan laporan kepada Kepala Pusat Pendidikan dan Pelatihan.
-            </p>
-            <p className="text-justify">Demikian Surat Tugas ini dibuat untuk dilaksanakan dengan penuh tanggung jawab.</p>
-          </div>
-
-          {/* TTD Kepala Pusat */}
-          <div className="pt-6 flex justify-end text-xs">
-            <div className="text-left w-72 text-[13px]">
-              <div className="leading-snug">
-                <p>Dikeluarkan di Jakarta</p>
-                <p>Pada tanggal {tanggalSurat}</p>
-                <p className="font-bold mt-1">Kepala Pusat Pendidikan dan Pelatihan</p>
-              </div>
-
-              {/* Space tanda tangan antara jabatan dan nama yang lebih besar */}
-              <div className="h-24 sm:h-28" />
-
-              <div>
-                <p className="font-bold underline">Khasan Ashari</p>
-                <p className="text-[12px]">NIP. 19750617 200003 1 001</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 text-[12px]">
-            <p>Tembusan:</p>
-            <ol className="list-decimal pl-6">
-              <li>Administrator AMS/PMS</li>
-              <li>Yang bersangkutan</li>
-              <li>Arsip</li>
-            </ol>
-          </div>
-        </div>
-      </div>
-
-      {/* ================= DOKUMEN 2: SURAT PERJALANAN DINAS (SPD) ================= */}
-      <div className={`print-sheet-spd max-w-[210mm] mx-auto my-6 bg-white px-10 sm:px-16 py-6 sm:py-10 shadow-2xl border border-slate-300 doc-st print-hide-border ${activeDocument === 'spd' ? '' : 'hidden'}`}>
-        <div className={`spd-document space-y-6 ${activeDocument === 'spd' ? '' : 'hidden'}`}>
-          <div className="spd-letterhead grid grid-cols-[1fr_auto_1fr] items-start gap-2">
-            <div />
-            <div className="spd-brand text-center">
-              <img src="/images/kemlu-logo.webp" alt="Lambang Kementerian Luar Negeri" className="mx-auto h-14 w-14 object-contain" />
-              <p className="spd-brand-name font-extrabold text-[#0F2C59]">KEMENTERIAN LUAR NEGERI</p>
-              <p className="spd-brand-country font-bold tracking-[0.2em] text-[#B4233A]">REPUBLIK INDONESIA</p>
-            </div>
-            <div className="spd-annex pt-1 text-[8px] leading-relaxed">
-              LAMPIRAN I<br />
-              PERATURAN MENTERI KEUANGAN REPUBLIK INDONESIA<br />
-              NOMOR 113/PMK.05/2012<br />
-              TENTANG<br />
-              PERJALANAN DINAS DALAM NEGERI BAGI PEJABAT NEGARA, PEGAWAI NEGERI, DAN PEGAWAI TIDAK TETAP
-            </div>
-          </div>
-
-          <div className="spd-info flex items-end justify-between text-[11px]">
-            <div className="font-bold uppercase leading-relaxed">
-              <p>KEMENTERIAN LUAR NEGERI</p>
-              <p>(PUSAT PENDIDIKAN DAN PELATIHAN)</p>
-            </div>
-            <div className="grid grid-cols-[auto_auto] gap-x-2 leading-relaxed">
-              <span>Lembar</span><span>: 1</span>
-              <span>Kode</span><span>: -</span>
-              <span>Nomor</span><span>: {nomorSPD}</span>
-            </div>
-          </div>
-
-          <div className="spd-title text-center py-2">
-            <h2 className="font-bold text-base uppercase tracking-wider text-black">SURAT PERJALANAN DINAS</h2>
-          </div>
-
-          {/* Tabel Isian SPD PMK 113 */}
-          <table className="spd-table w-full table-fixed border-collapse border border-slate-900 text-[11px] leading-snug">
-            <colgroup><col className="w-[6%]" /><col className="w-[38%]" /><col className="w-[28%]" /><col className="w-[28%]" /></colgroup>
-            <tbody>
-              <tr>
-                <td className="border border-slate-900 p-2 text-center font-bold">1</td>
-                <td className="border border-slate-900 p-2">Pejabat Pembuat Komitmen</td>
-                <td colSpan="2" className="border border-slate-900 p-2 font-bold uppercase">{ppkNama}</td>
-              </tr>
-              <tr>
-                <td rowSpan="2" className="border border-slate-900 p-2 text-center font-bold">2</td>
-                <td rowSpan="2" className="border border-slate-900 p-2">Nama/NIP Pegawai yang melaksanakan perjalanan dinas</td>
-                <td colSpan="2" className="border border-slate-900 p-2">{multiPegawai ? `${pegawaiMain.nama}, dkk` : pegawaiMain.nama}</td>
-              </tr>
-              <tr><td colSpan="2" className="border border-slate-900 p-2">{multiPegawai ? 'Terlampir' : `NIP. ${pegawaiMain.nip}`}</td></tr>
-              <tr>
-                <td rowSpan="3" className="border border-slate-900 p-2 text-center font-bold">3</td>
-                <td className="border border-slate-900 p-2">a. Pangkat dan Golongan</td>
-                <td colSpan="2" className="border border-slate-900 p-2">{multiPegawai ? 'Terlampir' : `${pegawaiMain.pangkat} (Gol. ${pegawaiMain.golongan})`}</td>
-              </tr>
-              <tr>
-                <td className="border border-slate-900 p-2">b. Jabatan/Instansi</td>
-                <td colSpan="2" className="border border-slate-900 p-2">{multiPegawai ? 'Terlampir' : `${pegawaiMain.jabatan} / Pusat Pendidikan dan Pelatihan`}</td>
-              </tr>
-              <tr>
-                <td className="border border-slate-900 p-2">c. Tingkat Biaya Perjalanan Dinas</td>
-                <td colSpan="2" className="border border-slate-900 p-2">{multiPegawai ? 'Terlampir' : `Tingkat ${suratTugas.tingkat_biaya_kode || '-'}`}</td>
-              </tr>
-              <tr className="h-20">
-                <td className="border border-slate-900 p-2 text-center font-bold">4</td>
-                <td className="border border-slate-900 p-2">Maksud Perjalanan Dinas</td>
-                <td colSpan="2" className="border border-slate-900 p-2">{suratTugas.perihal_nota || '-'}</td>
-              </tr>
-              <tr>
-                <td className="border border-slate-900 p-2 text-center font-bold">5</td>
-                <td className="border border-slate-900 p-2">Alat angkutan yang dipergunakan</td>
-                <td colSpan="2" className="border border-slate-900 p-2">{suratTugas.jenis_angkutan_nama || '-'}</td>
-              </tr>
-              <tr>
-                <td rowSpan="2" className="border border-slate-900 p-2 text-center font-bold">6</td>
-                <td className="border border-slate-900 p-2">a. Tempat berangkat</td>
-                <td colSpan="2" className="border border-slate-900 p-2">{suratTugas.tempat_berangkat || '-'}</td>
-              </tr>
-              <tr>
-                <td className="border border-slate-900 p-2">b. Tempat tujuan</td>
-                <td colSpan="2" className="border border-slate-900 p-2">{tujuanPerjalanan}{suratTugas.no_setneg ? ` (Izin Setneg No: ${suratTugas.no_setneg})` : ''}</td>
-              </tr>
-              <tr>
-                <td rowSpan="3" className="border border-slate-900 p-2 text-center font-bold">7</td>
-                <td className="border border-slate-900 p-2">a. Lamanya Perjalanan Dinas</td>
-                <td colSpan="2" className="border border-slate-900 p-2">a. {suratTugas.durasi_hari || '-'} ({spellNumber(Number(suratTugas.durasi_hari))}) hari</td>
-              </tr>
-              <tr><td className="border border-slate-900 p-2">b. Tanggal Berangkat</td><td colSpan="2" className="border border-slate-900 p-2">b. {tanggalBerangkat}</td></tr>
-              <tr><td className="border border-slate-900 p-2">c. Tanggal harus kembali/tiba di tempat baru *)</td><td colSpan="2" className="border border-slate-900 p-2">c. {tanggalKembali}</td></tr>
-              <tr>
-                <td rowSpan="2" className="border border-slate-900 p-2 text-center font-bold">8</td>
-                <td className="border border-slate-900 p-2">Pengikut: Nama</td>
-                <td className="border border-slate-900 p-2 text-center">Tanggal Lahir</td>
-                <td className="border border-slate-900 p-2 text-center">Keterangan</td>
-              </tr>
-              <tr>
-                <td className="border border-slate-900 p-2 align-top">
-                  {pengikutList.length > 0 ? pengikutList.map((pegawai, index) => (
-                    <p key={pegawai.id || pegawai.nip || index}>{index + 1}. {pegawai.nama} (NIP. {pegawai.nip})</p>
-                  )) : <p>1.<br />2.<br />3.<br />4.<br />5.</p>}
-                </td>
-                <td className="border border-slate-900 p-2" />
-                <td className="border border-slate-900 p-2" />
-              </tr>
-              <tr>
-                <td rowSpan="2" className="border border-slate-900 p-2 text-center font-bold">9</td>
-                <td className="border border-slate-900 p-2">Pembebanan Anggaran</td>
-                <td colSpan="2" className="border border-slate-900 p-2" />
-              </tr>
-              <tr>
-                <td className="border border-slate-900 p-2">a. Instansi<br />b. Akun</td>
-                <td colSpan="2" className="border border-slate-900 p-2">a. Pusat Pendidikan dan Pelatihan<br />b. DIPA Pusdiklat Kemlu Tahun Anggaran {tahunAnggaran}</td>
-              </tr>
-              <tr>
-                <td className="border border-slate-900 p-2 text-center font-bold">10</td>
-                <td className="border border-slate-900 p-2">Keterangan lain-lain</td>
-                <td colSpan="2" className="border border-slate-900 p-2">Surat Tugas No. {nomorST} tanggal {tanggalSurat}</td>
-              </tr>
-            </tbody>
-          </table>
-          <p className="text-[9px] text-slate-700 italic pt-1">*)coret yang tidak perlu</p>
-
-          {/* Signature & Digital Stamp Overlay */}
-          <div className="spd-footer pt-4 flex justify-end text-xs relative">
-            <div className="text-left w-72 space-y-3 relative">
-              <div className="leading-snug text-[11px]">
-                <p>Dikeluarkan di: Jakarta</p>
-                <p>Pada Tanggal: {tanggalSurat}</p>
-                <p className="font-bold uppercase mt-1">Pejabat Pembuat Komitmen (PPK)</p>
-              </div>
-
-              <div className="spd-stamp-space h-16 flex items-center justify-center relative">
-                {ppkSigned && <div className="border-2 border-dashed border-blue-700 text-blue-900 rounded-full w-20 h-20 flex items-center justify-center text-[7.5px] font-bold uppercase text-center transform -rotate-12 opacity-80 shadow-sm">
-                  <span>Pusdiklat Kemlu<br /><strong>VERIFIED PPK</strong><br />DIGITAL STAMP</span>
-                </div>}
-              </div>
-
-              <div>
-                <p className="font-bold underline uppercase">{ppkNama}</p>
-                <p className="text-[11px]">NIP. {ppkNip}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* 4. VISUM RAMPUNGAN */}
+      <VisumRampunganSheet
+        {...commonProps}
+        isActive={activeDocument === 'visum'}
+      />
     </div>
   );
 }

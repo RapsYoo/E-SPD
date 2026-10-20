@@ -4,6 +4,7 @@ namespace App\Http\Requests\SuratTugas;
 
 use App\Models\SuratTugas;
 use App\Services\SuratTugas\WorkflowService;
+use Illuminate\Validation\Rule;
 
 /**
  * Validasi simpan draft (longgar: semua field opsional).
@@ -42,7 +43,7 @@ class SaveDraftRequest extends ProposerRequest
             'perihal_nota' => 'nullable|string',
             'file_undangan' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'file_izin_setneg' => 'nullable|file|mimes:pdf,docx|max:10240',
-            'ppk_id' => 'nullable|exists:ppk,id',
+            'ppk_id' => ['nullable', Rule::exists('users', 'id')->where('role', 'ppk')],
             'tingkat_biaya_kode' => 'nullable|exists:tingkat_biaya,kode',
             'jenis_angkutan_nama' => 'nullable|exists:jenis_angkutan,nama',
             'tempat_berangkat' => 'nullable|string|max:255',

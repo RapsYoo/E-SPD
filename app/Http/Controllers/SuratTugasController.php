@@ -105,7 +105,7 @@ class SuratTugasController extends Controller
     public function show(SuratTugas $suratTugas)
     {
         // Akses detail terbuka untuk semua aktor terautentikasi
-        $suratTugas->load(['pegawaiList', 'ppk', 'user', 'logs.user']);
+        $suratTugas->load(['pegawaiList', 'ppk.pegawai', 'user', 'logs.user']);
 
         return Inertia::render('SuratTugas/Show', [
             'suratTugas' => $suratTugas,
@@ -155,7 +155,7 @@ class SuratTugasController extends Controller
                 ->with('error', 'Pratinjau dokumen hanya tersedia setelah draft disetujui Kapus (untuk TU/Kapus/PPK/pemilik).');
         }
 
-        $suratTugas->load(['pegawaiList', 'ppk', 'user']);
+        $suratTugas->load(['pegawaiList', 'ppk.pegawai', 'user']);
         $this->workflow->logPrint($suratTugas, $user);
 
         return Inertia::render('SuratTugas/Print', [

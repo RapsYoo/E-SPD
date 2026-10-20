@@ -4,6 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { 
   Users, 
   UserCheck, 
+  KeyRound,
   Building2, 
   Layers, 
   Truck, 
@@ -47,11 +48,11 @@ export default function Dashboard({ stats, recentPegawai }) {
             </Link>
 
             <Link
-              href="/admin/ppk"
+              href="/admin/users"
               className="inline-flex items-center space-x-2 bg-slate-800/90 hover:bg-slate-700 text-white font-semibold px-4 py-2.5 rounded-xl border border-slate-600 transition text-xs sm:text-sm"
             >
-              <UserCheck className="w-4 h-4 text-amber-400" />
-              <span>Kelola PPK</span>
+              <KeyRound className="w-4 h-4 text-amber-400" />
+              <span>Kelola Akun Pengguna</span>
             </Link>
           </div>
         </div>
@@ -82,16 +83,19 @@ export default function Dashboard({ stats, recentPegawai }) {
         </div>
 
         {/* Total PPK */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 hover:shadow-md transition">
+        <Link 
+          href="/admin/users?role=ppk"
+          className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 hover:shadow-md hover:border-amber-400 transition block"
+        >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pejabat PPK</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Akun PPK</span>
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
               <UserCheck className="w-5 h-5" />
             </div>
           </div>
           <div className="text-2xl font-bold text-slate-900">{stats.totalPpk}</div>
-          <p className="text-xs text-slate-500 mt-2">Pejabat Pembuat Komitmen</p>
-        </div>
+          <p className="text-xs text-slate-500 mt-2">Pengguna dengan peran PPK</p>
+        </Link>
 
         {/* Unit Kerja */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 hover:shadow-md transition">
@@ -250,16 +254,16 @@ export default function Dashboard({ stats, recentPegawai }) {
               </Link>
 
               <Link
-                href="/admin/ppk"
+                href="/admin/users"
                 className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50 transition group"
               >
                 <div className="flex items-center space-x-3">
                   <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
-                    <UserCheck className="w-4 h-4" />
+                    <KeyRound className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 text-sm group-hover:text-amber-700 transition">Master Data PPK</h4>
-                    <p className="text-xs text-slate-500">Pejabat Pembuat Komitmen</p>
+                    <h4 className="font-semibold text-slate-900 text-sm group-hover:text-amber-700 transition">Akun Pengguna (Termasuk PPK)</h4>
+                    <p className="text-xs text-slate-500">Kelola Pengguna, Peran & Hak Akses</p>
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition" />

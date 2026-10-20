@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Pegawai;
-use App\Models\Ppk;
 use App\Models\UnitKerja;
 use App\Models\TingkatBiaya;
 use App\Models\JenisAngkutan;
@@ -73,17 +72,7 @@ class MasterDataSeeder extends Seeder
             Pegawai::updateOrCreate(['nip' => $data['nip']], $data);
         }
 
-        // 3. Seed PPK Master
-        $ppkData = [
-            ['nama' => 'GEORGE JUNIOR', 'nip' => '19790315 200312 1 002', 'jabatan' => 'Pejabat Pembuat Komitmen'],
-            ['nama' => 'PIPIN ZAENAL HAPINUDIN', 'nip' => '19820825 200912 1 001', 'jabatan' => 'Pejabat Pembuat Komitmen'],
-        ];
-
-        foreach ($ppkData as $data) {
-            Ppk::updateOrCreate(['nip' => $data['nip']], $data);
-        }
-
-        // 4. Seed Unit Kerja
+        // 3. Seed Unit Kerja
         $unitKerjaData = [
             ['kode' => 'PUSDIKLAT', 'nama' => 'Pusat Pendidikan dan Pelatihan', 'singkatan' => 'Pusdiklat', 'alamat' => 'Jakarta'],
             ['kode' => 'SEKJEN', 'nama' => 'Sekretariat Jenderal', 'singkatan' => 'Setjen', 'alamat' => 'Jakarta'],

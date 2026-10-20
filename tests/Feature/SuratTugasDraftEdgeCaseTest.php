@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\SuratTugas;
 use App\Models\User;
 use App\Models\Pegawai;
-use App\Models\Ppk;
 use App\Models\TingkatBiaya;
 use App\Models\JenisAngkutan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -38,14 +37,16 @@ class SuratTugasDraftEdgeCaseTest extends TestCase
         ]);
     }
 
-    private function makePpk(): Ppk
+    private function makePpk(): User
     {
-        return Ppk::create([
-            'nama' => 'PPK Pusdiklat ' . uniqid(),
-            'nip' => '1975' . rand(10000000, 99999999),
-            'jabatan' => 'PPK',
-            'is_active' => true,
+        $pegawai = $this->makePegawai();
+        $user = User::factory()->create([
+            'name' => $pegawai->nama,
+            'pegawai_id' => $pegawai->id,
         ]);
+        $user->forceFill(['role' => 'ppk'])->save();
+
+        return $user->fresh();
     }
 
     public function test_simpan_draft_baru_step_1_sukses_dan_tersimpan_di_draft_data(): void

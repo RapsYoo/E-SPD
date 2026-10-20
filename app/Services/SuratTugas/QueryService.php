@@ -17,7 +17,7 @@ class QueryService
      */
     public function paginate(array $filters): LengthAwarePaginator
     {
-        $query = SuratTugas::with(['pegawaiList', 'ppk', 'user']);
+        $query = SuratTugas::with(['pegawaiList', 'ppk.pegawai', 'user']);
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];

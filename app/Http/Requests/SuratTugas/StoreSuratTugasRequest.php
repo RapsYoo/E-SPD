@@ -4,6 +4,7 @@ namespace App\Http\Requests\SuratTugas;
 
 use App\Models\SuratTugas;
 use App\Services\SuratTugas\WorkflowService;
+use Illuminate\Validation\Rule;
 
 /**
  * Validasi pengiriman usulan. Tahap 1 (nota ke Kapus) hanya memvalidasi data nota;
@@ -64,7 +65,7 @@ class StoreSuratTugasRequest extends ProposerRequest
 
         return $noteRules + [
             // PPK & Travel details
-            'ppk_id' => 'required|exists:ppk,id',
+            'ppk_id' => ['required', Rule::exists('users', 'id')->where('role', 'ppk')],
             'tingkat_biaya_kode' => 'required|exists:tingkat_biaya,kode',
             'jenis_angkutan_nama' => 'required|exists:jenis_angkutan,nama',
             'tempat_berangkat' => 'required|string',
