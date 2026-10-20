@@ -27,10 +27,10 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('surat-tugas.index', absolute: false));
+        $response->assertRedirect(route('dashboard', absolute: false));
     }
 
-    public function test_admin_redirects_to_admin_dashboard_after_login(): void
+    public function test_admin_redirects_to_dashboard_after_login(): void
     {
         $admin = User::factory()->create();
         $admin->forceFill(['role' => 'admin'])->save();
@@ -41,7 +41,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('admin.dashboard', absolute: false));
+        $response->assertRedirect(route('dashboard', absolute: false));
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void

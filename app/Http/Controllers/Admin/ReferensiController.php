@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\TingkatBiaya;
+use App\Http\Requests\Admin\JenisAngkutanRequest;
+use App\Http\Requests\Admin\TingkatBiayaRequest;
 use App\Models\JenisAngkutan;
+use App\Models\TingkatBiaya;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -12,39 +14,23 @@ class ReferensiController extends Controller
 {
     public function index(Request $request)
     {
-        $tingkatBiaya = TingkatBiaya::orderBy('kode')->get();
-        $jenisAngkutan = JenisAngkutan::orderBy('kode')->get();
-
         return Inertia::render('Admin/Referensi/Index', [
-            'tingkatBiaya' => $tingkatBiaya,
-            'jenisAngkutan' => $jenisAngkutan,
+            'tingkatBiaya' => TingkatBiaya::orderBy('kode')->get(),
+            'jenisAngkutan' => JenisAngkutan::orderBy('kode')->get(),
         ]);
     }
 
     // Tingkat Biaya CRUD
-    public function storeTingkatBiaya(Request $request)
+    public function storeTingkatBiaya(TingkatBiayaRequest $request)
     {
-        $validated = $request->validate([
-            'kode' => 'required|string|max:10|unique:tingkat_biaya,kode',
-            'nama' => 'required|string|max:100',
-            'keterangan' => 'nullable|string',
-        ]);
-
-        TingkatBiaya::create($validated);
+        TingkatBiaya::create($request->validated());
 
         return redirect()->back()->with('success', 'Tingkat biaya berhasil ditambahkan.');
     }
 
-    public function updateTingkatBiaya(Request $request, TingkatBiaya $tingkatBiaya)
+    public function updateTingkatBiaya(TingkatBiayaRequest $request, TingkatBiaya $tingkatBiaya)
     {
-        $validated = $request->validate([
-            'kode' => 'required|string|max:10|unique:tingkat_biaya,kode,' . $tingkatBiaya->id,
-            'nama' => 'required|string|max:100',
-            'keterangan' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
-
-        $tingkatBiaya->update($validated);
+        $tingkatBiaya->update($request->validated());
 
         return redirect()->back()->with('success', 'Tingkat biaya berhasil diperbarui.');
     }
@@ -57,29 +43,16 @@ class ReferensiController extends Controller
     }
 
     // Jenis Angkutan CRUD
-    public function storeJenisAngkutan(Request $request)
+    public function storeJenisAngkutan(JenisAngkutanRequest $request)
     {
-        $validated = $request->validate([
-            'kode' => 'required|string|max:20|unique:jenis_angkutan,kode',
-            'nama' => 'required|string|max:100',
-            'keterangan' => 'nullable|string',
-        ]);
-
-        JenisAngkutan::create($validated);
+        JenisAngkutan::create($request->validated());
 
         return redirect()->back()->with('success', 'Jenis angkutan berhasil ditambahkan.');
     }
 
-    public function updateJenisAngkutan(Request $request, JenisAngkutan $jenisAngkutan)
+    public function updateJenisAngkutan(JenisAngkutanRequest $request, JenisAngkutan $jenisAngkutan)
     {
-        $validated = $request->validate([
-            'kode' => 'required|string|max:20|unique:jenis_angkutan,kode,' . $jenisAngkutan->id,
-            'nama' => 'required|string|max:100',
-            'keterangan' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
-
-        $jenisAngkutan->update($validated);
+        $jenisAngkutan->update($request->validated());
 
         return redirect()->back()->with('success', 'Jenis angkutan berhasil diperbarui.');
     }

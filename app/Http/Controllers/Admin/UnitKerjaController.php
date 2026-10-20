@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UnitKerjaRequest;
 use App\Models\UnitKerja;
+use App\Support\SearchQuery;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -11,50 +13,22 @@ class UnitKerjaController extends Controller
 {
     public function index(Request $request)
     {
-        $query = UnitKerja::query();
-
-        if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('kode', 'like', "%{$search}%")
-                  ->orWhere('singkatan', 'like', "%{$search}%");
-            });
-        }
-
-        $unitKerja = $query->orderBy('nama')->paginate(10)->withQueryString();
-
         return Inertia::render('Admin/UnitKerja/Index', [
-            'unitKerja' => $unitKerja,
+            'unitKerja' => SearchQuery::paginate(UnitKerja::query(), $request->search, ['nama', 'kode', 'singkatan'], 'nama'),
             'filters' => $request->only(['search']),
         ]);
     }
 
-    public function store(Request $request)
+    public function store(UnitKerjaRequest $request)
     {
-        $validated = $request->validate([
-            'kode' => 'required|string|max:50|unique:unit_kerja,kode',
-            'nama' => 'required|string|max:255',
-            'singkatan' => 'nullable|string|max:50',
-            'alamat' => 'nullable|string',
-        ]);
-
-        UnitKerja::create($validated);
+        UnitKerja::create($request->validated());
 
         return redirect()->back()->with('success', 'Data unit kerja berhasil ditambahkan.');
     }
 
-    public function update(Request $request, UnitKerja $unitKerja)
+    public function update(UnitKerjaRequest $request, UnitKerja $unitKerja)
     {
-        $validated = $request->validate([
-            'kode' => 'required|string|max:50|unique:unit_kerja,kode,' . $unitKerja->id,
-            'nama' => 'required|string|max:255',
-            'singkatan' => 'nullable|string|max:50',
-            'alamat' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
-
-        $unitKerja->update($validated);
+        $unitKerja->update($request->validated());
 
         return redirect()->back()->with('success', 'Data unit kerja berhasil diperbarui.');
     }

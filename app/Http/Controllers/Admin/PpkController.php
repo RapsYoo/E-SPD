@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\PpkRequest;
 use App\Models\Ppk;
+use App\Support\SearchQuery;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -11,47 +13,22 @@ class PpkController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Ppk::query();
-
-        if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('nip', 'like', "%{$search}%");
-            });
-        }
-
-        $ppk = $query->orderBy('nama')->paginate(10)->withQueryString();
-
         return Inertia::render('Admin/Ppk/Index', [
-            'ppk' => $ppk,
+            'ppk' => SearchQuery::paginate(Ppk::query(), $request->search, ['nama', 'nip'], 'nama'),
             'filters' => $request->only(['search']),
         ]);
     }
 
-    public function store(Request $request)
+    public function store(PpkRequest $request)
     {
-        $validated = $request->validate([
-            'nama' => 'required|string|max:255',
-            'nip' => 'required|string|max:50|unique:ppk,nip',
-            'jabatan' => 'nullable|string|max:255',
-        ]);
-
-        Ppk::create($validated);
+        Ppk::create($request->validated());
 
         return redirect()->back()->with('success', 'Data PPK berhasil ditambahkan.');
     }
 
-    public function update(Request $request, Ppk $ppk)
+    public function update(PpkRequest $request, Ppk $ppk)
     {
-        $validated = $request->validate([
-            'nama' => 'required|string|max:255',
-            'nip' => 'required|string|max:50|unique:ppk,nip,' . $ppk->id,
-            'jabatan' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
-        ]);
-
-        $ppk->update($validated);
+        $ppk->update($request->validated());
 
         return redirect()->back()->with('success', 'Data PPK berhasil diperbarui.');
     }

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\LoginRequest;
+use App\Http\Requests\Api\RegisterRequest;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
@@ -37,14 +39,9 @@ class AuthApiController extends Controller
      *
      * @throws ValidationException
      */
-    public function register(Request $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name'                  => ['required', 'string', 'max:255'],
-            'email'                 => ['required', 'string', 'email:rfc,dns', 'max:255', 'unique:users,email'],
-            'password'              => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()],
-            'password_confirmation' => ['required', 'string'],
-        ]);
+        $validated = $request->validated();
 
         $user = User::create([
             'name'     => $validated['name'],
@@ -80,12 +77,9 @@ class AuthApiController extends Controller
      * @param  Request  $request
      * @return JsonResponse
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validate([
-            'email'    => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ]);
+        $credentials = $request->validated();
 
         if (! Auth::attempt($credentials)) {
             return response()->json([
