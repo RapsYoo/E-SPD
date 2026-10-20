@@ -28,8 +28,7 @@ class SuratTugasController extends Controller
         private SubmissionService $submissions,
         private WorkflowService $workflow,
         private AttachmentService $attachments,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -43,7 +42,7 @@ class SuratTugasController extends Controller
 
     public function create()
     {
-        if (!in_array(auth()->user()?->role, SuratTugasStatus::PROPOSER_ROLES)) {
+        if (! in_array(auth()->user()?->role, SuratTugasStatus::PROPOSER_ROLES)) {
             return redirect()->route('surat-tugas.index')->with('error', 'Hanya Sespalu/Pemohon atau Admin yang dapat membuat usulan Surat Tugas.');
         }
 
@@ -79,7 +78,7 @@ class SuratTugasController extends Controller
 
         $this->workflow->saveActorDraft($suratTugas, $actor, $validated);
 
-        return redirect()->back()->with('success', 'Draft ' . strtoupper($actor) . ' berhasil disimpan. Status surat belum berubah.');
+        return redirect()->back()->with('success', 'Draft '.strtoupper($actor).' berhasil disimpan. Status surat belum berubah.');
     }
 
     public function store(StoreSuratTugasRequest $request)
@@ -105,14 +104,18 @@ class SuratTugasController extends Controller
     public function show(SuratTugas $suratTugas)
     {
         // Akses detail terbuka untuk semua aktor terautentikasi
+        $user = auth()->user();
         $suratTugas->load(['pegawaiList', 'ppk.pegawai', 'user', 'logs.user']);
 
         return Inertia::render('SuratTugas/Show', [
             'suratTugas' => $suratTugas,
-            'userRole' => auth()->user()?->role ?? 'pemohon',
-            'authUserId' => auth()->id(),
+            'userRole' => $user?->role ?? 'pemohon',
+            'authUserId' => $user?->id,
             'logs' => $suratTugas->logs,
             'attachments' => $this->attachments->payload($suratTugas),
+            'runningNumber' => in_array($user?->role, ['tu', 'admin'], true)
+                ? $this->queries->lastNumbered()
+                : null,
         ]);
     }
 
@@ -150,7 +153,7 @@ class SuratTugasController extends Controller
     {
         $user = auth()->user();
 
-        if (!$this->workflow->canPrint($suratTugas, $user)) {
+        if (! $this->workflow->canPrint($suratTugas, $user)) {
             return redirect()->route('surat-tugas.show', $suratTugas->id)
                 ->with('error', 'Pratinjau dokumen hanya tersedia setelah draft disetujui Kapus (untuk TU/Kapus/PPK/pemilik).');
         }

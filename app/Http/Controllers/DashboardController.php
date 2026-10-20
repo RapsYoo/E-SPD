@@ -7,9 +7,7 @@ use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
-    public function __construct(private DashboardService $dashboard)
-    {
-    }
+    public function __construct(private DashboardService $dashboard) {}
 
     public function index()
     {
@@ -18,6 +16,7 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', $this->dashboard->overview($user) + [
             'userRole' => $user->role,
             'userName' => $user->name,
+            'authUserId' => $user->id,
         ]);
     }
 }

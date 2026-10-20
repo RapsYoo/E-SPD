@@ -16,6 +16,7 @@ class SuratTugasLog extends Model
         'ke_status',
         'catatan',
     ];
+    
 
     public function suratTugas()
     {
@@ -26,4 +27,5 @@ class SuratTugasLog extends Model
     {
         return $this->belongsTo(User::class);
     }
+
 }
