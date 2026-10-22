@@ -13,7 +13,6 @@ export default function SpdSheet({
   tahunAnggaran = '-',
   ppkNama = '-',
   ppkNip = '-',
-  ppkSigned = false,
   isActive = true,
 }) {
   const pegawaiMain = pegawaiList[0] || { nama: '-', nip: '-', pangkat: '-', golongan: '-', jabatan: '-' };
@@ -22,7 +21,7 @@ export default function SpdSheet({
 
   return (
     <div
-      className={`print-sheet-spd max-w-[210mm] mx-auto my-6 bg-white px-10 sm:px-16 py-6 sm:py-10 shadow-2xl border border-slate-300 doc-st print-hide-border ${
+      className={`print-preview-sheet print-sheet-spd max-w-[210mm] mx-auto my-6 bg-white px-10 sm:px-16 py-6 sm:py-10 shadow-2xl border border-slate-300 doc-st print-hide-border ${
         isActive ? '' : 'hidden'
       }`}
     >
@@ -34,12 +33,12 @@ export default function SpdSheet({
             <img
               src="/images/kemlu-logo.webp"
               alt="Lambang Kementerian Luar Negeri"
-              className="mx-auto h-14 w-14 object-contain"
+              className="mx-auto h-20 w-auto object-contain"
             />
-            <p className="spd-brand-name font-extrabold text-[#0F2C59]">
+            <p className="spd-brand-name font-extrabold text-blue-900">
               KEMENTERIAN LUAR NEGERI
             </p>
-            <p className="spd-brand-country font-bold tracking-[0.2em] text-[#B4233A]">
+            <p className="spd-brand-country font-bold tracking-[0.2em] text-red-700">
               REPUBLIK INDONESIA
             </p>
           </div>
@@ -54,7 +53,7 @@ export default function SpdSheet({
 
         {/* Metadata Dokumen SPD */}
         <div className="spd-info flex items-end justify-between text-[11px]">
-          <div className="font-bold uppercase leading-relaxed">
+          <div className="font-bold uppercase leading-relaxed text-center">
             <p>KEMENTERIAN LUAR NEGERI</p>
             <p>(PUSAT PENDIDIKAN DAN PELATIHAN)</p>
           </div>
@@ -182,7 +181,7 @@ export default function SpdSheet({
                 {pengikutList.length > 0 ? (
                   pengikutList.map((pegawai, index) => (
                     <p key={pegawai.id || pegawai.nip || index}>
-                      {index + 1}. {pegawai.nama} (NIP. {pegawai.nip})
+                      {index + 1}. {pegawai.nama}
                     </p>
                   ))
                 ) : (
@@ -234,17 +233,7 @@ export default function SpdSheet({
               <p className="font-bold uppercase mt-1">Pejabat Pembuat Komitmen (PPK)</p>
             </div>
 
-            <div className="spd-stamp-space h-16 flex items-center justify-center relative">
-              {ppkSigned && (
-                <div className="border-2 border-dashed border-blue-700 text-blue-900 rounded-full w-20 h-20 flex items-center justify-center text-[7.5px] font-bold uppercase text-center transform -rotate-12 opacity-80 shadow-sm">
-                  <span>
-                    Pusdiklat Kemlu<br />
-                    <strong>VERIFIED PPK</strong><br />
-                    DIGITAL STAMP
-                  </span>
-                </div>
-              )}
-            </div>
+            <div className="spd-stamp-space h-16" />
 
             <div>
               <p className="font-bold underline uppercase">{ppkNama}</p>

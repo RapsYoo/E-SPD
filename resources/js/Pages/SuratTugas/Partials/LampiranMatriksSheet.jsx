@@ -13,18 +13,17 @@ export default function LampiranMatriksSheet({
   tujuanPerjalanan = '-',
   ppkNama = '-',
   ppkNip = '-',
-  ppkSigned = false,
   isActive = true,
 }) {
   return (
     <section
-      className={`print-sheet-lampiran space-y-5 text-[10px] leading-snug ${
+      className={`print-preview-sheet print-sheet-lampiran space-y-5 text-[10px] leading-snug ${
         isActive ? '' : 'hidden'
       }`}
     >
       <header className="flex items-start justify-between gap-6">
-        <h2 className="pt-5 text-sm font-bold">Lampiran SPD</h2>
-        <p className="max-w-[58%] text-[8px] leading-relaxed">
+        <h2 className="pt-5 text-xs font-bold">Lampiran SPD</h2>
+        <p className="max-w-[35%] text-[6px] leading-tight">
           LAMPIRAN IV<br />
           PERATURAN DIRJEN PERBENDAHARAAN NOMOR PER-22/PB/2011 TENTANG KETENTUAN LEBIH LANJUT
           PELAKSANAAN PERJALANAN DINAS DALAM NEGERI BAGI PEJABAT NEGARA, PEGAWAI NEGERI DAN PEGAWAI TIDAK TETAP
@@ -66,17 +65,16 @@ export default function LampiranMatriksSheet({
 
       <table className="w-full table-fixed border-collapse text-center text-[8.5px] leading-tight border border-black">
         <colgroup>
-          <col className="w-[4%]" />
+          <col className="w-[5%]" />
           <col className="w-[22%]" />
           <col className="w-[9%]" />
           <col className="w-[7%]" />
-          <col className="w-[9%]" />
-          <col className="w-[9%]" />
+          <col className="w-[8%]" />
           <col className="w-[14%]" />
+          <col className="w-[7%]" />
           <col className="w-[8%]" />
           <col className="w-[8%]" />
-          <col className="w-[8%]" />
-          <col className="w-[6%]" />
+          <col className="w-[7%]" />
           <col className="w-[5%]" />
         </colgroup>
         <thead>
@@ -127,7 +125,7 @@ export default function LampiranMatriksSheet({
               return (
                 <tr key={pegawai.id || pegawai.nip || index}>
                   <td className="border border-black p-1 text-center align-middle">{index + 1}</td>
-                  <td className="border border-black p-2 text-center align-middle">
+                  <td className="border border-black p-2 text-left align-middle">
                     <div>{pegawai.nama || '-'}</div>
                     <div>NIP. {pegawai.nip || '-'}</div>
                     <div>{pegawai.jabatan || '-'}</div>
@@ -149,13 +147,13 @@ export default function LampiranMatriksSheet({
                   <td className="border border-black p-1 text-center align-middle break-words">
                     {isFirst ? formattedSuratTugasNo : 'idem'}
                   </td>
-                  <td className="border border-black p-1 text-center align-middle">
+                  <td className="lampiran-date border border-black p-1 text-center align-middle whitespace-nowrap text-[8px]">
                     {isFirst ? formatShortDate(tanggalSuratRaw) : 'idem'}
                   </td>
-                  <td className="border border-black p-1 text-center align-middle">
+                  <td className="lampiran-date border border-black p-1 text-center align-middle whitespace-nowrap text-[8px]">
                     {formatShortDate(suratTugas.tanggal_berangkat)}
                   </td>
-                  <td className="border border-black p-1 text-center align-middle">
+                  <td className="lampiran-date border border-black p-1 text-center align-middle whitespace-nowrap text-[8px]">
                     {formatShortDate(suratTugas.tanggal_kembali)}
                   </td>
                   <td className="border border-black p-1 text-center align-middle">
@@ -181,9 +179,7 @@ export default function LampiranMatriksSheet({
         <p>Jakarta, {tanggalSurat}</p>
         <p>Mengetahui/Menyetujui:</p>
         <p>Pejabat Pembuat Komitmen</p>
-        <div className="h-16 flex items-center justify-center">
-          {ppkSigned && <p className="font-bold text-blue-800 text-[9px]">TTD DIGITAL PPK</p>}
-        </div>
+        <div className="h-16" />
         <p className="font-bold underline uppercase">{ppkNama}</p>
         <p>NIP. {ppkNip}</p>
       </footer>

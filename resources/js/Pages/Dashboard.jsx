@@ -395,8 +395,8 @@ export default function Dashboard({
       </div>
 
       {/* Monitoring Penugasan Pegawai (Sedang Dinas Hari Ini & Keberangkatan Mendatang H-7) */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-4">
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-4">
           <div>
             <div className="flex items-center space-x-2 text-blue-600 font-bold text-xs uppercase tracking-wider mb-1">
               <Plane className="w-4 h-4" />
@@ -445,17 +445,17 @@ export default function Dashboard({
 
         {/* Tab 1: Sedang Dinas Hari Ini */}
         {activeDutyTab === 'onDuty' && (
-          <div className="mt-5">
+          <div className="mt-4">
             {onDutyToday.length === 0 ? (
-              <div className="text-center py-10 bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
-                <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-500 mb-2 opacity-80" />
+              <div className="text-center py-6 bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
+                <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-500 mb-2 opacity-80" />
                 <p className="text-sm font-bold text-slate-800">Tidak ada dinas aktif di luar kantor hari ini</p>
                 <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
                   Semua pegawai Pusdiklat saat ini tercatat berada di kantor atau belum ada surat tugas terbit yang bertanggal hari ini.
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-2">
                 {onDutyToday.map((surat) => {
                   const pegawai = surat.pegawai_list || surat.pegawaiList || [];
                   const tujuan = surat.kategori_perjalanan === 'LUAR_NEGERI'
@@ -465,7 +465,7 @@ export default function Dashboard({
                   return (
                     <div 
                       key={surat.id}
-                      className="bg-slate-50/70 hover:bg-slate-50 rounded-xl p-4 border border-slate-200/90 flex flex-col justify-between transition group"
+                      className="bg-slate-50/70 hover:bg-slate-50 rounded-xl p-3 border border-slate-200/90 flex flex-col justify-between transition group"
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2">
@@ -494,7 +494,7 @@ export default function Dashboard({
                           {surat.perihal_nota}
                         </p>
 
-                        <div className="bg-white rounded-lg p-2.5 border border-slate-200/80 mb-3 text-xs space-y-1.5">
+                        <div className="bg-white rounded-lg p-2 border border-slate-200/80 mb-2 text-xs space-y-1.5">
                           <div className="flex items-center justify-between text-slate-500 text-[11px]">
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" /> Periode Tugas:
@@ -558,17 +558,17 @@ export default function Dashboard({
 
         {/* Tab 2: Jadwal Keberangkatan Mendatang H-7 */}
         {activeDutyTab === 'upcoming' && (
-          <div className="mt-5">
+          <div className="mt-4">
             {upcomingTrips.length === 0 ? (
-              <div className="text-center py-10 bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
-                <CalendarDays className="w-10 h-10 mx-auto text-blue-400 mb-2 opacity-80" />
+              <div className="text-center py-6 bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
+                <CalendarDays className="w-8 h-8 mx-auto text-blue-400 mb-2 opacity-80" />
                 <p className="text-sm font-bold text-slate-800">Belum ada keberangkatan resmi dalam 7 hari ke depan</p>
                 <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
                   Semua surat tugas resmi dengan tanggal keberangkatan dalam 7 hari ke depan akan otomatis dirangkum di sini.
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-2">
                 {upcomingTrips.map((surat) => {
                   const urgency = getUrgencyBadge(surat.tanggal_berangkat);
                   const pegawai = surat.pegawai_list || surat.pegawaiList || [];
@@ -579,7 +579,7 @@ export default function Dashboard({
                   return (
                     <div 
                       key={surat.id}
-                      className="bg-slate-50/70 hover:bg-slate-50 rounded-xl p-4 border border-slate-200/90 flex flex-col justify-between transition group"
+                      className="bg-slate-50/70 hover:bg-slate-50 rounded-xl p-3 border border-slate-200/90 flex flex-col justify-between transition group"
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2">
@@ -947,10 +947,10 @@ export default function Dashboard({
         </div>
 
         {/* Kolom Kanan: Activity Feed / Log Jejak Audit Terkini */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between self-start">
           <div>
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
+            <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
+              <h2 className="text-base font-bold text-slate-900 flex items-center space-x-2">
                 <History className="w-5 h-5 text-indigo-500" />
                 <span>Aktivitas Workflow Terkini</span>
               </h2>
@@ -958,12 +958,12 @@ export default function Dashboard({
             </div>
 
             {recentActivities.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
-                <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <div className="text-center py-8 text-slate-400">
+                <History className="w-10 h-10 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">Belum ada riwayat aktivitas workflow</p>
               </div>
             ) : (
-              <div className="relative pl-6 space-y-5 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+              <div className="relative pl-6 space-y-3 max-h-72 overflow-y-auto pr-2 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
                 {recentActivities.map((log) => {
                   const meta = getActionMeta(log.aksi);
 
@@ -972,7 +972,7 @@ export default function Dashboard({
                       {/* Timeline Dot */}
                       <span className={`absolute -left-[27px] top-1.5 w-3 h-3 rounded-full border-2 border-white ${meta.dot} shadow-2xs`}></span>
 
-                      <div className="bg-slate-50/70 hover:bg-slate-50 p-3 rounded-xl border border-slate-200/80 transition">
+                      <div className="bg-slate-50/70 hover:bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 transition">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-xs font-bold text-slate-900">
@@ -1009,7 +1009,7 @@ export default function Dashboard({
             )}
           </div>
 
-          <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
             <span>Mencatat setiap proses disposisi, penomoran, & TTD</span>
             <Link
               href="/surat-tugas"

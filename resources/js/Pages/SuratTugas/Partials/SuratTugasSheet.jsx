@@ -14,29 +14,29 @@ export default function SuratTugasSheet({
 }) {
   return (
     <div
-      className={`print-sheet-st max-w-[210mm] mx-auto my-6 bg-white px-12 sm:px-20 py-8 sm:py-12 shadow-2xl border border-slate-300 doc-st print-hide-border ${
+      className={`print-preview-sheet print-sheet-st max-w-[210mm] mx-auto my-6 bg-white px-12 sm:px-20 py-8 sm:py-12 shadow-2xl border border-slate-300 doc-st print-hide-border ${
         isActive ? '' : 'hidden'
       }`}
     >
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Kop Surat Kementerian Luar Negeri */}
         <div className="text-center pb-2 flex flex-col items-center justify-center">
           <img
             src="/images/kemlu-logo.webp"
             alt="Lambang Kementerian Luar Negeri"
-            className="h-16 w-16 object-contain"
+            className="h-20 w-auto object-contain"
           />
-          <p className="mt-1.5 text-[12px] font-extrabold tracking-wide text-[#0F2C59] leading-tight">
+          <p className="mt-1.5 text-[12px] font-extrabold tracking-wide text-blue-900 leading-tight">
             KEMENTERIAN LUAR NEGERI
           </p>
-          <p className="mt-0.5 text-[9px] font-bold tracking-[0.22em] text-[#B4233A] leading-tight">
+          <p className="mt-0.5 text-[9px] font-bold tracking-[0.22em] text-red-700 leading-tight">
             REPUBLIK INDONESIA
           </p>
         </div>
 
         {/* Judul Surat Tugas */}
         <div className="text-center space-y-1">
-          <h1 className="font-bold text-base uppercase tracking-wider text-black">
+          <h1 className="font-bold text-base uppercase tracking-wider text-black underline underline-offset-2">
             SURAT TUGAS
           </h1>
           <p className="font-bold text-xs text-black">Nomor: {nomorST}</p>

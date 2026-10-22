@@ -26,7 +26,6 @@ export default function Print({ suratTugas }) {
   const tanggalKembali = formatDate(suratTugas.tanggal_kembali);
   const ppkNama = suratTugas.ppk_nama_snapshot || suratTugas.ppk?.pegawai?.nama || suratTugas.ppk?.name || suratTugas.ppk?.nama || '-';
   const ppkNip = suratTugas.ppk_nip_snapshot || suratTugas.ppk?.pegawai?.nip || suratTugas.ppk?.nip || '-';
-  const ppkSigned = Boolean(suratTugas.is_ppk_signed);
   const tahunAnggaran = tanggalSuratRaw?.slice(0, 4) || suratTugas.tanggal_berangkat?.slice(0, 4) || '-';
 
   const documentTabs = [
@@ -49,17 +48,40 @@ export default function Print({ suratTugas }) {
     tahunAnggaran,
     ppkNama,
     ppkNip,
-    ppkSigned,
   };
 
   return (
     <div className="print-document-flow min-h-screen bg-slate-200 font-sans text-black">
       <Head title={`Pratinjau ST & SPD - ${nomorST}`} />
       <style>{`
-        .spd-brand img { width: 18mm; height: 16mm; object-fit: contain; }
-        .spd-brand-name { margin-top: 0.5mm; font-size: 8pt; font-weight: 800; line-height: 1.1; color: #0F2C59; }
-        .spd-brand-country { margin-top: 0.8mm; font-size: 6pt; letter-spacing: 1.5pt; line-height: 1; color: #b4233a; font-weight: 700; }
-        .spd-annex { font-size: 5.5pt; line-height: 1.2; }
+        @media screen {
+          .print-preview-sheet table td,
+          .print-preview-sheet table th {
+            padding: 0.6rem !important;
+          }
+          .print-sheet-lampiran {
+            box-sizing: border-box;
+            padding: 10mm;
+          }
+          .print-sheet-visum {
+            box-sizing: border-box;
+            padding: 15mm 20mm;
+          }
+          .print-sheet-lampiran .lampiran-date {
+            padding-right: 0.15rem !important;
+            padding-left: 0.15rem !important;
+          }
+        }
+        .spd-brand img { width: auto; height: 5rem; object-fit: contain; }
+        .spd-brand-name { margin-top: 0.5mm; font-size: 8pt; font-weight: 800; line-height: 1.1; }
+        .spd-brand-country { margin-top: 0.8mm; font-size: 6pt; letter-spacing: 1.5pt; line-height: 1; font-weight: 700; }
+        .spd-annex { margin-left: 5mm; font-size: 5.5pt; line-height: 1.2; }
+        .visum-entry-cell { position: relative; }
+        .visum-signature { position: absolute; right: 0; bottom: 2mm; left: 0; display: flex; flex-direction: column; align-items: center; white-space: nowrap; }
+        .visum-signature-brackets { display: flex; width: 100%; height: 6mm; align-items: flex-end; justify-content: space-between; padding: 0 12mm; line-height: 1; }
+        .visum-signature-nip { margin: 1mm 0 0; line-height: 1; }
+        .visum-ppk-cell { position: relative; }
+        .visum-ppk-signature { position: absolute; right: 2mm; bottom: 2mm; left: 2mm; text-align: center; line-height: 1.15; }
         .print-sheet-st, .print-sheet-spd, .print-sheet-lampiran, .print-sheet-visum {
           box-sizing: border-box;
           width: 100%;
@@ -72,6 +94,10 @@ export default function Print({ suratTugas }) {
         }
         @media print {
           @page { size: A4 portrait; margin: 15mm 20mm 15mm 20mm; }
+          @page surat-tugas { size: A4 portrait; margin: 0; }
+          @page spd { size: A4 portrait; margin: 0; }
+          @page lampiran { size: A4 portrait; margin: 0; }
+          @page visum { size: A4 portrait; margin: 0; }
           .no-print { display: none !important; }
           .hidden,
           .print-sheet-st.hidden,
@@ -94,6 +120,23 @@ export default function Print({ suratTugas }) {
             break-inside: avoid !important;
             font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
           }
+          .print-sheet-st { page: surat-tugas; }
+          .print-sheet-spd { page: spd; }
+          .print-sheet-lampiran {
+            page: lampiran;
+            box-sizing: border-box;
+            width: 210mm !important;
+            max-width: 210mm !important;
+            padding: 10mm !important;
+          }
+          .print-sheet-visum {
+            page: visum;
+            box-sizing: border-box;
+            width: 210mm !important;
+            max-width: 210mm !important;
+            min-height: 297mm;
+            padding: 15mm 20mm !important;
+          }
           .print-sheet-st { width: 170mm !important; max-width: 170mm !important; margin: 0 auto !important; }
           .spd-document:not(.hidden) {
             box-sizing: border-box;
@@ -115,11 +158,12 @@ export default function Print({ suratTugas }) {
           .spd-info { min-height: 11mm; flex: 0 0 11mm; }
           .spd-title { min-height: 8mm; flex: 0 0 8mm; padding: 0 !important; }
           .spd-title h2 { font-size: 11pt; font-weight: 700; }
-          .spd-table { width: 100%; flex: 1 1 auto; table-layout: fixed; font-size: 7pt; line-height: 1.05; }
+          .spd-table { width: 100%; min-height: 0; flex: 1 1 0; table-layout: fixed; font-size: 7pt; line-height: 1.05; }
           .spd-table td { padding: 0.5mm !important; line-height: 1 !important; }
           .spd-table .h-20 { height: auto !important; min-height: 7mm; }
-          .spd-footer { min-height: 34mm; flex: 0 0 34mm; padding-top: 0.5mm !important; }
-          .spd-stamp-space { height: 16mm !important; min-height: 16mm; flex: 0 0 16mm; }
+          .spd-footer { height: 34mm; min-height: 34mm; flex: 0 0 34mm; padding-top: 0.5mm !important; }
+          .spd-footer .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 1mm !important; }
+          .spd-stamp-space { height: 14mm !important; min-height: 14mm; flex: 0 0 14mm; }
           .spd-stamp-space .border-dashed { width: 14mm; height: 14mm; font-size: 5pt; }
           .print-page-break { display: none !important; }
           .print-hide-border { border: 0 !important; }
