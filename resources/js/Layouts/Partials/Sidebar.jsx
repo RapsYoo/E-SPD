@@ -107,6 +107,20 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
               )}
             </div>
 
+            {/* Direktori Pegawai (read-only) untuk role pegawai */}
+            {auth?.user?.role === 'pegawai' && (
+              <Link
+                href="/pegawai"
+                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition ${isActive('/pegawai')
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                  }`}
+              >
+                <Users className={`w-5 h-5 ${isActive('/pegawai') ? 'text-slate-950' : 'text-amber-400'}`} />
+                <span>Data Pegawai</span>
+              </Link>
+            )}
+
             {/* Group 2: Master Database (Admin Access) */}
             {auth?.user?.role === 'admin' && (
               <div className="pt-2">
@@ -147,7 +161,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                       <span>Data Pegawai</span>
                     </Link>
 
-                    <Link
+                    {/* Menu Unit Kerja di-hide sementara sesuai arahan */}
+                    {/* <Link
                       href="/admin/unit-kerja"
                       className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/unit-kerja')
                         ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
@@ -156,7 +171,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                     >
                       <Building2 className="w-4 h-4" />
                       <span>Unit Kerja</span>
-                    </Link>
+                    </Link> */}
 
                     <Link
                       href="/admin/users"
@@ -190,7 +205,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
         <div className="p-4 border-t border-slate-800 bg-[#081935] text-xs text-slate-400 flex flex-col space-y-1">
           <div className="flex items-center justify-between text-slate-300">
             <span className="font-semibold text-amber-400">e-SPD Pusdiklat</span>
-            <span className="font-mono text-slate-300">Beta v1.4.1</span>
+            <span className="font-mono text-slate-300">Beta v1.4.3</span>
           </div>
           <p className="text-[11px] text-slate-400">Kementerian Luar Negeri RI</p>
         </div>

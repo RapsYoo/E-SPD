@@ -3,6 +3,8 @@
 namespace App\Services\SuratTugas;
 
 use App\Models\SuratTugas;
+use App\Models\User;
+use App\Support\SuratTugasStatus as S;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
@@ -11,13 +13,18 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 class QueryService
 {
     /**
-     * Akses terbuka untuk semua aktor (track pengaju dicatat per dokumen).
+     * Akses terbuka untuk semua aktor internal (track pengaju dicatat per dokumen).
+     * Role pegawai hanya melihat surat terbit yang menugaskan dirinya.
      *
      * @param  array{search?: ?string, status?: ?string}  $filters
      */
-    public function paginate(array $filters): LengthAwarePaginator
+    public function paginate(array $filters, ?User $user = null): LengthAwarePaginator
     {
         $query = SuratTugas::with(['pegawaiList', 'ppk.pegawai', 'user']);
+
+        if ($user?->role === S::PEGAWAI_ROLE) {
+            $query->diikutiPegawai($user->pegawai_id)->whereIn('status', S::PEGAWAI_VISIBLE);
+        }
 
         if (! empty($filters['search'])) {
             $search = $filters['search'];

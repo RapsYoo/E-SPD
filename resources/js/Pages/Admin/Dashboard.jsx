@@ -269,7 +269,8 @@ export default function Dashboard({ stats, recentPegawai }) {
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition" />
               </Link>
 
-              <Link
+              {/* Master Unit Kerja di-hide sementara sesuai arahan */}
+              {/* <Link
                 href="/admin/unit-kerja"
                 className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50 transition group"
               >
@@ -283,7 +284,7 @@ export default function Dashboard({ stats, recentPegawai }) {
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition" />
-              </Link>
+              </Link> */}
 
               <Link
                 href="/admin/referensi"

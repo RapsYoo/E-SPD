@@ -66,6 +66,64 @@ class DashboardService
         ];
     }
 
+    /**
+     * Dashboard role pegawai: perjalanan dinas milik sendiri (surat terbit) dikelompokkan berdasarkan waktu.
+     *
+     * @return array{trips: Collection, summary: array<string, int>, hasPegawaiLink: bool}
+     */
+    public function pegawaiOverview(User $user): array
+    {
+        $today = now()->toDateString();
+
+        $trips = SuratTugas::query()
+            ->diikutiPegawai($user->pegawai_id)
+            ->whereIn('status', S::PEGAWAI_VISIBLE)
+            ->with('pegawaiList')
+            ->orderByDesc('tanggal_berangkat')
+            ->get()
+            ->map(function (SuratTugas $surat) use ($today, $user) {
+                $berangkat = $surat->tanggal_berangkat?->toDateString();
+                $kembali = $surat->tanggal_kembali?->toDateString() ?? $berangkat;
+
+                $phase = match (true) {
+                    $berangkat === null => 'belum_dijadwalkan',
+                    $berangkat > $today => 'akan_datang',
+                    $kembali < $today => 'selesai',
+                    default => 'berlangsung',
+                };
+
+                return [
+                    'id' => $surat->id,
+                    'nomor_st' => $surat->nomor_st,
+                    'nomor_spd' => $surat->nomor_spd,
+                    'perihal_nota' => $surat->perihal_nota,
+                    'kategori_perjalanan' => $surat->kategori_perjalanan,
+                    'tempat_berangkat' => $surat->tempat_berangkat,
+                    'tempat_tujuan' => $surat->tempat_tujuan,
+                    'negara_tujuan' => $surat->negara_tujuan,
+                    'tanggal_berangkat' => $berangkat,
+                    'tanggal_kembali' => $surat->tanggal_kembali?->toDateString(),
+                    'durasi_hari' => $surat->durasi_hari,
+                    'phase' => $phase,
+                    'rekan' => $surat->pegawaiList
+                        ->where('pegawai_id', '!=', $user->pegawai_id)
+                        ->pluck('nama')
+                        ->values(),
+                ];
+            });
+
+        return [
+            'trips' => $trips->values(),
+            'summary' => [
+                'total' => $trips->count(),
+                'berlangsung' => $trips->where('phase', 'berlangsung')->count(),
+                'akan_datang' => $trips->where('phase', 'akan_datang')->count(),
+                'selesai' => $trips->where('phase', 'selesai')->count(),
+            ],
+            'hasPegawaiLink' => $user->pegawai_id !== null,
+        ];
+    }
+
     /** Statistik master data untuk dashboard admin. */
     public function adminStats(): array
     {

@@ -31,6 +31,12 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
             PPK
           </span>
         );
+      case 'pegawai':
+        return (
+          <span className="bg-teal-600 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+            Pegawai
+          </span>
+        );
       default:
         return (
           <span className="bg-indigo-600 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -75,5 +76,22 @@ class SuratTugas extends Model
     public function logs()
     {
         return $this->hasMany(SuratTugasLog::class, 'surat_tugas_id')->orderByDesc('created_at');
+    }
+
+    /**
+     * Surat yang menugaskan pegawai tertentu sebagai peserta perjalanan dinas.
+     */
+    public function scopeDiikutiPegawai(Builder $query, ?int $pegawaiId): Builder
+    {
+        return $query->whereHas(
+            'pegawaiList',
+            fn (Builder $q) => $q->where('pegawai_id', $pegawaiId ?? 0)
+        );
+    }
+
+    public function isDiikutiPegawai(?int $pegawaiId): bool
+    {
+        return $pegawaiId !== null
+            && $this->pegawaiList()->where('pegawai_id', $pegawaiId)->exists();
     }
 }

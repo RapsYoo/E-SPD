@@ -21,6 +21,7 @@ class UserService
         'kapus' => 'Kepala Pusat (Kapus)',
         'tu' => 'Tata Usaha (TU)',
         'ppk' => 'PPK',
+        'pegawai' => 'Pegawai',
     ];
 
     /** @param array{search?: ?string, role?: ?string} $filters */

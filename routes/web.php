@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PegawaiDirectoryController;
 use App\Http\Controllers\Admin\PegawaiController;
 use App\Http\Controllers\Admin\UnitKerjaController;
 use App\Http\Controllers\Admin\UserController;
@@ -38,8 +39,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/surat-tugas', [SuratTugasController::class, 'store'])->name('surat-tugas.store');
     });
 
-    // Lihat semua usulan — semua role internal boleh masuk, scoping milik sendiri tetap di controller.
-    Route::middleware('role:admin,pemohon,sespalu,kapus,tu,ppk')->group(function () {
+    // Lihat semua usulan — role internal + pegawai (pegawai di-scope ke perjalanannya sendiri di service).
+    Route::middleware('role:admin,pemohon,sespalu,kapus,tu,ppk,pegawai')->group(function () {
         Route::get('/surat-tugas', [SuratTugasController::class, 'index'])->name('surat-tugas.index');
         Route::get('/surat-tugas/{suratTugas}', [SuratTugasController::class, 'show'])->name('surat-tugas.show');
     });
@@ -50,7 +51,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/surat-tugas/{suratTugas}/penomoran', [SuratTugasController::class, 'penomoran'])->middleware('role:tu,admin')->name('surat-tugas.penomoran');
     Route::post('/surat-tugas/{suratTugas}/sign-ppk', [SuratTugasController::class, 'signPpk'])->middleware('role:ppk,admin')->name('surat-tugas.sign-ppk');
     // P1: cetak akses luas — middleware longgar (semua role internal), otorisasi detail (owner/role+status) di controller.
-    Route::get('/surat-tugas/{suratTugas}/cetak', [SuratTugasController::class, 'cetak'])->middleware('role:admin,pemohon,sespalu,kapus,tu,ppk')->name('surat-tugas.cetak');
+    Route::get('/surat-tugas/{suratTugas}/cetak', [SuratTugasController::class, 'cetak'])->middleware('role:admin,pemohon,sespalu,kapus,tu,ppk,pegawai')->name('surat-tugas.cetak');
+
+    // Direktori pegawai read-only untuk role pegawai.
+    Route::get('/pegawai', [PegawaiDirectoryController::class, 'index'])->middleware('role:pegawai')->name('pegawai.index');
 
     // Hapus histori — admin saja.
     Route::delete('/surat-tugas/{suratTugas}', [SuratTugasController::class, 'destroy'])->middleware('role:admin')->name('surat-tugas.destroy');

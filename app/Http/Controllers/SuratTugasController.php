@@ -33,7 +33,7 @@ class SuratTugasController extends Controller
     public function index(Request $request)
     {
         return Inertia::render('SuratTugas/Index', [
-            'suratTugas' => $this->queries->paginate($request->only(['search', 'status'])),
+            'suratTugas' => $this->queries->paginate($request->only(['search', 'status']), auth()->user()),
             'filters' => $request->only(['search', 'status']),
             'userRole' => auth()->user()?->role ?? 'pemohon',
             'authUserId' => auth()->id(),
@@ -103,16 +103,20 @@ class SuratTugasController extends Controller
 
     public function show(SuratTugas $suratTugas)
     {
-        // Akses detail terbuka untuk semua aktor terautentikasi
+        // Akses detail terbuka untuk aktor internal; role pegawai hanya untuk perjalanannya sendiri.
         $user = auth()->user();
-        $suratTugas->load(['pegawaiList', 'ppk.pegawai', 'user', 'logs.user']);
+        abort_unless($this->workflow->canView($suratTugas, $user), 403, 'Anda tidak memiliki akses ke surat ini.');
+        $isPegawai = $user?->role === SuratTugasStatus::PEGAWAI_ROLE;
+        $suratTugas->load($isPegawai
+            ? ['pegawaiList', 'ppk.pegawai']
+            : ['pegawaiList', 'ppk.pegawai', 'user', 'logs.user']);
 
         return Inertia::render('SuratTugas/Show', [
             'suratTugas' => $suratTugas,
             'userRole' => $user?->role ?? 'pemohon',
             'authUserId' => $user?->id,
-            'logs' => $suratTugas->logs,
-            'attachments' => $this->attachments->payload($suratTugas),
+            'logs' => $isPegawai ? [] : $suratTugas->logs,
+            'attachments' => $isPegawai ? [] : $this->attachments->payload($suratTugas),
             'runningNumber' => in_array($user?->role, ['tu', 'admin'], true)
                 ? $this->queries->lastNumbered()
                 : null,

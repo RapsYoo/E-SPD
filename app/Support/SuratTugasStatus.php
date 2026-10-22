@@ -26,4 +26,10 @@ final class SuratTugasStatus
 
     /** Peran yang boleh mencetak dokumen terlepas dari kepemilikan. */
     public const PRINT_ROLES = ['tu', 'admin', 'kapus', 'ppk'];
+
+    /** Peran pegawai biasa: hanya melihat surat perjalanannya sendiri. */
+    public const PEGAWAI_ROLE = 'pegawai';
+
+    /** Status surat yang boleh dilihat/diunduh pegawai peserta (hanya yang sudah terbit resmi). */
+    public const PEGAWAI_VISIBLE = [self::SELESAI_TERBIT];
 }

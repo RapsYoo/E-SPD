@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\DashboardService;
+use App\Support\SuratTugasStatus;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -12,6 +13,12 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
+
+        if ($user->role === SuratTugasStatus::PEGAWAI_ROLE) {
+            return Inertia::render('DashboardPegawai', $this->dashboard->pegawaiOverview($user) + [
+                'userName' => $user->name,
+            ]);
+        }
 
         return Inertia::render('Dashboard', $this->dashboard->overview($user) + [
             'userRole' => $user->role,

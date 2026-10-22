@@ -152,7 +152,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
           )}
 
           {/* Cetak luas: kapus/ppk/pemilik saat sudah terbit */}
-          {['kapus','ppk','pemohon','sespalu'].includes(userRole) && suratTugas.status === 'SELESAI_TERBIT' && (
+          {['kapus','ppk','pemohon','sespalu','pegawai'].includes(userRole) && suratTugas.status === 'SELESAI_TERBIT' && (
             ((userRole === 'pemohon' || userRole === 'sespalu') ? suratTugas.user_id === authUserId : true) && (
               <a
                 href={`/surat-tugas/${suratTugas.id}/cetak`}
