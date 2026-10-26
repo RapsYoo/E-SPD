@@ -10,6 +10,8 @@ export default function SuratTugasSheet({
   tanggalKembali = '-',
   tujuanPerjalanan = '-',
   tahunAnggaran = '-',
+  kapusNama = null,
+  kapusNip = null,
   isActive = true,
 }) {
   return (
@@ -129,8 +131,8 @@ export default function SuratTugasSheet({
             <div className="h-24 sm:h-28" />
 
             <div>
-              <p className="font-bold underline">Khasan Ashari</p>
-              <p className="text-[12px]">NIP. 19750617 200003 1 001</p>
+              <p className="font-bold underline">{kapusNama || '..............................'}</p>
+              <p className="text-[12px]">NIP. {kapusNip || '..............................'}</p>
             </div>
           </div>
         </div>

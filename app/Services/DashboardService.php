@@ -10,6 +10,7 @@ use App\Models\TingkatBiaya;
 use App\Models\UnitKerja;
 use App\Models\User;
 use App\Support\SuratTugasStatus as S;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -158,12 +159,17 @@ class DashboardService
     /** Surat yang memerlukan aksi pengguna saat ini, menurut perannya. */
     private function needsAction(User $user): Collection|array
     {
-        $query = match (true) {
+        return $this->needsActionQuery($user)?->orderBy('created_at', 'asc')->limit(10)->get() ?? [];
+    }
+
+    private function needsActionQuery(User $user): ?Builder
+    {
+        return match (true) {
             $user->role === 'kapus' => SuratTugas::where('status', S::MENUNGGU_DISPOSISI_KAPUS)->with(['user', 'pegawaiList']),
             $user->role === 'tu' => SuratTugas::where('status', S::MENUNGGU_PENOMORAN_TU)->with(['user', 'pegawaiList']),
             $user->role === 'ppk' => SuratTugas::where('status', S::SELESAI_TERBIT)->where('is_ppk_signed', false)->with(['user', 'pegawaiList']),
             in_array($user->role, ['pemohon', 'sespalu'], true) => SuratTugas::where('user_id', $user->id)
-                ->whereIn('status', [S::DISPOSISI_KAPUS_YA, S::DISPOSISI_KAPUS_REVISI])->with(['pegawaiList']),
+                ->whereIn('status', [S::DISPOSISI_KAPUS_YA, S::DISPOSISI_KAPUS_REVISI, S::DISPOSISI_KAPUS_STOP])->with(['pegawaiList']),
             $user->role === 'admin' => SuratTugas::whereIn('status', [
                 S::MENUNGGU_DISPOSISI_KAPUS,
                 S::MENUNGGU_PENOMORAN_TU,
@@ -172,8 +178,75 @@ class DashboardService
             ])->with(['user', 'pegawaiList']),
             default => null,
         };
+    }
 
-        return $query?->orderBy('created_at', 'asc')->limit(10)->get() ?? [];
+    /**
+     * Lencana notifikasi in-app: jumlah pekerjaan yang menunggu pengguna + beberapa item terbaru.
+     * Dihitung langsung dari status surat sehingga selalu sinkron (tanpa tabel notifikasi terpisah).
+     *
+     * @return array{count: int, items: array<int, array{id: int, title: ?string, message: string, url: string}>}
+     */
+    public function notifications(User $user): array
+    {
+        if ($user->role === S::PEGAWAI_ROLE) {
+            return $this->pegawaiNotifications($user);
+        }
+
+        $query = $this->needsActionQuery($user);
+        if ($query === null) {
+            return ['count' => 0, 'items' => []];
+        }
+
+        $count = (clone $query)->count();
+        $items = $query->orderBy('created_at', 'asc')->limit(5)->get()->map(fn (SuratTugas $s) => [
+            'id' => $s->id,
+            'title' => $s->perihal_nota,
+            'message' => $this->actionMessage($user, $s),
+            'url' => '/surat-tugas/'.$s->id,
+        ])->all();
+
+        return ['count' => $count, 'items' => $items];
+    }
+
+    /** Pegawai diberi tahu perjalanan dinas yang akan/sedang berlangsung dalam 7 hari ke depan. */
+    private function pegawaiNotifications(User $user): array
+    {
+        $today = now()->toDateString();
+        $query = SuratTugas::query()
+            ->diikutiPegawai($user->pegawai_id)
+            ->whereIn('status', S::PEGAWAI_VISIBLE)
+            ->whereNotNull('tanggal_berangkat')
+            ->where('tanggal_berangkat', '<=', now()->addDays(7)->toDateString())
+            ->where(fn (Builder $q) => $q->whereNull('tanggal_kembali')->orWhere('tanggal_kembali', '>=', $today));
+
+        $count = (clone $query)->count();
+        $items = $query->orderBy('tanggal_berangkat')->limit(5)->get()->map(function (SuratTugas $s) use ($today) {
+            $berangkat = $s->tanggal_berangkat->toDateString();
+
+            return [
+                'id' => $s->id,
+                'title' => $s->perihal_nota,
+                'message' => $berangkat <= $today
+                    ? 'Perjalanan dinas sedang berlangsung'
+                    : 'Berangkat '.$s->tanggal_berangkat->translatedFormat('d M Y').' ('.(int) now()->startOfDay()->diffInDays($s->tanggal_berangkat->copy()->startOfDay()).' hari lagi)',
+                'url' => '/surat-tugas/'.$s->id,
+            ];
+        })->all();
+
+        return ['count' => $count, 'items' => $items];
+    }
+
+    private function actionMessage(User $user, SuratTugas $surat): string
+    {
+        return match (true) {
+            $user->role === 'kapus' => 'Menunggu disposisi Anda',
+            $user->role === 'tu' => 'Menunggu penomoran resmi',
+            $user->role === 'ppk' => 'Menunggu tanda tangan digital Anda',
+            $surat->status === S::DISPOSISI_KAPUS_YA => 'Disetujui Kapus — lengkapi draft ST & SPD',
+            $surat->status === S::DISPOSISI_KAPUS_REVISI => 'Kapus meminta revisi nota',
+            $surat->status === S::DISPOSISI_KAPUS_STOP => 'Dihentikan Kapus — dapat diajukan ulang',
+            default => S::LABELS[$surat->status] ?? $surat->status,
+        };
     }
 
     /** Pegawai yang sedang aktif dinas di luar kantor hari ini. */

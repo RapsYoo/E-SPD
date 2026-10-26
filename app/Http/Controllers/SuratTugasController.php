@@ -152,6 +152,15 @@ class SuratTugasController extends Controller
         );
     }
 
+    // Usulan dihentikan Kapus -> buka kembali sebagai draft (pengusul/admin).
+    public function ajukanUlang(Request $request, SuratTugas $suratTugas)
+    {
+        $this->workflow->ajukanUlang($suratTugas, $request->user());
+
+        return redirect()->route('surat-tugas.draft.edit', $suratTugas->id)
+            ->with('success', 'Usulan dibuka kembali sebagai draft. Perbaiki sesuai catatan Kapus lalu kirim ulang.');
+    }
+
     // Print Document View Generator — P1: akses luas (TU/admin/kapus/ppk + pemilik), status minimal disetujui Kapus.
     public function cetak(SuratTugas $suratTugas)
     {
@@ -165,8 +174,15 @@ class SuratTugasController extends Controller
         $suratTugas->load(['pegawaiList', 'ppk.pegawai', 'user']);
         $this->workflow->logPrint($suratTugas, $user);
 
+        $live = $this->workflow->kapusAktif();
+
         return Inertia::render('SuratTugas/Print', [
             'suratTugas' => $suratTugas,
+            // Surat terbit memakai snapshot saat penomoran; pratinjau sebelum terbit memakai Kapus aktif.
+            'kapus' => [
+                'nama' => $suratTugas->kapus_nama_snapshot ?: $live['nama'],
+                'nip' => $suratTugas->kapus_nip_snapshot ?: $live['nip'],
+            ],
         ]);
     }
 

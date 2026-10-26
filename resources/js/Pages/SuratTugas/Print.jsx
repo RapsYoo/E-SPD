@@ -7,7 +7,7 @@ import SpdSheet from './Partials/SpdSheet';
 import LampiranMatriksSheet from './Partials/LampiranMatriksSheet';
 import VisumRampunganSheet from './Partials/VisumRampunganSheet';
 
-export default function Print({ suratTugas }) {
+export default function Print({ suratTugas, kapus = {} }) {
   const [activeDocument, setActiveDocument] = useState('st');
   const pegawaiList = Array.isArray(suratTugas.pegawai_list) ? suratTugas.pegawai_list : [];
   const tujuanPerjalanan = [
@@ -48,6 +48,8 @@ export default function Print({ suratTugas }) {
     tahunAnggaran,
     ppkNama,
     ppkNip,
+    kapusNama: kapus?.nama,
+    kapusNip: kapus?.nip,
   };
 
   return (

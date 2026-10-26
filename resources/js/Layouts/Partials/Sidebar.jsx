@@ -12,10 +12,13 @@ import {
   PlusCircle,
   FileText,
   KeyRound,
+  BarChart3,
 } from 'lucide-react';
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
-  const { auth } = usePage().props;
+  const { auth, notifications } = usePage().props;
+  const notifCount = notifications?.count ?? 0;
+  const canSeeRekap = ['admin', 'tu', 'ppk', 'kapus'].includes(auth?.user?.role);
   const [masterMenuOpen, setMasterMenuOpen] = useState(true);
   const [suratMenuOpen, setSuratMenuOpen] = useState(true);
   const currentRoute = window.location.pathname;
@@ -58,7 +61,12 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
               <LayoutDashboard
                 className={`w-5 h-5 ${currentRoute === '/dashboard' ? 'text-slate-950' : 'text-amber-400'}`}
               />
-              <span>Dashboard</span>
+              <span className="flex-1">Dashboard</span>
+              {notifCount > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center">
+                  {notifCount}
+                </span>
+              )}
             </Link>
 
             {/* Group 1: Dokumen ST & SPD */}
@@ -106,6 +114,19 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                 </div>
               )}
             </div>
+
+            {canSeeRekap && (
+              <Link
+                href="/rekapitulasi"
+                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition ${isActive('/rekapitulasi')
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                  }`}
+              >
+                <BarChart3 className={`w-5 h-5 ${isActive('/rekapitulasi') ? 'text-slate-950' : 'text-amber-400'}`} />
+                <span>Rekapitulasi</span>
+              </Link>
+            )}
 
             {/* Direktori Pegawai (read-only) untuk role pegawai */}
             {auth?.user?.role === 'pegawai' && (
@@ -205,7 +226,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
         <div className="p-4 border-t border-slate-800 bg-[#081935] text-xs text-slate-400 flex flex-col space-y-1">
           <div className="flex items-center justify-between text-slate-300">
             <span className="font-semibold text-amber-400">e-SPD Pusdiklat</span>
-            <span className="font-mono text-slate-300">Beta v1.4.3</span>
+            <span className="font-mono text-slate-300">Beta v1.4.6</span>
           </div>
           <p className="text-[11px] text-slate-400">Kementerian Luar Negeri RI</p>
         </div>

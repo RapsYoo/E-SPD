@@ -1,20 +1,19 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\PegawaiDirectoryController;
 use App\Http\Controllers\Admin\PegawaiController;
+use App\Http\Controllers\Admin\ReferensiController;
 use App\Http\Controllers\Admin\UnitKerjaController;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\ReferensiController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PegawaiDirectoryController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RekapitulasiController;
 use App\Http\Controllers\SuratTugasController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', function () {
-    if (!auth()->check()) {
+    if (! auth()->check()) {
         return redirect()->route('login');
     }
 
@@ -50,6 +49,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/surat-tugas/{suratTugas}/disposisi', [SuratTugasController::class, 'disposisi'])->middleware('role:kapus,admin')->name('surat-tugas.disposisi');
     Route::post('/surat-tugas/{suratTugas}/penomoran', [SuratTugasController::class, 'penomoran'])->middleware('role:tu,admin')->name('surat-tugas.penomoran');
     Route::post('/surat-tugas/{suratTugas}/sign-ppk', [SuratTugasController::class, 'signPpk'])->middleware('role:ppk,admin')->name('surat-tugas.sign-ppk');
+    // Usulan yang dihentikan Kapus dapat diajukan ulang (otorisasi pemilik/admin di service).
+    Route::post('/surat-tugas/{suratTugas}/ajukan-ulang', [SuratTugasController::class, 'ajukanUlang'])->middleware('role:pemohon,sespalu,admin')->name('surat-tugas.ajukan-ulang');
+
+    // Rekapitulasi & ekspor laporan perjalanan dinas.
+    Route::middleware('role:admin,tu,ppk,kapus')->group(function () {
+        Route::get('/rekapitulasi', [RekapitulasiController::class, 'index'])->name('rekapitulasi.index');
+        Route::get('/rekapitulasi/export', [RekapitulasiController::class, 'export'])->name('rekapitulasi.export');
+    });
     // P1: cetak akses luas — middleware longgar (semua role internal), otorisasi detail (owner/role+status) di controller.
     Route::get('/surat-tugas/{suratTugas}/cetak', [SuratTugasController::class, 'cetak'])->middleware('role:admin,pemohon,sespalu,kapus,tu,ppk,pegawai')->name('surat-tugas.cetak');
 

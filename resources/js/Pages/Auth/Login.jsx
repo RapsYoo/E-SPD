@@ -127,106 +127,11 @@ function LoginForm({ canResetPassword, status }) {
     );
 }
 
-// ─── Register Form Component ───────────────────────────────────────────────
-function RegisterForm() {
-    const { errors } = usePage().props;
-    const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '' });
-    const [loading, setLoading] = useState(false);
-
-    const set = useCallback((key) => (value) => setForm((f) => ({ ...f, [key]: value })), []);
-
-    const submit = (e) => {
-        e.preventDefault();
-        setLoading(true);
-        router.post(route('register'), form, { onFinish: () => setLoading(false) });
-    };
-
-    return (
-        <form onSubmit={submit} noValidate className="space-y-4">
-            {/* Name */}
-            <div>
-                <input
-                    id="name"
-                    type="text"
-                    autoFocus
-                    autoComplete="name"
-                    value={form.name}
-                    onChange={(e) => set('name')(e.target.value)}
-                    placeholder="Nama Lengkap"
-                    className={`block w-full rounded-lg border py-3 px-4 text-sm text-slate-700 placeholder-slate-400 outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-200 ${
-                        errors?.name ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'
-                    }`}
-                />
-                {errors?.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
-            </div>
-
-            {/* Email */}
-            <div>
-                <input
-                    id="reg-email"
-                    type="email"
-                    autoComplete="email"
-                    value={form.email}
-                    onChange={(e) => set('email')(e.target.value)}
-                    placeholder="Email"
-                    className={`block w-full rounded-lg border py-3 px-4 text-sm text-slate-700 placeholder-slate-400 outline-none transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-200 ${
-                        errors?.email ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'
-                    }`}
-                />
-                {errors?.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
-            </div>
-
-            {/* Password */}
-            <PasswordInput
-                id="reg-password"
-                value={form.password}
-                onChange={set('password')}
-                placeholder="Password (min. 8 karakter)"
-                autoComplete="new-password"
-                error={errors?.password}
-            />
-
-            {/* Confirm Password */}
-            <PasswordInput
-                id="password_confirmation"
-                value={form.password_confirmation}
-                onChange={set('password_confirmation')}
-                placeholder="Konfirmasi Password"
-                autoComplete="new-password"
-                error={errors?.password_confirmation}
-            />
-
-            {/* Submit */}
-            <button
-                type="submit"
-                disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-400 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-sky-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {loading ? 'Mendaftarkan…' : 'Daftar Sekarang'}
-            </button>
-
-            {/* Back to login */}
-            <div className="text-center pt-1">
-                <p className="text-xs text-slate-500">
-                    Sudah punya akun?{' '}
-                    <Link href={route('login')} className="font-medium text-sky-600 hover:underline">
-                        Masuk di sini
-                    </Link>
-                </p>
-            </div>
-        </form>
-    );
-}
-
 // ─── Main Auth Page ────────────────────────────────────────────────────────
 export default function Login({ canResetPassword, status }) {
-    const { url } = usePage();
-    const isRegister = url.startsWith('/register');
-
     return (
         <>
-            <Head title={isRegister ? 'Daftar Akun' : 'Masuk'} />
+            <Head title="Masuk" />
 
             <div className="flex min-h-screen">
                 {/* Left Panel — Form */}
@@ -252,22 +157,11 @@ export default function Login({ canResetPassword, status }) {
 
                     {/* Form Header */}
                     <div className="mb-4">
-                        <h2 className="text-lg font-bold text-slate-800">
-                            {isRegister ? 'Buat Akun Baru' : 'Selamat Datang'}
-                        </h2>
-                        <p className="mt-0.5 text-sm text-slate-500">
-                            {isRegister
-                                ? 'Isi data diri untuk mendaftar ke sistem E-SPD'
-                                : 'Silakan masuk ke sistem E-SPD'}
-                        </p>
+                        <h2 className="text-lg font-bold text-slate-800">Selamat Datang</h2>
+                        <p className="mt-0.5 text-sm text-slate-500">Silakan masuk ke sistem E-SPD</p>
                     </div>
 
-                    {/* Form Toggle */}
-                    {isRegister ? (
-                        <RegisterForm />
-                    ) : (
-                        <LoginForm canResetPassword={canResetPassword} status={status} />
-                    )}
+                    <LoginForm canResetPassword={canResetPassword} status={status} />
 
                     {/* Footer */}
                     <p className="mt-6 text-center text-[10px] text-slate-400">

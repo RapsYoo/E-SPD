@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { FileSignature, Menu, X, LogOut } from 'lucide-react';
+import { FileSignature, Menu, X, LogOut, Bell } from 'lucide-react';
 
 export default function Navbar({ sidebarOpen, setSidebarOpen }) {
-  const { auth } = usePage().props;
+  const { auth, notifications } = usePage().props;
+  const [bellOpen, setBellOpen] = useState(false);
+  const notifCount = notifications?.count ?? 0;
+  const notifItems = notifications?.items ?? [];
 
   const getRoleBadge = (role) => {
     switch (role) {
@@ -78,6 +81,45 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
 
           {/* Right section: Role Badge & Profile */}
           <div className="flex items-center space-x-4">
+            {/* Notifikasi */}
+            <div className="relative">
+              <button
+                onClick={() => setBellOpen(!bellOpen)}
+                className="relative p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
+                aria-label="Notifikasi"
+              >
+                <Bell className="w-5 h-5" />
+                {notifCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
+                    {notifCount}
+                  </span>
+                )}
+              </button>
+              {bellOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
+                  <div className="px-4 py-2.5 bg-slate-50 border-b text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Notifikasi ({notifCount})
+                  </div>
+                  <div className="max-h-80 overflow-y-auto divide-y">
+                    {notifItems.length === 0 && (
+                      <p className="px-4 py-6 text-sm text-center text-slate-400">Tidak ada notifikasi baru.</p>
+                    )}
+                    {notifItems.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.url}
+                        onClick={() => setBellOpen(false)}
+                        className="block px-4 py-3 hover:bg-amber-50 transition"
+                      >
+                        <p className="text-sm font-semibold">{item.title}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{item.message}</p>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* User Role Badge */}
             <div className="hidden sm:block">
               {getRoleBadge(auth?.user?.role)}

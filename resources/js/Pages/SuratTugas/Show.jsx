@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { 
   FileSignature, 
@@ -126,6 +126,30 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
           </h1>
           <p className="text-xs text-slate-500">Monitoring status persetujuan, penomoran resmi, dan TTD digital PPK</p>
         </div>
+
+        {suratTugas.status === 'DISPOSISI_KAPUS_STOP' && (
+          <div className="w-full sm:max-w-md bg-red-50 border border-red-200 rounded-xl p-4">
+            <p className="text-sm font-bold text-red-700">Dihentikan oleh Kapus</p>
+            {suratTugas.catatan_kapus && (
+              <p className="text-xs text-red-600 mt-1">Catatan: {suratTugas.catatan_kapus}</p>
+            )}
+            {(userRole === 'admin' || (
+              (userRole === 'pemohon' || userRole === 'sespalu')
+              && suratTugas.user_id === authUserId
+            )) && (
+              <button
+                onClick={() => {
+                  if (confirm('Ajukan ulang surat ini sebagai draft baru?')) {
+                    router.post(`/surat-tugas/${suratTugas.id}/ajukan-ulang`);
+                  }
+                }}
+                className="mt-3 px-3 py-1.5 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+              >
+                Ajukan Ulang (kembalikan ke Draft)
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           {(userRole === 'admin' || (

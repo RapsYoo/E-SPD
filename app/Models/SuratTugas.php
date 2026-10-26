@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class SuratTugas extends Model
 {
@@ -29,6 +30,8 @@ class SuratTugas extends Model
         'ppk_id',
         'ppk_nama_snapshot',
         'ppk_nip_snapshot',
+        'kapus_nama_snapshot',
+        'kapus_nip_snapshot',
         'tingkat_biaya_kode',
         'jenis_angkutan_nama',
         'tempat_berangkat',
@@ -57,6 +60,14 @@ class SuratTugas extends Model
         'draft_data' => 'array',
         'draft_step' => 'integer',
     ];
+
+    protected static function booted(): void
+    {
+        // File fisik hanya dihapus saat hapus permanen; soft-delete tetap bisa dipulihkan.
+        static::forceDeleting(function (SuratTugas $surat) {
+            Storage::disk('public')->delete(array_filter([$surat->file_undangan, $surat->file_izin_setneg]));
+        });
+    }
 
     public function user()
     {

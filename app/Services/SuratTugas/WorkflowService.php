@@ -15,9 +15,7 @@ use Illuminate\Support\Facades\DB;
  */
 class WorkflowService
 {
-    public function __construct(private AuditLogger $audit)
-    {
-    }
+    public function __construct(private AuditLogger $audit) {}
 
     /** Draft hanya dapat dibuka pada status tertentu dan oleh admin/pemilik (pemohon/sespalu). */
     public function assertDraftAccessible(SuratTugas $suratTugas, ?User $user): void
@@ -56,7 +54,7 @@ class WorkflowService
             'status' => $status,
             'draft_data' => $draftData ?: null,
         ]);
-        $this->audit->log($suratTugas->fresh(), 'DISPOSISI_' . $validated['kapus_decision'], $dari, $status, $validated['catatan_kapus'] ?? null);
+        $this->audit->log($suratTugas->fresh(), 'DISPOSISI_'.$validated['kapus_decision'], $dari, $status, $validated['catatan_kapus'] ?? null);
     }
 
     // Step 4: Penomoran Resmi TU (Only TU or Admin)
@@ -68,20 +66,24 @@ class WorkflowService
         $draftData = $suratTugas->draft_data ?? [];
         unset($draftData['tu']);
 
+        $kapus = $this->kapusAktif();
+
         try {
             // P1: lock baris agar dua TU tidak bisa rebut nomor yang sama.
             $dari = $suratTugas->status;
-            DB::transaction(function () use ($suratTugas, $validated, $draftData) {
+            DB::transaction(function () use ($suratTugas, $validated, $draftData, $kapus) {
                 SuratTugas::whereKey($suratTugas->id)->lockForUpdate()->firstOrFail();
                 $suratTugas->update([
                     'nomor_st' => $validated['nomor_st'],
                     'nomor_spd' => $validated['nomor_spd'],
                     'tanggal_surat' => $validated['tanggal_surat'],
                     'status' => S::SELESAI_TERBIT,
+                    'kapus_nama_snapshot' => $kapus['nama'],
+                    'kapus_nip_snapshot' => $kapus['nip'],
                     'draft_data' => $draftData ?: null,
                 ]);
             });
-            $this->audit->log($suratTugas->fresh(), 'PENOMORAN', $dari, S::SELESAI_TERBIT, 'ST: ' . $validated['nomor_st'] . ' | SPD: ' . $validated['nomor_spd']);
+            $this->audit->log($suratTugas->fresh(), 'PENOMORAN', $dari, S::SELESAI_TERBIT, 'ST: '.$validated['nomor_st'].' | SPD: '.$validated['nomor_spd']);
         } catch (UniqueConstraintViolationException $e) {
             throw new WorkflowException('Nomor ST/SPD sudah dipakai surat lain. Gunakan nomor berbeda.', 0, $e);
         }
@@ -131,6 +133,41 @@ class WorkflowService
         $suratTugas->delete();
     }
 
+    /**
+     * Usulan yang dihentikan Kapus dapat dibuka kembali oleh pengusul (pemilik) atau admin sebagai draft baru,
+     * sehingga alur tidak berhenti buntu. Catatan Kapus dipertahankan sebagai acuan perbaikan.
+     */
+    public function ajukanUlang(SuratTugas $suratTugas, User $user): void
+    {
+        $isOwner = in_array($user->role, ['pemohon', 'sespalu'], true) && $suratTugas->user_id === $user->id;
+        if ($user->role !== 'admin' && ! $isOwner) {
+            throw new WorkflowException('Hanya pengusul surat ini atau Admin yang dapat mengajukan ulang.');
+        }
+        $this->assertStatus($suratTugas, S::DISPOSISI_KAPUS_STOP, 'Pengajuan ulang hanya untuk usulan yang dihentikan Kapus.');
+
+        $suratTugas->update([
+            'status' => S::DRAFT,
+            'kapus_decision' => null,
+            'draft_step' => 1,
+        ]);
+        $this->audit->log($suratTugas->fresh(), 'AJUKAN_ULANG', S::DISPOSISI_KAPUS_STOP, S::DRAFT, 'Usulan dibuka kembali sebagai draft setelah dihentikan Kapus');
+    }
+
+    /**
+     * Pejabat Kapus aktif (akun role kapus) untuk penandatangan Surat Tugas.
+     *
+     * @return array{nama: ?string, nip: ?string}
+     */
+    public function kapusAktif(): array
+    {
+        $kapus = User::with('pegawai')->where('role', 'kapus')->orderBy('id')->first();
+
+        return [
+            'nama' => $kapus?->pegawai?->nama ?? $kapus?->name,
+            'nip' => $kapus?->pegawai?->nip,
+        ];
+    }
+
     /** P1: akses cetak luas (TU/admin/kapus/ppk + pemilik), status minimal disetujui Kapus. */
     public function canPrint(SuratTugas $suratTugas, ?User $user): bool
     {
@@ -158,12 +195,12 @@ class WorkflowService
 
     public function logPrint(SuratTugas $suratTugas, ?User $user): void
     {
-        $this->audit->log($suratTugas, 'CETAK', $suratTugas->status, $suratTugas->status, 'Dokumen dicetak oleh ' . $user?->role);
+        $this->audit->log($suratTugas, 'CETAK', $suratTugas->status, $suratTugas->status, 'Dokumen dicetak oleh '.$user?->role);
     }
 
     private function assertRole(User $user, array $roles, string $message): void
     {
-        if (!in_array($user->role, $roles, true)) {
+        if (! in_array($user->role, $roles, true)) {
             throw new WorkflowException($message);
         }
     }
