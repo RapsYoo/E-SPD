@@ -39,7 +39,6 @@ class ProfileController extends Controller
 
         return Redirect::route('profile.edit');
     }
-
     /**
      * Delete the user's account.
      */
@@ -48,6 +47,7 @@ class ProfileController extends Controller
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);
+        
 
         $user = $request->user();
 

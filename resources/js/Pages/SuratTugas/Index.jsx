@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { 
@@ -24,12 +24,28 @@ import {
 } from 'lucide-react';
 
 export default function Index({ suratTugas, filters, userRole, authUserId }) {
+  const searchTimeout = useRef(null);
   const [search, setSearch] = useState(filters?.search || '');
   const [selectedStatus, setSelectedStatus] = useState(filters?.status || '');
 
+  useEffect(() => () => clearTimeout(searchTimeout.current), []);
+
+  const searchSuratTugas = (value) => {
+    setSearch(value);
+    clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      router.get('/surat-tugas', { search: value, status: selectedStatus }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+      });
+    }, 350);
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
-    router.get('/surat-tugas', { search, status: selectedStatus }, { preserveState: true });
+    clearTimeout(searchTimeout.current);
+    router.get('/surat-tugas', { search, status: selectedStatus }, { preserveState: true, preserveScroll: true });
   };
 
   const handleDelete = (surat) => {
@@ -149,7 +165,7 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => searchSuratTugas(e.target.value)}
               placeholder="Cari nomor ST, nomor SPD, nomor nota, atau perihal kegiatan..."
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
             />
@@ -158,8 +174,13 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
           <select
             value={selectedStatus}
             onChange={(e) => {
+              clearTimeout(searchTimeout.current);
               setSelectedStatus(e.target.value);
-              router.get('/surat-tugas', { search, status: e.target.value }, { preserveState: true });
+              router.get('/surat-tugas', { search, status: e.target.value }, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+              });
             }}
             className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:ring-amber-500 focus:outline-none"
           >

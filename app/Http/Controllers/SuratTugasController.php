@@ -156,7 +156,6 @@ class SuratTugasController extends Controller
     public function ajukanUlang(Request $request, SuratTugas $suratTugas)
     {
         $this->workflow->ajukanUlang($suratTugas, $request->user());
-
         return redirect()->route('surat-tugas.draft.edit', $suratTugas->id)
             ->with('success', 'Usulan dibuka kembali sebagai draft. Perbaiki sesuai catatan Kapus lalu kirim ulang.');
     }
@@ -202,7 +201,6 @@ class SuratTugasController extends Controller
             $request->user(),
             $suratTugas,
         );
-
         return redirect()->route('surat-tugas.index')->with('success', 'Draft Surat Tugas berhasil disimpan. Anda dapat melanjutkannya kapan saja.');
     }
 }

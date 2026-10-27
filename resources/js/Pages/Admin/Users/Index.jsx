@@ -29,6 +29,7 @@ const ROLE_STYLES = {
 };
 
 export default function Index({ users, filters, roles, pegawaiOptions, currentUserId }) {
+  const searchTimeout = useRef(null);
   const [search, setSearch] = useState(filters?.search || '');
   const [roleFilter, setRoleFilter] = useState(filters?.role || '');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,7 +53,10 @@ export default function Index({ users, filters, roles, pegawaiOptions, currentUs
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      clearTimeout(searchTimeout.current);
+    };
   }, []);
 
   // Pegawai yang boleh dipilih: belum punya akun, atau akun milik user yang sedang diedit.
@@ -77,8 +81,21 @@ export default function Index({ users, filters, roles, pegawaiOptions, currentUs
     router.get('/admin/users', { search, role: roleFilter, ...next }, { preserveState: true });
   };
 
+  const searchUsers = (value) => {
+    setSearch(value);
+    clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      router.get('/admin/users', { search: value, role: roleFilter }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+      });
+    }, 350);
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
+    clearTimeout(searchTimeout.current);
     applyFilters();
   };
 
@@ -181,7 +198,7 @@ export default function Index({ users, filters, roles, pegawaiOptions, currentUs
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => searchUsers(e.target.value)}
               placeholder="Cari nama, email, atau NIP..."
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
             />
@@ -190,6 +207,7 @@ export default function Index({ users, filters, roles, pegawaiOptions, currentUs
           <select
             value={roleFilter}
             onChange={(e) => {
+              clearTimeout(searchTimeout.current);
               setRoleFilter(e.target.value);
               applyFilters({ role: e.target.value });
             }}
@@ -211,9 +229,10 @@ export default function Index({ users, filters, roles, pegawaiOptions, currentUs
             <button
               type="button"
               onClick={() => {
+                clearTimeout(searchTimeout.current);
                 setSearch('');
                 setRoleFilter('');
-                router.get('/admin/users');
+                router.get('/admin/users', {}, { preserveState: true, preserveScroll: true, replace: true });
               }}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-xl text-sm transition"
             >

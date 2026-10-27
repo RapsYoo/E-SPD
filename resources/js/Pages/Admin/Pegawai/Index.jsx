@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { 
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 export default function Index({ pegawai, filters }) {
+  const searchTimeout = useRef(null);
   const [search, setSearch] = useState(filters?.search || '');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPegawai, setEditingPegawai] = useState(null);
@@ -36,9 +37,24 @@ export default function Index({ pegawai, filters }) {
     is_active: true,
   });
 
+  useEffect(() => () => clearTimeout(searchTimeout.current), []);
+
+  const searchPegawai = (value) => {
+    setSearch(value);
+    clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      router.get('/admin/pegawai', { search: value }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+      });
+    }, 350);
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
-    router.get('/admin/pegawai', { search }, { preserveState: true });
+    clearTimeout(searchTimeout.current);
+    router.get('/admin/pegawai', { search }, { preserveState: true, preserveScroll: true });
   };
 
   const openCreateModal = () => {
@@ -123,7 +139,7 @@ export default function Index({ pegawai, filters }) {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => searchPegawai(e.target.value)}
               placeholder="Cari berdasarkan nama, NIP, atau jabatan..."
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
             />
@@ -138,8 +154,9 @@ export default function Index({ pegawai, filters }) {
             <button
               type="button"
               onClick={() => {
+                clearTimeout(searchTimeout.current);
                 setSearch('');
-                router.get('/admin/pegawai');
+                router.get('/admin/pegawai', {}, { preserveState: true, preserveScroll: true, replace: true });
               }}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-xl text-sm transition"
             >

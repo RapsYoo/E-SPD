@@ -84,6 +84,10 @@ class RekapitulasiService
             'tanggal_kembali' => $surat->tanggal_kembali?->toDateString(),
             'durasi_hari' => $surat->durasi_hari,
             'pelaksana' => $surat->pegawaiList->pluck('nama')->implode('; '),
+            'personel' => $surat->pegawaiList->map(fn ($pegawai) => [
+                'nama' => $pegawai->nama,
+                'jabatan' => $pegawai->jabatan,
+            ])->values()->all(),
             'jumlah_pelaksana' => $surat->pegawaiList->count(),
             'tingkat_biaya' => $surat->tingkat_biaya_kode,
             'angkutan' => $surat->jenis_angkutan_nama,
@@ -121,17 +125,88 @@ class RekapitulasiService
     private function streamExcel(array $filters, string $filename): StreamedResponse
     {
         return response()->streamDownload(function () use ($filters) {
-            echo "\xEF\xBB\xBF<html><head><meta charset=\"UTF-8\"></head><body><table border=\"1\"><thead><tr>";
-            foreach (self::HEADERS as $header) {
-                echo '<th style="background:#0F2C59;color:#fff">'.e($header).'</th>';
+            echo "\xEF\xBB\xBF";
+            echo '<!doctype html><html><head><meta charset="UTF-8"><style>
+                @page { size: landscape; margin: 10mm; mso-page-orientation: landscape; }
+                body { font-family: Arial, sans-serif; color: #1e293b; }
+                .letterhead { width: 100%; text-align: center; margin-bottom: 12px; font-weight: bold; color: #1e3a8a; }
+                .letterhead .country { margin-top: 3px; font-size: 9pt; letter-spacing: 3px; color: #b91c1c; }
+                .report-title { margin: 8px 0 12px; text-align: center; font-size: 14pt; font-weight: bold; }
+                table { width: 100%; table-layout: fixed; border-collapse: collapse; page-break-inside: auto; }
+                thead { display: table-header-group; }
+                tr { page-break-inside: avoid; }
+                th, td { border: 1px solid #000; padding: 4px; font-size: 8pt; vertical-align: top; overflow-wrap: break-word; }
+                th { background: #d1fae5; color: #111827; text-align: center; font-weight: bold; }
+                td { mso-number-format: "\\@"; }
+                .center { text-align: center; }
+            </style></head><body>';
+            echo '<div class="letterhead"><div>KEMENTERIAN LUAR NEGERI</div><div class="country">REPUBLIK INDONESIA</div></div>';
+            echo '<div class="report-title">REKAPITULASI PERJALANAN DINAS</div>';
+            echo '<table><colgroup>';
+            foreach ([4, 10, 12, 10, 10, 6, 8, 7, 7, 5, 8, 8, 5] as $width) {
+                echo '<col style="width:'.$width.'%">';
             }
-            echo '</tr></thead><tbody>';
+            echo '</colgroup><thead>
+                <tr>
+                    <th rowspan="2">No</th>
+                    <th rowspan="2">Nomor Dokumen</th>
+                    <th rowspan="2">Nama</th>
+                    <th rowspan="2">Posisi</th>
+                    <th rowspan="2">Tujuan</th>
+                    <th colspan="2">Transportasi / Angkutan</th>
+                    <th colspan="3">Periode Perjalanan</th>
+                    <th rowspan="2">PPK</th>
+                    <th rowspan="2">Aktivitas Perjalanan</th>
+                    <th rowspan="2">Status</th>
+                </tr>
+                <tr>
+                    <th>Tingkat Biaya</th>
+                    <th>Jenis Angkutan</th>
+                    <th>Berangkat</th>
+                    <th>Kembali</th>
+                    <th>Total Hari</th>
+                </tr>
+            </thead><tbody>';
 
-            foreach ($this->exportRows($filters) as $row) {
+            $number = 0;
+            foreach ($this->query($filters)->get() as $surat) {
+                $row = $this->toRow($surat);
+                $names = implode('<br>', array_map(
+                    fn (array $person) => e($this->neutralizeFormula($person['nama'] ?? '-')),
+                    $row['personel']
+                ));
+                $positions = implode('<br>', array_map(
+                    fn (array $person) => e($this->neutralizeFormula($person['jabatan'] ?? '-')),
+                    $row['personel']
+                ));
+                $destination = e($this->neutralizeFormula($row['tujuan'] ?: '-'))
+                    .'<br><span style="color:#334155">'.e($row['kategori']).'</span>';
+                $documentNumbers = '<strong>ST:</strong> '.e($this->neutralizeFormula($row['nomor_st'] ?: '-'))
+                    .'<br><strong>SPD:</strong> '.e($this->neutralizeFormula($row['nomor_spd'] ?: '-'));
+                $values = [
+                    ++$number,
+                    $documentNumbers,
+                    $names ?: '-',
+                    $positions ?: '-',
+                    $destination,
+                    $row['tingkat_biaya'] ?: '-',
+                    $row['angkutan'] ?: '-',
+                    $row['tanggal_berangkat'] ?: '-',
+                    $row['tanggal_kembali'] ?: '-',
+                    ($row['durasi_hari'] ?? '-').' hari',
+                    $row['ppk'] ?: '-',
+                    $row['perihal'] ?: '-',
+                    $row['status'] ?: '-',
+                ];
+
                 echo '<tr>';
-                foreach ($row as $value) {
-                    // Format teks agar nomor panjang (NIP/nomor surat) tidak diubah Excel menjadi notasi ilmiah.
-                    echo '<td style="mso-number-format:\'\\@\'">'.e($this->neutralizeFormula($value)).'</td>';
+                foreach ($values as $index => $value) {
+                    $class = in_array($index, [0, 5, 7, 8, 9, 12], true) ? ' class="center"' : '';
+                    $content = in_array($index, [1, 2, 3, 4], true)
+                        ? $value
+                        : e($this->neutralizeFormula($value));
+
+                    echo '<td'.$class.'>'.$content.'</td>';
                 }
                 echo '</tr>';
             }
