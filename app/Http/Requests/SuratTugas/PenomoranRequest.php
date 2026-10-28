@@ -22,4 +22,19 @@ class PenomoranRequest extends FormRequest
             'tanggal_surat' => 'required|date',
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'nomor_st.required' => 'Nomor Surat Tugas wajib diisi.',
+            'nomor_st.unique' => 'Nomor Surat Tugas tersebut sudah digunakan pada surat lain. Gunakan nomor urutan berikutnya.',
+            'nomor_spd.required' => 'Nomor SPD wajib diisi.',
+            'nomor_spd.unique' => 'Nomor SPD tersebut sudah digunakan pada surat lain. Gunakan nomor urutan berikutnya.',
+            'tanggal_surat.required' => 'Tanggal Surat Tugas & SPD wajib diisi.',
+            'tanggal_surat.date' => 'Format Tanggal Surat Tugas & SPD tidak valid.',
+        ];
+    }
 }

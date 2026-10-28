@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 class SuratTugas extends Model
@@ -60,6 +61,21 @@ class SuratTugas extends Model
         'draft_data' => 'array',
         'draft_step' => 'integer',
     ];
+
+    public function setAttribute($key, $value)
+    {
+        if (in_array($key, ['tanggal_nota', 'tanggal_berangkat', 'tanggal_kembali', 'tanggal_surat'], true) && ! empty($value)) {
+            try {
+                $value = $value instanceof \DateTimeInterface
+                    ? $value->format('Y-m-d')
+                    : Carbon::parse($value)->format('Y-m-d');
+            } catch (\Throwable) {
+                // Biarkan nilai asli jika gagal di-parse
+            }
+        }
+
+        return parent::setAttribute($key, $value);
+    }
 
     protected static function booted(): void
     {

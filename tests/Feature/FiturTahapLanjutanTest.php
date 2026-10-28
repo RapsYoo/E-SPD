@@ -2,7 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\JenisAngkutan;
+use App\Models\Pegawai;
 use App\Models\SuratTugas;
+use App\Models\SuratTugasPegawai;
+use App\Models\TingkatBiaya;
 use App\Models\User;
 use App\Support\SuratTugasStatus as S;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -126,5 +130,165 @@ class FiturTahapLanjutanTest extends TestCase
 
         Storage::disk('public')->assertExists('undangan/dipakai.pdf');
         Storage::disk('public')->assertMissing('undangan/yatim.pdf');
+    }
+
+    public function test_ready_to_print_and_completed_letters_do_not_change_when_kapus_or_pegawai_updated_in_db(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $pegawaiKapusLama = Pegawai::create([
+            'nama' => 'Dr. Kapus Lama, M.Si.',
+            'nip' => '197001011995031001',
+            'pangkat' => 'Pembina Utama Muda',
+            'golongan' => 'IV/c',
+            'jabatan' => 'Kepala Pusat Pendidikan dan Pelatihan',
+            'unit_kerja' => 'Pusdiklat Kemlu',
+            'is_active' => true,
+        ]);
+        $kapusUser = User::factory()->create([
+            'name' => $pegawaiKapusLama->nama,
+            'pegawai_id' => $pegawaiKapusLama->id,
+        ]);
+        $kapusUser->forceFill(['role' => 'kapus'])->save();
+
+        $pegawaiPelaksana = Pegawai::create([
+            'nama' => 'Ahmad Pelaksana',
+            'nip' => '198802022015031002',
+            'pangkat' => 'Penata',
+            'golongan' => 'III/c',
+            'jabatan' => 'Analis Diklat',
+            'unit_kerja' => 'Pusdiklat Kemlu',
+            'is_active' => true,
+        ]);
+
+        // 1. Surat berstatus MENUNGGU_DISPOSISI_KAPUS -> Disetujui oleh Kapus Lama
+        $surat = $this->makeSurat($admin, S::MENUNGGU_DISPOSISI_KAPUS);
+        $this->actingAs($kapusUser)->post("/surat-tugas/{$surat->id}/disposisi", [
+            'kapus_decision' => 'YA',
+            'catatan_kapus' => 'Setuju lanjutkan',
+        ])->assertRedirect();
+
+        // Snapshot Kapus sudah langsung terkunci sejak disposisi YA
+        $surat->refresh();
+        $this->assertSame('Dr. Kapus Lama, M.Si.', $surat->kapus_nama_snapshot);
+        $this->assertSame('197001011995031001', $surat->kapus_nip_snapshot);
+
+        // Simulasikan surat masuk ke tahap siap cetak (MENUNGGU_PENOMORAN_TU) beserta personel
+        $surat->update(['status' => S::MENUNGGU_PENOMORAN_TU]);
+        SuratTugasPegawai::create([
+            'surat_tugas_id' => $surat->id,
+            'pegawai_id' => $pegawaiPelaksana->id,
+            'nama' => $pegawaiPelaksana->nama,
+            'nip' => $pegawaiPelaksana->nip,
+            'pangkat' => $pegawaiPelaksana->pangkat,
+            'golongan' => $pegawaiPelaksana->golongan,
+            'jabatan' => $pegawaiPelaksana->jabatan,
+            'unit_kerja' => $pegawaiPelaksana->unit_kerja,
+            'urutan' => 1,
+        ]);
+
+        // 2. Sekarang ubah nama Kapus & jabatan pegawai pelaksana di DB Master Pegawai
+        $pegawaiKapusLama->update([
+            'nama' => 'Prof. Kapus Baru Pengganti',
+            'nip' => '198009092005011009',
+        ]);
+        $kapusUser->update(['name' => 'Prof. Kapus Baru Pengganti']);
+        $pegawaiPelaksana->update([
+            'nama' => 'Ahmad Nama Baru',
+            'jabatan' => 'Kepala Bagian Umum',
+        ]);
+
+        // 3. Saat dicetak pada status MENUNGGU_PENOMORAN_TU (siap cetak), data surat TIDAK berubah
+        $this->actingAs($admin)
+            ->get("/surat-tugas/{$surat->id}/cetak")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('SuratTugas/Print')
+                ->where('kapus.nama', 'Dr. Kapus Lama, M.Si.')
+                ->where('kapus.nip', '197001011995031001')
+                ->where('suratTugas.pegawai_list.0.nama', 'Ahmad Pelaksana')
+                ->where('suratTugas.pegawai_list.0.jabatan', 'Analis Diklat'));
+
+        // 4. Saat TU menerbitkan nomor resmi (SELESAI_TERBIT), snapshot Kapus Lama tetap dipertahankan
+        $this->actingAs($admin)->post("/surat-tugas/{$surat->id}/penomoran", [
+            'nomor_st' => 'ST/999/2026',
+            'nomor_spd' => 'SPD/999/2026',
+            'tanggal_surat' => now()->toDateString(),
+        ])->assertRedirect();
+
+        $this->actingAs($admin)
+            ->get("/surat-tugas/{$surat->id}/cetak")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('SuratTugas/Print')
+                ->where('kapus.nama', 'Dr. Kapus Lama, M.Si.')
+                ->where('kapus.nip', '197001011995031001'));
+    }
+
+    public function test_tahap_3_draft_personel_dan_spd_dapat_dikirim_tanpa_tanggal_surat(): void
+    {
+        $sespalu = $this->userWithRole('sespalu');
+        $ppk = $this->userWithRole('ppk');
+
+        TingkatBiaya::create(['kode' => 'C', 'nama' => 'Tingkat C', 'deskripsi' => 'Gol III']);
+        JenisAngkutan::create(['kode' => 'DARAT', 'nama' => 'Perjalanan Darat']);
+
+        $pegawai = Pegawai::create([
+            'nama' => 'Abdul Kadir Jailani',
+            'nip' => '196603181993031001',
+            'pangkat' => 'Pembina Utama',
+            'golongan' => 'IV/e',
+            'jabatan' => 'Direktur Jenderal Asia Pasifik dan Afrika',
+            'unit_kerja' => 'Pusdiklat',
+        ]);
+
+        $surat = SuratTugas::create([
+            'user_id' => $sespalu->id,
+            'kategori_perjalanan' => 'DALAM_NEGERI',
+            'sumber_asal' => 'EKSTERNAL',
+            'nomor_nota' => 'NOTA/321',
+            'pengirim_nota' => 'Testing',
+            'tanggal_nota' => '2026-10-28',
+            'perihal_nota' => 'tester',
+            'status' => S::DISPOSISI_KAPUS_YA,
+            'kapus_decision' => 'YA',
+        ]);
+
+        $this->actingAs($sespalu)
+            ->get("/surat-tugas/{$surat->id}/draft")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('SuratTugas/Create')
+                ->where('draftData.tanggal_nota', '2026-10-28'));
+
+        $response = $this->actingAs($sespalu)->post('/surat-tugas', [
+            'draft_id' => $surat->id,
+            'draft_step' => 3,
+            'kategori_perjalanan' => 'DALAM_NEGERI',
+            'sumber_asal' => 'EKSTERNAL',
+            'nomor_nota' => 'NOTA/321',
+            'pengirim_nota' => 'Testing',
+            'tanggal_nota' => '2026-10-28T00:00:00.000000Z',
+            'perihal_nota' => 'tester',
+            'ppk_id' => $ppk->id,
+            'tingkat_biaya_kode' => 'C',
+            'jenis_angkutan_nama' => 'Perjalanan Darat',
+            'tempat_berangkat' => 'Jakarta',
+            'tempat_tujuan' => 'Bandung',
+            'tanggal_berangkat' => '2026-10-29',
+            'tanggal_kembali' => '2026-10-31',
+            'durasi_hari' => 3,
+            'tanggal_surat' => '',
+            'pegawai_ids' => [$pegawai->id],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect("/surat-tugas/{$surat->id}");
+
+        $surat->refresh();
+        $this->assertSame(S::MENUNGGU_PENOMORAN_TU, $surat->status);
+        $this->assertSame('2026-10-28', $surat->getRawOriginal('tanggal_nota'));
+        $this->assertNull($surat->tanggal_surat);
+        $this->assertCount(1, $surat->pegawaiList);
     }
 }

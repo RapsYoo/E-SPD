@@ -16,9 +16,9 @@ class SubmissionService
     public function __construct(
         private AttachmentService $attachments,
         private PegawaiSnapshotService $snapshots,
+        private WorkflowService $workflow,
         private AuditLogger $audit,
-    ) {
-    }
+    ) {}
 
     /** Pesan sukses untuk pengiriman lengkap, mengikuti status akhir. */
     public function messageFor(SuratTugas $suratTugas): string
@@ -61,7 +61,7 @@ class SubmissionService
         $suratTugas = null;
         try {
             DB::transaction(function () use ($draft, $values, &$suratTugas) {
-                $suratTugas = $draft ?? new SuratTugas();
+                $suratTugas = $draft ?? new SuratTugas;
                 $suratTugas->fill($values);
                 $suratTugas->save();
             });
@@ -85,8 +85,8 @@ class SubmissionService
     public function submitFull(array $validated, ?UploadedFile $undangan, ?UploadedFile $setneg, User $user, ?SuratTugas $draft = null): SuratTugas
     {
         $ppk = User::with('pegawai')->where('role', 'ppk')->findOrFail($validated['ppk_id']);
-        $ppkNama = $ppk->pegawai?->nama ?? $ppk->name;
-        $ppkNip = $ppk->pegawai?->nip ?? '';
+        $ppkSnapshot = $this->workflow->ppkSnapshot($ppk->id);
+        $kapusSnapshot = $this->workflow->kapusAktif();
         $files = $this->attachments->store($undangan, $setneg, $draft);
 
         $values = [
@@ -103,8 +103,10 @@ class SubmissionService
                 ? SuratTugasStatus::MENUNGGU_PENOMORAN_TU
                 : SuratTugasStatus::MENUNGGU_DISPOSISI_KAPUS,
             'ppk_id' => $ppk->id,
-            'ppk_nama_snapshot' => $ppkNama,
-            'ppk_nip_snapshot' => $ppkNip,
+            'ppk_nama_snapshot' => $ppkSnapshot['nama'],
+            'ppk_nip_snapshot' => $ppkSnapshot['nip'],
+            'kapus_nama_snapshot' => $draft?->kapus_nama_snapshot ?: $kapusSnapshot['nama'],
+            'kapus_nip_snapshot' => $draft?->kapus_nip_snapshot ?: $kapusSnapshot['nip'],
             'tingkat_biaya_kode' => $validated['tingkat_biaya_kode'],
             'jenis_angkutan_nama' => $validated['jenis_angkutan_nama'],
             'tempat_berangkat' => $validated['tempat_berangkat'],
@@ -113,7 +115,7 @@ class SubmissionService
             'no_setneg' => $validated['no_setneg'] ?? null,
             'tanggal_berangkat' => $validated['tanggal_berangkat'],
             'tanggal_kembali' => $validated['tanggal_kembali'],
-            'tanggal_surat' => $validated['tanggal_surat'],
+            'tanggal_surat' => $validated['tanggal_surat'] ?? $draft?->tanggal_surat ?? null,
             'durasi_hari' => $validated['durasi_hari'],
             'draft_data' => null,
             'draft_step' => null,
@@ -122,7 +124,7 @@ class SubmissionService
         $suratTugas = null;
         try {
             DB::transaction(function () use ($draft, $values, $validated, &$suratTugas) {
-                $suratTugas = $draft ?? new SuratTugas();
+                $suratTugas = $draft ?? new SuratTugas;
                 $suratTugas->fill($values);
                 $suratTugas->save();
 

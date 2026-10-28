@@ -13,6 +13,7 @@ use Illuminate\Validation\Rule;
 class StoreSuratTugasRequest extends ProposerRequest
 {
     private ?SuratTugas $draft = null;
+
     private bool $draftResolved = false;
 
     protected function deniedMessage(): string
@@ -23,13 +24,13 @@ class StoreSuratTugasRequest extends ProposerRequest
     /** Tanpa draft_id atau draft_step == 1 → hanya kirim nota ke Kapus. */
     public function isNoteStep(): bool
     {
-        return !$this->filled('draft_id') || (int) $this->input('draft_step', 1) === 1;
+        return ! $this->filled('draft_id') || (int) $this->input('draft_step', 1) === 1;
     }
 
     /** Draft yang dilanjutkan (null bila usulan baru). Otorisasi akses draft dilakukan di sini. */
     public function draft(): ?SuratTugas
     {
-        if (!$this->draftResolved) {
+        if (! $this->draftResolved) {
             $this->draftResolved = true;
             if ($this->filled('draft_id')) {
                 $this->draft = SuratTugas::findOrFail($this->input('draft_id'));
@@ -74,7 +75,7 @@ class StoreSuratTugasRequest extends ProposerRequest
             'no_setneg' => 'required_if:kategori_perjalanan,LUAR_NEGERI|nullable|string|max:255',
             'tanggal_berangkat' => 'required|date',
             'tanggal_kembali' => 'required|date|after_or_equal:tanggal_berangkat',
-            'tanggal_surat' => 'required|date',
+            'tanggal_surat' => 'nullable|date',
             'durasi_hari' => 'required|integer|min:1',
 
             // Officers array

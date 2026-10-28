@@ -20,8 +20,7 @@ class DraftService
     public function __construct(
         private AttachmentService $attachments,
         private PegawaiSnapshotService $snapshots,
-    ) {
-    }
+    ) {}
 
     /** Daftar referensi aktif untuk form pembuatan/pengeditan usulan. */
     public function formOptions(): array
@@ -61,7 +60,7 @@ class DraftService
             'sumber_asal' => $suratTugas->sumber_asal,
             'nomor_nota' => $suratTugas->nomor_nota,
             'pengirim_nota' => $suratTugas->pengirim_nota,
-            'tanggal_nota' => $suratTugas->tanggal_nota,
+            'tanggal_nota' => $suratTugas->tanggal_nota?->format('Y-m-d'),
             'perihal_nota' => $suratTugas->perihal_nota,
             'ppk_id' => $suratTugas->ppk_id ?? '',
             'tingkat_biaya_kode' => $suratTugas->tingkat_biaya_kode,
@@ -70,11 +69,18 @@ class DraftService
             'tempat_tujuan' => $suratTugas->tempat_tujuan,
             'negara_tujuan' => $suratTugas->negara_tujuan,
             'no_setneg' => $suratTugas->no_setneg,
-            'tanggal_berangkat' => $suratTugas->tanggal_berangkat,
-            'tanggal_kembali' => $suratTugas->tanggal_kembali,
-            'tanggal_surat' => $suratTugas->tanggal_surat,
+            'tanggal_berangkat' => $suratTugas->tanggal_berangkat?->format('Y-m-d'),
+            'tanggal_kembali' => $suratTugas->tanggal_kembali?->format('Y-m-d'),
+            'tanggal_surat' => $suratTugas->tanggal_surat?->format('Y-m-d'),
             'durasi_hari' => $suratTugas->durasi_hari,
         ], $suratTugas->draft_data ?? []);
+
+        foreach (['tanggal_nota', 'tanggal_berangkat', 'tanggal_kembali', 'tanggal_surat'] as $dateField) {
+            if (! empty($draftData[$dateField]) && is_string($draftData[$dateField]) && str_contains($draftData[$dateField], 'T')) {
+                $draftData[$dateField] = substr($draftData[$dateField], 0, 10);
+            }
+        }
+
         $draftData['draft_id'] = $suratTugas->id;
         $draftData['draft_step'] = $draftStep;
         $draftData['pegawai_ids'] = $draftData['pegawai_ids']
@@ -100,19 +106,19 @@ class DraftService
         // P0-verifikasi: bawa nama file lama + sub-draft actor agar tidak hilang saat update parsial.
         $existingDraft = $suratTugas?->draft_data ?? [];
         foreach (['file_undangan_name', 'file_izin_setneg_name', 'kapus', 'tu', 'ppk'] as $keep) {
-            if (!array_key_exists($keep, $draftData) && array_key_exists($keep, $existingDraft)) {
+            if (! array_key_exists($keep, $draftData) && array_key_exists($keep, $existingDraft)) {
                 $draftData[$keep] = $existingDraft[$keep];
             }
         }
         // pegawai_ids kondisional LUAR_NEGERI/DALAM_NEGERI: jangan timpa dengan kosong bila tidak dikirim.
-        if (!array_key_exists('pegawai_ids', $validated) && array_key_exists('pegawai_ids', $existingDraft)) {
+        if (! array_key_exists('pegawai_ids', $validated) && array_key_exists('pegawai_ids', $existingDraft)) {
             $draftData['pegawai_ids'] = $existingDraft['pegawai_ids'];
         }
 
         $files = $this->attachments->store($undangan, $setneg, $suratTugas);
         $draftData = array_merge($draftData, $files->names);
 
-        $ppk = !empty($validated['ppk_id'])
+        $ppk = ! empty($validated['ppk_id'])
             ? User::with('pegawai')->where('role', 'ppk')->find($validated['ppk_id'])
             : null;
         $ppkNama = $ppk ? ($ppk->pegawai?->nama ?? $ppk->name) : null;

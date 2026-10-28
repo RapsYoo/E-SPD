@@ -30,6 +30,12 @@ class PegawaiController extends Controller
     {
         $pegawai->update($request->validated());
 
+        // Sinkronkan nama akun login bila pegawai ini terhubung ke akun pengguna.
+        // Arsip surat yang sudah siap cetak / terbit tetap aman karena menggunakan kolom snapshot.
+        if ($pegawai->user && $pegawai->user->name !== $pegawai->nama) {
+            $pegawai->user->update(['name' => $pegawai->nama]);
+        }
+
         return redirect()->back()->with('success', 'Data pegawai berhasil diperbarui.');
     }
 

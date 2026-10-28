@@ -7,7 +7,7 @@ import SpdSheet from './Partials/SpdSheet';
 import LampiranMatriksSheet from './Partials/LampiranMatriksSheet';
 import VisumRampunganSheet from './Partials/VisumRampunganSheet';
 
-export default function Print({ suratTugas, kapus = {} }) {
+export default function Print({ suratTugas, kapus = {}, ppk = {} }) {
   const [activeDocument, setActiveDocument] = useState('st');
   const pegawaiList = Array.isArray(suratTugas.pegawai_list) ? suratTugas.pegawai_list : [];
   const tujuanPerjalanan = [
@@ -24,8 +24,8 @@ export default function Print({ suratTugas, kapus = {} }) {
   const tanggalSurat = formatDate(tanggalSuratRaw);
   const tanggalBerangkat = formatDate(suratTugas.tanggal_berangkat);
   const tanggalKembali = formatDate(suratTugas.tanggal_kembali);
-  const ppkNama = suratTugas.ppk_nama_snapshot || suratTugas.ppk?.pegawai?.nama || suratTugas.ppk?.name || suratTugas.ppk?.nama || '-';
-  const ppkNip = suratTugas.ppk_nip_snapshot || suratTugas.ppk?.pegawai?.nip || suratTugas.ppk?.nip || '-';
+  const ppkNama = ppk?.nama || suratTugas.ppk_nama_snapshot || '-';
+  const ppkNip = ppk?.nip || suratTugas.ppk_nip_snapshot || '-';
   const tahunAnggaran = tanggalSuratRaw?.slice(0, 4) || suratTugas.tanggal_berangkat?.slice(0, 4) || '-';
 
   const documentTabs = [

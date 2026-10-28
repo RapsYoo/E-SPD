@@ -54,12 +54,14 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const toDateInput = (val) => (typeof val === 'string' && val.includes('T') ? val.slice(0, 10) : val || '');
+
   const { data, setData, post, transform, processing, errors } = useForm({
     kategori_perjalanan: draftData.kategori_perjalanan || '',
     sumber_asal: draftData.sumber_asal || '',
     nomor_nota: draftData.nomor_nota || '',
     pengirim_nota: draftData.pengirim_nota || '',
-    tanggal_nota: draftData.tanggal_nota || '',
+    tanggal_nota: toDateInput(draftData.tanggal_nota),
     perihal_nota: draftData.perihal_nota || '',
     
     // Step 3
@@ -70,9 +72,9 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
     tempat_tujuan: draftData.tempat_tujuan || '',
     negara_tujuan: draftData.negara_tujuan || '',
     no_setneg: draftData.no_setneg || '',
-    tanggal_berangkat: draftData.tanggal_berangkat || '',
-    tanggal_kembali: draftData.tanggal_kembali || '',
-    tanggal_surat: draftData.tanggal_surat || '',
+    tanggal_berangkat: toDateInput(draftData.tanggal_berangkat),
+    tanggal_kembali: toDateInput(draftData.tanggal_kembali),
+    tanggal_surat: toDateInput(draftData.tanggal_surat),
     durasi_hari: draftData.durasi_hari || 1,
     pegawai_ids: draftData.pegawai_ids || [],
     
@@ -191,11 +193,34 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
     }
 
     // Submit via store() untuk tahap 1 & 3
-    transform((formData) => ({
-      ...formData,
-      draft_step: activeStep,
-      pegawai_ids: selectedPegawaiIds,
-    }));
+    transform((formData) => {
+      let tanggalBerangkat = formData.tanggal_berangkat;
+      let tanggalKembali = formData.tanggal_kembali;
+      let durasiHari = formData.durasi_hari;
+
+      if (activeStep >= 3 && jadwalMode === 'per_pegawai') {
+        const jadwalList = selectedPegawaiIds
+          .map((id) => jadwalPerPegawai[id])
+          .filter((j) => j?.tanggal_berangkat && j?.tanggal_kembali);
+
+        if (jadwalList.length > 0) {
+          const starts = jadwalList.map((j) => j.tanggal_berangkat).sort();
+          const ends = jadwalList.map((j) => j.tanggal_kembali).sort();
+          tanggalBerangkat = starts[0];
+          tanggalKembali = ends[ends.length - 1];
+          durasiHari = calcDays(tanggalBerangkat, tanggalKembali);
+        }
+      }
+
+      return {
+        ...formData,
+        tanggal_berangkat: tanggalBerangkat,
+        tanggal_kembali: tanggalKembali,
+        durasi_hari: durasiHari,
+        draft_step: activeStep,
+        pegawai_ids: selectedPegawaiIds,
+      };
+    });
     post('/surat-tugas');
   };
 
@@ -204,7 +229,8 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       || event.target.closest('div')?.querySelector('label')?.innerText
       || event.target.placeholder
       || 'kolom wajib';
-    setSubmitNotice(`Lengkapi ${fieldLabel.replace(/\*/g, '').trim()} sebelum mengirim nota ke Kapus.`);
+    const targetRecipient = activeStep >= 3 ? 'TU' : 'Kapus';
+    setSubmitNotice(`Lengkapi ${fieldLabel.replace(/\*/g, '').trim()} sebelum mengirim ke ${targetRecipient}.`);
   };
 
   const validationErrorEntries = Object.entries(errors).filter(([, message]) => Boolean(message));
@@ -356,8 +382,12 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       <form onSubmit={handleSubmit} onInvalidCapture={handleInvalidCapture} onChangeCapture={() => setSubmitNotice('')}>
         {(submitNotice || validationErrorEntries.length > 0) && (
           <div role="alert" className="mb-4 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            <p className="font-bold">Nota belum terkirim</p>
-            <p className="mt-1">{submitNotice || 'Periksa kembali kolom wajib berikut sebelum dikirim ke Kapus.'}</p>
+            <p className="font-bold">{activeStep >= 3 ? 'Draft ST & SPD belum terkirim' : 'Nota belum terkirim'}</p>
+            <p className="mt-1">
+              {submitNotice || (activeStep >= 3
+                ? 'Periksa kembali kolom wajib berikut sebelum dikirim ke TU.'
+                : 'Periksa kembali kolom wajib berikut sebelum dikirim ke Kapus.')}
+            </p>
             {validationErrorEntries.length > 0 && (
               <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
                 {validationErrorEntries.map(([field, message]) => <li key={field}>{message}</li>)}

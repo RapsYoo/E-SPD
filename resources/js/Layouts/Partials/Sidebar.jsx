@@ -226,7 +226,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
         <div className="p-4 border-t border-slate-800 bg-[#081935] text-xs text-slate-400 flex flex-col space-y-1">
           <div className="flex items-center justify-between text-slate-300">
             <span className="font-semibold text-amber-400">e-SPD Pusdiklat</span>
-            <span className="font-mono text-slate-300">Beta v1.4.6</span>
+            <span className="font-mono text-slate-300">Beta v1.4.7</span>
           </div>
           <p className="text-[11px] text-slate-400">Kementerian Luar Negeri RI</p>
         </div>

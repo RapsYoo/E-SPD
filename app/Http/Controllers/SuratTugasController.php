@@ -106,6 +106,7 @@ class SuratTugasController extends Controller
         // Akses detail terbuka untuk aktor internal; role pegawai hanya untuk perjalanannya sendiri.
         $user = auth()->user();
         abort_unless($this->workflow->canView($suratTugas, $user), 403, 'Anda tidak memiliki akses ke surat ini.');
+        $this->workflow->ensureSnapshotsLocked($suratTugas);
         $isPegawai = $user?->role === SuratTugasStatus::PEGAWAI_ROLE;
         $suratTugas->load($isPegawai
             ? ['pegawaiList', 'ppk.pegawai']
@@ -156,6 +157,7 @@ class SuratTugasController extends Controller
     public function ajukanUlang(Request $request, SuratTugas $suratTugas)
     {
         $this->workflow->ajukanUlang($suratTugas, $request->user());
+
         return redirect()->route('surat-tugas.draft.edit', $suratTugas->id)
             ->with('success', 'Usulan dibuka kembali sebagai draft. Perbaiki sesuai catatan Kapus lalu kirim ulang.');
     }
@@ -170,17 +172,20 @@ class SuratTugasController extends Controller
                 ->with('error', 'Pratinjau dokumen hanya tersedia setelah draft disetujui Kapus (untuk TU/Kapus/PPK/pemilik).');
         }
 
-        $suratTugas->load(['pegawaiList', 'ppk.pegawai', 'user']);
+        $this->workflow->ensureSnapshotsLocked($suratTugas);
+        $suratTugas->load(['pegawaiList', 'user']);
         $this->workflow->logPrint($suratTugas, $user);
-
-        $live = $this->workflow->kapusAktif();
 
         return Inertia::render('SuratTugas/Print', [
             'suratTugas' => $suratTugas,
-            // Surat terbit memakai snapshot saat penomoran; pratinjau sebelum terbit memakai Kapus aktif.
+            // Surat yang siap cetak / selesai terbit selalu menggunakan snapshot arsip yang terkunci di DB.
             'kapus' => [
-                'nama' => $suratTugas->kapus_nama_snapshot ?: $live['nama'],
-                'nip' => $suratTugas->kapus_nip_snapshot ?: $live['nip'],
+                'nama' => $suratTugas->kapus_nama_snapshot,
+                'nip' => $suratTugas->kapus_nip_snapshot,
+            ],
+            'ppk' => [
+                'nama' => $suratTugas->ppk_nama_snapshot,
+                'nip' => $suratTugas->ppk_nip_snapshot,
             ],
         ]);
     }
@@ -201,6 +206,7 @@ class SuratTugasController extends Controller
             $request->user(),
             $suratTugas,
         );
+
         return redirect()->route('surat-tugas.index')->with('success', 'Draft Surat Tugas berhasil disimpan. Anda dapat melanjutkannya kapan saja.');
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Services\SuratTugas;
 
 use App\Exceptions\WorkflowException;
+use App\Models\Pegawai;
 use App\Models\SuratTugas;
 use App\Models\User;
 use App\Support\SuratTugasStatus as S;
@@ -47,10 +48,18 @@ class WorkflowService
         $draftData = $suratTugas->draft_data ?? [];
         unset($draftData['kapus']);
 
+        $kapus = $this->kapusAktif($user);
+
         $dari = $suratTugas->status;
         $suratTugas->update([
             'kapus_decision' => $validated['kapus_decision'],
             'catatan_kapus' => $validated['catatan_kapus'] ?? null,
+            'kapus_nama_snapshot' => $validated['kapus_decision'] === 'YA'
+                ? ($kapus['nama'] ?? $suratTugas->kapus_nama_snapshot)
+                : $suratTugas->kapus_nama_snapshot,
+            'kapus_nip_snapshot' => $validated['kapus_decision'] === 'YA'
+                ? ($kapus['nip'] ?? $suratTugas->kapus_nip_snapshot)
+                : $suratTugas->kapus_nip_snapshot,
             'status' => $status,
             'draft_data' => $draftData ?: null,
         ]);
@@ -67,19 +76,23 @@ class WorkflowService
         unset($draftData['tu']);
 
         $kapus = $this->kapusAktif();
+        $ppk = $this->ppkSnapshot($suratTugas->ppk_id);
 
         try {
             // P1: lock baris agar dua TU tidak bisa rebut nomor yang sama.
             $dari = $suratTugas->status;
-            DB::transaction(function () use ($suratTugas, $validated, $draftData, $kapus) {
+            DB::transaction(function () use ($suratTugas, $validated, $draftData, $kapus, $ppk) {
                 SuratTugas::whereKey($suratTugas->id)->lockForUpdate()->firstOrFail();
                 $suratTugas->update([
                     'nomor_st' => $validated['nomor_st'],
                     'nomor_spd' => $validated['nomor_spd'],
                     'tanggal_surat' => $validated['tanggal_surat'],
                     'status' => S::SELESAI_TERBIT,
-                    'kapus_nama_snapshot' => $kapus['nama'],
-                    'kapus_nip_snapshot' => $kapus['nip'],
+                    // Pertahankan snapshot Kapus & PPK yang sudah terkunci saat pengajuan/disposisi; hanya isi jika masih kosong.
+                    'kapus_nama_snapshot' => $suratTugas->kapus_nama_snapshot ?: $kapus['nama'],
+                    'kapus_nip_snapshot' => $suratTugas->kapus_nip_snapshot ?: $kapus['nip'],
+                    'ppk_nama_snapshot' => $suratTugas->ppk_nama_snapshot ?: $ppk['nama'],
+                    'ppk_nip_snapshot' => $suratTugas->ppk_nip_snapshot ?: $ppk['nip'],
                     'draft_data' => $draftData ?: null,
                 ]);
             });
@@ -148,24 +161,117 @@ class WorkflowService
         $suratTugas->update([
             'status' => S::DRAFT,
             'kapus_decision' => null,
+            'kapus_nama_snapshot' => null,
+            'kapus_nip_snapshot' => null,
             'draft_step' => 1,
         ]);
         $this->audit->log($suratTugas->fresh(), 'AJUKAN_ULANG', S::DISPOSISI_KAPUS_STOP, S::DRAFT, 'Usulan dibuka kembali sebagai draft setelah dihentikan Kapus');
     }
 
     /**
-     * Pejabat Kapus aktif (akun role kapus) untuk penandatangan Surat Tugas.
+     * Pejabat Kapus aktif (akun role kapus atau pegawai berjabatan Kepala Pusat) untuk penandatangan Surat Tugas.
      *
      * @return array{nama: ?string, nip: ?string}
      */
-    public function kapusAktif(): array
+    public function kapusAktif(?User $actor = null): array
     {
-        $kapus = User::with('pegawai')->where('role', 'kapus')->orderBy('id')->first();
+        $kapus = ($actor && $actor->role === 'kapus')
+            ? $actor->loadMissing('pegawai')
+            : User::with('pegawai')->where('role', 'kapus')->orderBy('id')->first();
+
+        $nama = $kapus?->pegawai?->nama ?? $kapus?->name;
+        $nip = $kapus?->pegawai?->nip;
+
+        // Fallback ke master pegawai bila akun kapus belum ditautkan ke pegawai_id atau belum ada akun kapus.
+        if (! $nama || ! $nip) {
+            $pegawaiKapus = null;
+            if ($nama) {
+                $pegawaiKapus = Pegawai::where('nama', $nama)->first();
+            }
+            if (! $pegawaiKapus) {
+                $pegawaiKapus = Pegawai::where('is_active', true)
+                    ->where(function ($q) {
+                        $q->where('jabatan', 'like', '%Kepala Pusat%')
+                            ->orWhere('jabatan', 'like', '%Kapus%');
+                    })
+                    ->orderBy('id')
+                    ->first();
+            }
+
+            $nama = $nama ?: $pegawaiKapus?->nama;
+            $nip = $nip ?: $pegawaiKapus?->nip;
+        }
 
         return [
-            'nama' => $kapus?->pegawai?->nama ?? $kapus?->name,
-            'nip' => $kapus?->pegawai?->nip,
+            'nama' => $nama,
+            'nip' => $nip,
         ];
+    }
+
+    /**
+     * Ambil snapshot nama & NIP PPK dari akun PPK dan master pegawai terkait.
+     *
+     * @return array{nama: ?string, nip: ?string}
+     */
+    public function ppkSnapshot(?int $ppkId): array
+    {
+        if (! $ppkId) {
+            return ['nama' => null, 'nip' => null];
+        }
+
+        $ppk = User::with('pegawai')->find($ppkId);
+        if (! $ppk) {
+            return ['nama' => null, 'nip' => null];
+        }
+
+        $nama = $ppk->pegawai?->nama ?? $ppk->name;
+        $nip = $ppk->pegawai?->nip;
+
+        if (! $nip && $nama) {
+            $nip = Pegawai::where('nama', $nama)->value('nip');
+        }
+
+        return [
+            'nama' => $nama,
+            'nip' => $nip ?? '',
+        ];
+    }
+
+    /**
+     * Pastikan surat yang sudah disetujui Kapus / siap dicetak / selesai terbit memiliki snapshot
+     * Kapus & PPK yang terkunci permanen di database agar perubahan DB di kemudian hari tidak mengubah arsip surat.
+     */
+    public function ensureSnapshotsLocked(SuratTugas $suratTugas): void
+    {
+        if (! in_array($suratTugas->status, [S::DISPOSISI_KAPUS_YA, S::MENUNGGU_PENOMORAN_TU, S::SELESAI_TERBIT], true)) {
+            return;
+        }
+
+        $updates = [];
+
+        if (! $suratTugas->kapus_nama_snapshot || ! $suratTugas->kapus_nip_snapshot) {
+            $kapus = $this->kapusAktif();
+            if (! $suratTugas->kapus_nama_snapshot && $kapus['nama']) {
+                $updates['kapus_nama_snapshot'] = $kapus['nama'];
+            }
+            if (! $suratTugas->kapus_nip_snapshot && $kapus['nip']) {
+                $updates['kapus_nip_snapshot'] = $kapus['nip'];
+            }
+        }
+
+        if ($suratTugas->ppk_id && (! $suratTugas->ppk_nama_snapshot || ! $suratTugas->ppk_nip_snapshot)) {
+            $ppk = $this->ppkSnapshot($suratTugas->ppk_id);
+            if (! $suratTugas->ppk_nama_snapshot && $ppk['nama']) {
+                $updates['ppk_nama_snapshot'] = $ppk['nama'];
+            }
+            if (! $suratTugas->ppk_nip_snapshot && $ppk['nip']) {
+                $updates['ppk_nip_snapshot'] = $ppk['nip'];
+            }
+        }
+
+        if (! empty($updates)) {
+            $suratTugas->update($updates);
+        }
     }
 
     /** P1: akses cetak luas (TU/admin/kapus/ppk + pemilik), status minimal disetujui Kapus. */
