@@ -2,14 +2,14 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Pegawai;
-use App\Models\UnitKerja;
-use App\Models\TingkatBiaya;
 use App\Models\JenisAngkutan;
-use App\Models\User;
+use App\Models\Pegawai;
 use App\Models\SuratTugas;
 use App\Models\SuratTugasPegawai;
+use App\Models\TingkatBiaya;
+use App\Models\UnitKerja;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class MasterDataSeeder extends Seeder
@@ -109,7 +109,7 @@ class MasterDataSeeder extends Seeder
         }
 
         // 7. Seed Sample Complete Surat Tugas & SPD
-        $ppkObj = Ppk::first();
+        $ppkUser = User::with('pegawai')->where('role', 'ppk')->first();
         $st = SuratTugas::updateOrCreate(
             ['nomor_st' => 'ST/KP/08581/08/2026/79'],
             [
@@ -123,9 +123,9 @@ class MasterDataSeeder extends Seeder
                 'status' => 'SELESAI_TERBIT',
                 'kapus_decision' => 'YA',
                 'catatan_kapus' => 'Tugaskan sdr. Geovannie Foresty Palembangan (Diplomat Ahli Madya) beserta tim pendamping untuk menghadiri rapat koordinasi tersebut.',
-                'ppk_id' => $ppkObj?->id,
-                'ppk_nama_snapshot' => $ppkObj?->nama ?? 'GEORGE JUNIOR',
-                'ppk_nip_snapshot' => $ppkObj?->nip ?? '19790315 200312 1 002',
+                'ppk_id' => $ppkUser?->id,
+                'ppk_nama_snapshot' => $ppkUser?->pegawai?->nama ?? $ppkUser?->name ?? 'GEORGE JUNIOR',
+                'ppk_nip_snapshot' => $ppkUser?->pegawai?->nip ?? '19790315 200312 1 002',
                 'tingkat_biaya_kode' => 'C',
                 'jenis_angkutan_nama' => 'Perjalanan Darat',
                 'tempat_berangkat' => 'Jakarta',
