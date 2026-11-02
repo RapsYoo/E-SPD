@@ -2,13 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Pegawai;
 use App\Models\SuratTugas;
 use App\Models\User;
-use App\Models\Pegawai;
-use App\Models\TingkatBiaya;
-use App\Models\JenisAngkutan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -27,13 +24,12 @@ class SuratTugasDraftEdgeCaseTest extends TestCase
     private function makePegawai(): Pegawai
     {
         return Pegawai::create([
-            'nama' => 'Diplomat ' . uniqid(),
-            'nip' => '1985' . rand(10000000, 99999999),
+            'nama' => 'Diplomat '.uniqid(),
+            'nip' => '1985'.rand(10000000, 99999999),
             'pangkat' => 'Penata Tk I',
             'golongan' => 'III/d',
             'jabatan' => 'Fungsional Diplomat',
-            'unit_kerja' => 'Pusdiklat Kemlu',
-            'is_active' => true,
+            'upt_bidang' => 'Pusdiklat Kemlu',
         ]);
     }
 

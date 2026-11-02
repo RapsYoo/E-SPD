@@ -13,8 +13,6 @@ import {
   ChevronRight,
   UserPlus,
   Building,
-  Mail,
-  Phone,
   ShieldAlert
 } from 'lucide-react';
 
@@ -25,17 +23,34 @@ export default function Index({ pegawai, filters }) {
   const [editingPegawai, setEditingPegawai] = useState(null);
   const [deleteConfirmPegawai, setDeleteConfirmPegawai] = useState(null);
 
-  const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors } = useForm({
+  const emptyForm = {
     nama: '',
     nip: '',
+    status_kepegawaian: '',
+    upt_bidang: '',
+    jenis_kelamin: '',
+    agama: '',
+    tanggal_lahir: '',
+    masuk_kemlu: '',
+    masuk_pusdiklat: '',
+    pddn_pdln: '',
     pangkat: '',
     golongan: '',
+    kelas_jabatan: '',
     jabatan: '',
-    unit_kerja: 'Pusdiklat Kemlu',
-    email: '',
-    no_telepon: '',
-    is_active: true,
-  });
+    struktural_lainnya: '',
+    fungsional: '',
+    jenjang: '',
+    gelar: '',
+    tmt: '',
+    kode_bank: '',
+    bank: '',
+    no_rekening: '',
+    nama_rekening: '',
+    keterangan: '',
+  };
+
+  const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors } = useForm(emptyForm);
 
   useEffect(() => () => clearTimeout(searchTimeout.current), []);
 
@@ -67,17 +82,7 @@ export default function Index({ pegawai, filters }) {
   const openEditModal = (item) => {
     setEditingPegawai(item);
     clearErrors();
-    setData({
-      nama: item.nama || '',
-      nip: item.nip || '',
-      pangkat: item.pangkat || '',
-      golongan: item.golongan || '',
-      jabatan: item.jabatan || '',
-      unit_kerja: item.unit_kerja || 'Pusdiklat Kemlu',
-      email: item.email || '',
-      no_telepon: item.no_telepon || '',
-      is_active: item.is_active ?? true,
-    });
+    setData(Object.fromEntries(Object.keys(emptyForm).map((key) => [key, item[key] ?? ''])));
     setIsModalOpen(true);
   };
 
@@ -175,7 +180,7 @@ export default function Index({ pegawai, filters }) {
                 <th className="py-3.5 px-4">Nama / NIP</th>
                 <th className="py-3.5 px-4">Pangkat / Golongan</th>
                 <th className="py-3.5 px-4">Jabatan</th>
-                <th className="py-3.5 px-4">Kontak</th>
+                <th className="py-3.5 px-4">UPT / Bidang</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
                 <th className="py-3.5 px-4 text-center">Aksi</th>
               </tr>
@@ -186,7 +191,7 @@ export default function Index({ pegawai, filters }) {
                   <tr key={item.id} className="hover:bg-slate-50/80 transition">
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-slate-900">{item.nama}</div>
-                      <div className="text-xs text-slate-500 font-mono">NIP: {item.nip}</div>
+                      <div className="text-xs text-slate-500 font-mono">NIP: {item.nip || '-'}</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="font-medium text-slate-800">{item.pangkat}</div>
@@ -194,33 +199,15 @@ export default function Index({ pegawai, filters }) {
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="text-slate-800 font-medium">{item.jabatan}</div>
-                      <div className="text-xs text-slate-400">{item.unit_kerja || 'Pusdiklat Kemlu'}</div>
+                      <div className="text-xs text-slate-400">{item.fungsional || item.struktural_lainnya || ''}</div>
                     </td>
-                    <td className="py-3.5 px-4 text-xs space-y-0.5">
-                      {item.email && (
-                        <div className="flex items-center text-slate-600">
-                          <Mail className="w-3 h-3 mr-1 text-slate-400" />
-                          <span>{item.email}</span>
-                        </div>
-                      )}
-                      {item.no_telepon && (
-                        <div className="flex items-center text-slate-600">
-                          <Phone className="w-3 h-3 mr-1 text-slate-400" />
-                          <span>{item.no_telepon}</span>
-                        </div>
-                      )}
-                      {!item.email && !item.no_telepon && <span className="text-slate-400 italic">-</span>}
+                    <td className="py-3.5 px-4 text-xs text-slate-600">
+                      {item.upt_bidang || <span className="text-slate-400 italic">-</span>}
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      {item.is_active ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                          Aktif
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
-                          Non-Aktif
-                        </span>
-                      )}
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                        {item.status_kepegawaian || '-'}
+                      </span>
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex items-center justify-center space-x-2">
@@ -291,7 +278,7 @@ export default function Index({ pegawai, filters }) {
       {/* Modal Add/Edit Pegawai */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 relative border border-slate-100 animate-scale-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative border border-slate-100 animate-scale-in">
             <button
               onClick={() => setIsModalOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg"
@@ -329,10 +316,9 @@ export default function Index({ pegawai, filters }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">NIP *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">NIP</label>
                   <input
                     type="text"
-                    required
                     value={data.nip}
                     onChange={(e) => setData('nip', e.target.value)}
                     placeholder="198501012010121001"
@@ -342,10 +328,9 @@ export default function Index({ pegawai, filters }) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Golongan *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Golongan</label>
                   <input
                     type="text"
-                    required
                     value={data.golongan}
                     onChange={(e) => setData('golongan', e.target.value)}
                     placeholder="Contoh: IV/a"
@@ -357,10 +342,9 @@ export default function Index({ pegawai, filters }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Pangkat *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Pangkat</label>
                   <input
                     type="text"
-                    required
                     value={data.pangkat}
                     onChange={(e) => setData('pangkat', e.target.value)}
                     placeholder="Pembina Tingkat I"
@@ -370,10 +354,9 @@ export default function Index({ pegawai, filters }) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Jabatan *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Jabatan</label>
                   <input
                     type="text"
-                    required
                     value={data.jabatan}
                     onChange={(e) => setData('jabatan', e.target.value)}
                     placeholder="Widyaiswara Ahli Madya"
@@ -383,55 +366,216 @@ export default function Index({ pegawai, filters }) {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">UPT / Bidang</label>
+                  <input
+                    type="text"
+                    value={data.upt_bidang}
+                    onChange={(e) => setData('upt_bidang', e.target.value)}
+                    placeholder="TU, KSFD, UPT Sesdilu..."
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.upt_bidang && <span className="text-xs text-red-500 mt-1 block">{errors.upt_bidang}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Status Kepegawaian</label>
+                  <input
+                    type="text"
+                    value={data.status_kepegawaian}
+                    onChange={(e) => setData('status_kepegawaian', e.target.value)}
+                    placeholder="PNS, PNS Arunika, PPNPN..."
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.status_kepegawaian && <span className="text-xs text-red-500 mt-1 block">{errors.status_kepegawaian}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Jenis Kelamin (L/P)</label>
+                  <input
+                    type="text"
+                    value={data.jenis_kelamin}
+                    onChange={(e) => setData('jenis_kelamin', e.target.value)}
+                    placeholder="L"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.jenis_kelamin && <span className="text-xs text-red-500 mt-1 block">{errors.jenis_kelamin}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Agama</label>
+                  <input
+                    type="text"
+                    value={data.agama}
+                    onChange={(e) => setData('agama', e.target.value)}
+                    placeholder="Islam"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.agama && <span className="text-xs text-red-500 mt-1 block">{errors.agama}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Lahir</label>
+                  <input
+                    type="text"
+                    value={data.tanggal_lahir}
+                    onChange={(e) => setData('tanggal_lahir', e.target.value)}
+                    placeholder="1990-01-31"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.tanggal_lahir && <span className="text-xs text-red-500 mt-1 block">{errors.tanggal_lahir}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">PDDN / PDLN</label>
+                  <input
+                    type="text"
+                    value={data.pddn_pdln}
+                    onChange={(e) => setData('pddn_pdln', e.target.value)}
+                    placeholder="PDDN"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.pddn_pdln && <span className="text-xs text-red-500 mt-1 block">{errors.pddn_pdln}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Masuk Kemlu</label>
+                  <input
+                    type="text"
+                    value={data.masuk_kemlu}
+                    onChange={(e) => setData('masuk_kemlu', e.target.value)}
+                    placeholder="2020-01-20"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.masuk_kemlu && <span className="text-xs text-red-500 mt-1 block">{errors.masuk_kemlu}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Masuk Pusdiklat</label>
+                  <input
+                    type="text"
+                    value={data.masuk_pusdiklat}
+                    onChange={(e) => setData('masuk_pusdiklat', e.target.value)}
+                    placeholder="2022-07-01"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.masuk_pusdiklat && <span className="text-xs text-red-500 mt-1 block">{errors.masuk_pusdiklat}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Kelas Jabatan</label>
+                  <input
+                    type="text"
+                    value={data.kelas_jabatan}
+                    onChange={(e) => setData('kelas_jabatan', e.target.value)}
+                    placeholder="7"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.kelas_jabatan && <span className="text-xs text-red-500 mt-1 block">{errors.kelas_jabatan}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Struktural / Lainnya</label>
+                  <input
+                    type="text"
+                    value={data.struktural_lainnya}
+                    onChange={(e) => setData('struktural_lainnya', e.target.value)}
+                    placeholder="Kepala Bidang"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.struktural_lainnya && <span className="text-xs text-red-500 mt-1 block">{errors.struktural_lainnya}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Fungsional</label>
+                  <input
+                    type="text"
+                    value={data.fungsional}
+                    onChange={(e) => setData('fungsional', e.target.value)}
+                    placeholder="Diplomat"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.fungsional && <span className="text-xs text-red-500 mt-1 block">{errors.fungsional}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Jenjang</label>
+                  <input
+                    type="text"
+                    value={data.jenjang}
+                    onChange={(e) => setData('jenjang', e.target.value)}
+                    placeholder="Ahli Muda"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.jenjang && <span className="text-xs text-red-500 mt-1 block">{errors.jenjang}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Gelar</label>
+                  <input
+                    type="text"
+                    value={data.gelar}
+                    onChange={(e) => setData('gelar', e.target.value)}
+                    placeholder="Diplomat Ahli Muda"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.gelar && <span className="text-xs text-red-500 mt-1 block">{errors.gelar}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">TMT</label>
+                  <input
+                    type="text"
+                    value={data.tmt}
+                    onChange={(e) => setData('tmt', e.target.value)}
+                    placeholder="2019-04-01"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.tmt && <span className="text-xs text-red-500 mt-1 block">{errors.tmt}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Kode Bank</label>
+                  <input
+                    type="text"
+                    value={data.kode_bank}
+                    onChange={(e) => setData('kode_bank', e.target.value)}
+                    placeholder="BNINIDJA"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.kode_bank && <span className="text-xs text-red-500 mt-1 block">{errors.kode_bank}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Bank</label>
+                  <input
+                    type="text"
+                    value={data.bank}
+                    onChange={(e) => setData('bank', e.target.value)}
+                    placeholder="BNI"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.bank && <span className="text-xs text-red-500 mt-1 block">{errors.bank}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">No. Rekening</label>
+                  <input
+                    type="text"
+                    value={data.no_rekening}
+                    onChange={(e) => setData('no_rekening', e.target.value)}
+                    placeholder=""
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.no_rekening && <span className="text-xs text-red-500 mt-1 block">{errors.no_rekening}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Rekening</label>
+                  <input
+                    type="text"
+                    value={data.nama_rekening}
+                    onChange={(e) => setData('nama_rekening', e.target.value)}
+                    placeholder=""
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {errors.nama_rekening && <span className="text-xs text-red-500 mt-1 block">{errors.nama_rekening}</span>}
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Unit Kerja / Satker</label>
-                <input
-                  type="text"
-                  value={data.unit_kerja}
-                  onChange={(e) => setData('unit_kerja', e.target.value)}
-                  placeholder="Pusdiklat Kemlu"
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Keterangan (Pendidikan / Penugasan)</label>
+                <textarea
+                  rows="3"
+                  value={data.keterangan}
+                  onChange={(e) => setData('keterangan', e.target.value)}
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={data.email}
-                    onChange={(e) => setData('email', e.target.value)}
-                    placeholder="pegawai@kemlu.go.id"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">No. Telepon / WA</label>
-                  <input
-                    type="text"
-                    value={data.no_telepon}
-                    onChange={(e) => setData('no_telepon', e.target.value)}
-                    placeholder="081234567890"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {editingPegawai && (
-                <div className="flex items-center space-x-2 pt-2">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={data.is_active}
-                    onChange={(e) => setData('is_active', e.target.checked)}
-                    className="rounded border-slate-300 text-amber-500 focus:ring-amber-500"
-                  />
-                  <label htmlFor="is_active" className="text-xs font-semibold text-slate-700">
-                    Status Pegawai Aktif
-                  </label>
-                </div>
-              )}
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
                 <button
@@ -463,7 +607,7 @@ export default function Index({ pegawai, filters }) {
             </div>
             <h3 className="text-lg font-bold text-slate-900 mb-2">Hapus Data Pegawai?</h3>
             <p className="text-xs text-slate-500 mb-6">
-              Apakah Anda yakin ingin menghapus data pegawai <strong className="text-slate-900">{deleteConfirmPegawai.nama}</strong> (NIP: {deleteConfirmPegawai.nip})? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus data pegawai <strong className="text-slate-900">{deleteConfirmPegawai.nama}</strong> (NIP: {deleteConfirmPegawai.nip || '-'})? Tindakan ini tidak dapat dibatalkan.
             </p>
 
             <div className="flex justify-center space-x-3">

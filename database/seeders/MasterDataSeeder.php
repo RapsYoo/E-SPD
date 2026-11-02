@@ -2,14 +2,14 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Pegawai;
-use App\Models\UnitKerja;
-use App\Models\TingkatBiaya;
 use App\Models\JenisAngkutan;
-use App\Models\User;
+use App\Models\Pegawai;
 use App\Models\SuratTugas;
 use App\Models\SuratTugasPegawai;
+use App\Models\TingkatBiaya;
+use App\Models\UnitKerja;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class MasterDataSeeder extends Seeder
@@ -61,11 +61,11 @@ class MasterDataSeeder extends Seeder
 
         // 2. Seed Pegawai Master
         $pegawaiData = [
-            ['nama' => 'Geovannie Foresty Palembangan', 'nip' => '19810702 200901 1 002', 'pangkat' => 'Pembina', 'golongan' => 'IV/a', 'jabatan' => 'Diplomat Ahli Madya', 'unit_kerja' => 'Pusdiklat Kemlu'],
-            ['nama' => 'Siti Rahmah, S.IP', 'nip' => '19850415 201012 2 003', 'pangkat' => 'Penata', 'golongan' => 'III/c', 'jabatan' => 'Diplomat Ahli Muda', 'unit_kerja' => 'Pusdiklat Kemlu'],
-            ['nama' => 'Ahmad Syarif, S.H.', 'nip' => '19780512 200312 1 002', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d', 'jabatan' => 'Diplomat Ahli Muda', 'unit_kerja' => 'Pusdiklat Kemlu'],
-            ['nama' => 'Budi Santoso, M.Si', 'nip' => '19891104 201402 1 001', 'pangkat' => 'Penata Muda Tk. I', 'golongan' => 'III/b', 'jabatan' => 'Pranata Humas Ahli Muda', 'unit_kerja' => 'Pusdiklat Kemlu'],
-            ['nama' => 'Dewi Lestari, S.S.', 'nip' => '19920310 201801 2 004', 'pangkat' => 'Penata Muda', 'golongan' => 'III/a', 'jabatan' => 'Analis Kebijakan Ahli Pertama', 'unit_kerja' => 'Pusdiklat Kemlu'],
+            ['nama' => 'Geovannie Foresty Palembangan', 'nip' => '19810702 200901 1 002', 'pangkat' => 'Pembina', 'golongan' => 'IV/a', 'jabatan' => 'Diplomat Ahli Madya', 'upt_bidang' => 'Pusdiklat Kemlu'],
+            ['nama' => 'Siti Rahmah, S.IP', 'nip' => '19850415 201012 2 003', 'pangkat' => 'Penata', 'golongan' => 'III/c', 'jabatan' => 'Diplomat Ahli Muda', 'upt_bidang' => 'Pusdiklat Kemlu'],
+            ['nama' => 'Ahmad Syarif, S.H.', 'nip' => '19780512 200312 1 002', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d', 'jabatan' => 'Diplomat Ahli Muda', 'upt_bidang' => 'Pusdiklat Kemlu'],
+            ['nama' => 'Budi Santoso, M.Si', 'nip' => '19891104 201402 1 001', 'pangkat' => 'Penata Muda Tk. I', 'golongan' => 'III/b', 'jabatan' => 'Pranata Humas Ahli Muda', 'upt_bidang' => 'Pusdiklat Kemlu'],
+            ['nama' => 'Dewi Lestari, S.S.', 'nip' => '19920310 201801 2 004', 'pangkat' => 'Penata Muda', 'golongan' => 'III/a', 'jabatan' => 'Analis Kebijakan Ahli Pertama', 'upt_bidang' => 'Pusdiklat Kemlu'],
         ];
 
         foreach ($pegawaiData as $data) {

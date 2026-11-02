@@ -142,8 +142,7 @@ class FiturTahapLanjutanTest extends TestCase
             'pangkat' => 'Pembina Utama Muda',
             'golongan' => 'IV/c',
             'jabatan' => 'Kepala Pusat Pendidikan dan Pelatihan',
-            'unit_kerja' => 'Pusdiklat Kemlu',
-            'is_active' => true,
+            'upt_bidang' => 'Pusdiklat Kemlu',
         ]);
         $kapusUser = User::factory()->create([
             'name' => $pegawaiKapusLama->nama,
@@ -157,8 +156,7 @@ class FiturTahapLanjutanTest extends TestCase
             'pangkat' => 'Penata',
             'golongan' => 'III/c',
             'jabatan' => 'Analis Diklat',
-            'unit_kerja' => 'Pusdiklat Kemlu',
-            'is_active' => true,
+            'upt_bidang' => 'Pusdiklat Kemlu',
         ]);
 
         // 1. Surat berstatus MENUNGGU_DISPOSISI_KAPUS -> Disetujui oleh Kapus Lama
@@ -239,7 +237,7 @@ class FiturTahapLanjutanTest extends TestCase
             'pangkat' => 'Pembina Utama',
             'golongan' => 'IV/e',
             'jabatan' => 'Direktur Jenderal Asia Pasifik dan Afrika',
-            'unit_kerja' => 'Pusdiklat',
+            'upt_bidang' => 'Pusdiklat',
         ]);
 
         $surat = SuratTugas::create([

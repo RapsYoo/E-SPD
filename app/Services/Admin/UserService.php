@@ -6,6 +6,7 @@ use App\Exceptions\WorkflowException;
 use App\Models\Pegawai;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -27,9 +28,9 @@ class UserService
     /** @param array{search?: ?string, role?: ?string} $filters */
     public function paginate(array $filters): LengthAwarePaginator
     {
-        $query = User::with('pegawai:id,nama,nip,jabatan,unit_kerja');
+        $query = User::with('pegawai:id,nama,nip,jabatan,upt_bidang');
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -38,20 +39,19 @@ class UserService
             });
         }
 
-        if (!empty($filters['role']) && array_key_exists($filters['role'], self::ROLES)) {
+        if (! empty($filters['role']) && array_key_exists($filters['role'], self::ROLES)) {
             $query->where('role', $filters['role']);
         }
 
         return $query->orderBy('name')->paginate(10)->withQueryString();
     }
 
-    /** Pegawai aktif beserta id akun yang sudah memakainya (untuk memfilter pilihan di form). */
-    public function pegawaiOptions(): \Illuminate\Support\Collection
+    /** Pegawai beserta id akun yang sudah memakainya (untuk memfilter pilihan di form). */
+    public function pegawaiOptions(): Collection
     {
-        return Pegawai::where('is_active', true)
-            ->with('user:id,pegawai_id')
+        return Pegawai::with('user:id,pegawai_id')
             ->orderBy('nama')
-            ->get(['id', 'nama', 'nip', 'pangkat', 'golongan', 'jabatan', 'unit_kerja', 'email'])
+            ->get(['id', 'nama', 'nip', 'pangkat', 'golongan', 'jabatan', 'upt_bidang'])
             ->map(fn (Pegawai $p) => [
                 'id' => $p->id,
                 'nama' => $p->nama,
@@ -60,7 +60,7 @@ class UserService
                 'golongan' => $p->golongan,
                 'jabatan' => $p->jabatan,
                 'unit_kerja' => $p->unit_kerja,
-                'email' => $p->email,
+                'email' => null, // master pegawai tidak menyimpan email; diisi manual saat membuat akun
                 'user_id' => $p->user?->id,
             ]);
     }
@@ -99,11 +99,11 @@ class UserService
         ];
 
         // Bila terhubung ke pegawai, nama selalu mengikuti data pegawai.
-        if (!empty($validated['pegawai_id'])) {
+        if (! empty($validated['pegawai_id'])) {
             $values['name'] = Pegawai::findOrFail($validated['pegawai_id'])->nama;
         }
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $values['password'] = $validated['password'];
         }
 

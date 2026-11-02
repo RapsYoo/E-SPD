@@ -131,7 +131,7 @@ class DashboardService
         return [
             'stats' => [
                 'totalPegawai' => Pegawai::count(),
-                'pegawaiAktif' => Pegawai::where('is_active', true)->count(),
+                'pegawaiAktif' => Pegawai::count(),
                 'totalPpk' => User::where('role', 'ppk')->count(),
                 'totalUnitKerja' => UnitKerja::where('is_active', true)->count(),
                 'totalTingkatBiaya' => TingkatBiaya::where('is_active', true)->count(),

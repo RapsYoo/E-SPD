@@ -79,7 +79,7 @@ export default function Index({ pegawai, filters }) {
                 <th className="py-3.5 px-4">Nama / NIP</th>
                 <th className="py-3.5 px-4">Pangkat / Golongan</th>
                 <th className="py-3.5 px-4">Jabatan</th>
-                <th className="py-3.5 px-4">Kontak</th>
+                <th className="py-3.5 px-4">UPT / Bidang</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -88,7 +88,7 @@ export default function Index({ pegawai, filters }) {
                   <tr key={item.id} className="hover:bg-slate-50/80 transition">
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-slate-900">{item.nama}</div>
-                      <div className="text-xs text-slate-500 font-mono">NIP: {item.nip}</div>
+                      <div className="text-xs text-slate-500 font-mono">NIP: {item.nip || '-'}</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="font-medium text-slate-800">{item.pangkat}</div>
@@ -96,22 +96,10 @@ export default function Index({ pegawai, filters }) {
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="text-slate-800 font-medium">{item.jabatan}</div>
-                      <div className="text-xs text-slate-400">{item.unit_kerja || 'Pusdiklat Kemlu'}</div>
+                      <div className="text-xs text-slate-400">{item.status_kepegawaian || ''}</div>
                     </td>
-                    <td className="py-3.5 px-4 text-xs space-y-0.5">
-                      {item.email && (
-                        <div className="flex items-center text-slate-600">
-                          <Mail className="w-3 h-3 mr-1 text-slate-400" />
-                          <span>{item.email}</span>
-                        </div>
-                      )}
-                      {item.no_telepon && (
-                        <div className="flex items-center text-slate-600">
-                          <Phone className="w-3 h-3 mr-1 text-slate-400" />
-                          <span>{item.no_telepon}</span>
-                        </div>
-                      )}
-                      {!item.email && !item.no_telepon && <span className="text-slate-400 italic">-</span>}
+                    <td className="py-3.5 px-4 text-xs text-slate-600">
+                      {item.upt_bidang || <span className="text-slate-400 italic">-</span>}
                     </td>
                   </tr>
                 ))

@@ -14,7 +14,7 @@ class PegawaiController extends Controller
     public function index(Request $request)
     {
         return Inertia::render('Admin/Pegawai/Index', [
-            'pegawai' => SearchQuery::paginate(Pegawai::query(), $request->search, ['nama', 'nip', 'jabatan'], 'nama'),
+            'pegawai' => SearchQuery::paginate(Pegawai::query(), $request->search, ['nama', 'nip', 'jabatan', 'upt_bidang', 'status_kepegawaian'], 'nama'),
             'filters' => $request->only(['search']),
         ]);
     }

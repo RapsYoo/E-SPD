@@ -23,8 +23,7 @@ class PegawaiRoleAccessTest extends TestCase
             'pangkat' => 'Penata',
             'golongan' => 'III/c',
             'jabatan' => 'Diplomat Ahli Muda',
-            'unit_kerja' => 'Pusdiklat Kemlu',
-            'is_active' => true,
+            'upt_bidang' => 'Pusdiklat Kemlu',
         ]);
 
         $user = User::factory()->create(['name' => $nama, 'pegawai_id' => $pegawai->id]);

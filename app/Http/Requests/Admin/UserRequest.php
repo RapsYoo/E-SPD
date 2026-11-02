@@ -22,7 +22,7 @@ class UserRequest extends FormRequest
             return [
                 'pegawai_id' => [
                     'required',
-                    Rule::exists('pegawai', 'id')->where('is_active', true),
+                    'exists:pegawai,id',
                     'unique:users,pegawai_id',
                 ],
                 'email' => 'required|email|max:255|unique:users,email',
@@ -38,7 +38,7 @@ class UserRequest extends FormRequest
             'pegawai_id' => [
                 Rule::requiredIf($user->pegawai_id !== null),
                 'nullable',
-                Rule::exists('pegawai', 'id')->where('is_active', true),
+                'exists:pegawai,id',
                 Rule::unique('users', 'pegawai_id')->ignore($user->id),
             ],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
@@ -52,7 +52,7 @@ class UserRequest extends FormRequest
         return [
             'pegawai_id.required' => 'Pilih pegawai dari daftar data pegawai.',
             'pegawai_id.unique' => $this->isMethod('POST') ? 'Pegawai ini sudah memiliki akun.' : 'Pegawai ini sudah memiliki akun lain.',
-            'pegawai_id.exists' => 'Pegawai tidak ditemukan atau tidak aktif.',
+            'pegawai_id.exists' => 'Pegawai tidak ditemukan.',
         ];
     }
 }
