@@ -51,6 +51,7 @@ class PegawaiRequest extends FormRequest
                 },
             ],
             'keterangan' => 'nullable|string',
+            'is_active' => 'sometimes|boolean',
         ];
 
         foreach (self::OPTIONAL_TEXT_COLUMNS as $column) {

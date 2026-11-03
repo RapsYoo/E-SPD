@@ -16,7 +16,7 @@ class PegawaiDirectoryController extends Controller
     {
         return Inertia::render('Pegawai/Index', [
             'pegawai' => SearchQuery::paginate(
-                Pegawai::query(),
+                Pegawai::query()->where('is_active', true),
                 $request->search,
                 ['nama', 'nip', 'jabatan', 'upt_bidang'],
                 'nama'

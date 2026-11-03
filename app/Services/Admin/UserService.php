@@ -50,6 +50,7 @@ class UserService
     public function pegawaiOptions(): Collection
     {
         return Pegawai::with('user:id,pegawai_id')
+            ->where('is_active', true)
             ->orderBy('nama')
             ->get(['id', 'nama', 'nip', 'pangkat', 'golongan', 'jabatan', 'upt_bidang'])
             ->map(fn (Pegawai $p) => [

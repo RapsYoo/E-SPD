@@ -189,10 +189,11 @@ class WorkflowService
                 $pegawaiKapus = Pegawai::where('nama', $nama)->first();
             }
             if (! $pegawaiKapus) {
-                $pegawaiKapus = Pegawai::where(function ($q) {
-                    $q->where('jabatan', 'like', '%Kepala Pusat%')
-                        ->orWhere('jabatan', 'like', '%Kapus%');
-                })
+                $pegawaiKapus = Pegawai::where('is_active', true)
+                    ->where(function ($q) {
+                        $q->where('jabatan', 'like', '%Kepala Pusat%')
+                            ->orWhere('jabatan', 'like', '%Kapus%');
+                    })
                     ->orderBy('id')
                     ->first();
             }

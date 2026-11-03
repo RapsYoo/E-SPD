@@ -49,6 +49,11 @@ class Pegawai extends Model
         'no_rekening',
         'nama_rekening',
         'bank',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
     /**

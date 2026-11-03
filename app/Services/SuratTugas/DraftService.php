@@ -26,7 +26,7 @@ class DraftService
     public function formOptions(): array
     {
         return [
-            'pegawaiList' => Pegawai::orderBy('nama')->get(),
+            'pegawaiList' => Pegawai::where('is_active', true)->orderBy('nama')->get(),
             'ppkList' => User::where('role', 'ppk')
                 ->with('pegawai')
                 ->orderBy('name')

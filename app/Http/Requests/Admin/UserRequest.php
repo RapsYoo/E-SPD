@@ -22,7 +22,7 @@ class UserRequest extends FormRequest
             return [
                 'pegawai_id' => [
                     'required',
-                    'exists:pegawai,id',
+                    Rule::exists('pegawai', 'id')->where('is_active', true),
                     'unique:users,pegawai_id',
                 ],
                 'email' => 'required|email|max:255|unique:users,email',
@@ -38,7 +38,7 @@ class UserRequest extends FormRequest
             'pegawai_id' => [
                 Rule::requiredIf($user->pegawai_id !== null),
                 'nullable',
-                'exists:pegawai,id',
+                Rule::exists('pegawai', 'id')->where('is_active', true),
                 Rule::unique('users', 'pegawai_id')->ignore($user->id),
             ],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],

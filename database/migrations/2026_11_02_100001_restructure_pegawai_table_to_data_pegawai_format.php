@@ -11,11 +11,30 @@ use Illuminate\Support\Facades\Schema;
  * users.pegawai_id & surat_tugas_pegawai.pegawai_id tidak terputus.
  *
  * Kolom lama `unit_kerja` disalin ke `upt_bidang` sebelum dihapus.
+ * Data kolom yang dihapus (unit_kerja, email, no_telepon, is_active) dicadangkan dulu
+ * ke tabel `pegawai_legacy_backup`.
+ *
+ * Data baru dari Excel diselaraskan ke baris yang sudah ada lewat `php artisan pegawai:impor`.
  */
 return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('pegawai_legacy_backup');
+        Schema::create('pegawai_legacy_backup', function (Blueprint $table) {
+            $table->unsignedBigInteger('id')->primary();
+            $table->string('nama');
+            $table->string('nip')->nullable();
+            $table->string('unit_kerja')->nullable();
+            $table->string('email')->nullable();
+            $table->string('no_telepon')->nullable();
+            $table->boolean('is_active')->default(true);
+        });
+        DB::table('pegawai_legacy_backup')->insertUsing(
+            ['id', 'nama', 'nip', 'unit_kerja', 'email', 'no_telepon', 'is_active'],
+            DB::table('pegawai')->select(['id', 'nama', 'nip', 'unit_kerja', 'email', 'no_telepon', 'is_active'])
+        );
+
         Schema::table('pegawai', function (Blueprint $table) {
             $table->dropUnique(['nip']);
         });
@@ -61,7 +80,7 @@ return new class extends Migration
         DB::table('pegawai')->update(['upt_bidang' => DB::raw('unit_kerja')]);
 
         Schema::table('pegawai', function (Blueprint $table) {
-            $table->dropColumn(['unit_kerja', 'email', 'no_telepon', 'is_active']);
+            $table->dropColumn(['unit_kerja', 'email', 'no_telepon']);
         });
     }
 
@@ -71,10 +90,20 @@ return new class extends Migration
             $table->string('unit_kerja')->nullable();
             $table->string('email')->nullable();
             $table->string('no_telepon')->nullable();
-            $table->boolean('is_active')->default(true);
         });
 
         DB::table('pegawai')->update(['unit_kerja' => DB::raw('upt_bidang')]);
+
+        foreach (DB::table('pegawai_legacy_backup')->get() as $backup) {
+            DB::table('pegawai')->where('id', $backup->id)->update([
+                'unit_kerja' => $backup->unit_kerja,
+                'email' => $backup->email,
+                'no_telepon' => $backup->no_telepon,
+                'is_active' => $backup->is_active,
+            ]);
+        }
+
+        Schema::dropIfExists('pegawai_legacy_backup');
 
         Schema::table('pegawai', function (Blueprint $table) {
             $table->dropIndex(['nip']);
@@ -90,4 +119,3 @@ return new class extends Migration
         });
     }
 };
-
