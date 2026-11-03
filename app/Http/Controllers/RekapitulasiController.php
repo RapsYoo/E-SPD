@@ -23,6 +23,7 @@ class RekapitulasiController extends Controller
             'summary' => $this->rekap->summary($filters),
             'filters' => $filters,
             'statusOptions' => SuratTugasStatus::LABELS,
+            'unitOptions' => $this->rekap->unitOptions(),
         ]);
     }
 

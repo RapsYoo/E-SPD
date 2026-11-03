@@ -78,6 +78,51 @@ class FiturTahapLanjutanTest extends TestCase
         $this->assertStringContainsString('Semarang', $response->streamedContent());
     }
 
+    public function test_rekapitulasi_live_search_filters_by_unit_from_upt_or_bidang(): void
+    {
+        $admin = $this->userWithRole('admin');
+        foreach (['UPT Alfa', 'Bidang Beta', 'UPT Gamma', 'UPT Delta'] as $index => $unit) {
+            Pegawai::create([
+                'nama' => 'Master Pegawai '.$index,
+                'upt_bidang' => $unit,
+            ]);
+        }
+
+        $matchingSurat = $this->makeSurat($admin, S::SELESAI_TERBIT);
+        $separateUnitSurat = $this->makeSurat($admin, S::SELESAI_TERBIT);
+        $separateNameSurat = $this->makeSurat($admin, S::SELESAI_TERBIT);
+
+        foreach ([
+            [$matchingSurat, 'UPT Alfa'],
+            [$separateUnitSurat, 'Bidang Beta'],
+            [$separateNameSurat, 'UPT Gamma'],
+        ] as [$surat, $unit]) {
+            SuratTugasPegawai::create([
+                'surat_tugas_id' => $surat->id,
+                'nama' => 'Pegawai '.$surat->id,
+                'unit_kerja' => $unit,
+                'urutan' => 1,
+            ]);
+        }
+
+        $this->actingAs($admin)
+            ->get('/rekapitulasi?unit='.urlencode('UPT Alfa'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Rekapitulasi/Index')
+                ->has('rows.data', 1)
+                ->where('rows.data.0.id', $matchingSurat->id)
+                ->where('summary.total_surat', 1)
+                ->where('filters.unit', 'UPT Alfa')
+                ->where('unitOptions', ['Bidang Beta', 'UPT Alfa', 'UPT Delta', 'UPT Gamma']));
+
+        $response = $this->actingAs($admin)
+            ->get('/rekapitulasi/export?format=csv&unit='.urlencode('UPT Alfa'));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Pegawai '.$matchingSurat->id, $response->streamedContent());
+        $this->assertStringNotContainsString('Pegawai '.$separateUnitSurat->id, $response->streamedContent());
+    }
+
     public function test_owner_can_resubmit_stopped_letter_but_others_cannot(): void
     {
         $owner = $this->userWithRole('pemohon');

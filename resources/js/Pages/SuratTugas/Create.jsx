@@ -465,8 +465,8 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 >
                   <option value="" disabled>Pilih sumber nota / undangan</option>
-                  <option value="EKSTERNAL">Pihak Eksternal (Instansi Luar / Universitas / Lembaga)</option>
-                  <option value="INTERNAL">Internal Sespalu / Pusdiklat Kemlu</option>
+                  <option value="INTERNAL">Pihak Internal</option>
+                  <option value="EKSTERNAL">Pihak Eksternal</option>
                 </select>
               </div>
 

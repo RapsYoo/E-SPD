@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Pegawai;
 use App\Models\SuratTugas;
 use App\Support\SuratTugasStatus as S;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -21,7 +22,7 @@ class RekapitulasiService
     ];
 
     /**
-     * @param  array{dari?: ?string, sampai?: ?string, status?: ?string, kategori?: ?string, search?: ?string}  $filters
+     * @param  array{dari?: ?string, sampai?: ?string, status?: ?string, kategori?: ?string, search?: ?string, unit?: ?string}  $filters
      */
     public function query(array $filters): Builder
     {
@@ -39,6 +40,12 @@ class RekapitulasiService
         if (! empty($filters['kategori'])) {
             $query->where('kategori_perjalanan', $filters['kategori']);
         }
+        if (! empty($filters['unit'])) {
+            $query->whereHas(
+                'pegawaiList',
+                fn (Builder $pegawaiQuery) => $pegawaiQuery->where('unit_kerja', $filters['unit'])
+            );
+        }
         if (! empty($filters['search'])) {
             $term = $filters['search'];
             $query->where(function (Builder $q) use ($term) {
@@ -51,6 +58,18 @@ class RekapitulasiService
         }
 
         return $query->orderByDesc('tanggal_berangkat')->orderByDesc('id');
+    }
+
+    /** @return array<int, string> */
+    public function unitOptions(): array
+    {
+        return Pegawai::query()
+            ->whereNotNull('upt_bidang')
+            ->where('upt_bidang', '!=', '')
+            ->distinct()
+            ->orderBy('upt_bidang')
+            ->pluck('upt_bidang')
+            ->all();
     }
 
     /** @return array<string, int> */
@@ -143,14 +162,14 @@ class RekapitulasiService
             echo '<div class="letterhead"><div>KEMENTERIAN LUAR NEGERI</div><div class="country">REPUBLIK INDONESIA</div></div>';
             echo '<div class="report-title">REKAPITULASI PERJALANAN DINAS</div>';
             echo '<table><colgroup>';
-            foreach ([4, 10, 12, 10, 10, 6, 8, 7, 7, 5, 8, 8, 5] as $width) {
+            foreach ([4, 12, 10, 10, 10, 6, 8, 7, 7, 5, 8, 8, 5] as $width) {
                 echo '<col style="width:'.$width.'%">';
             }
             echo '</colgroup><thead>
                 <tr>
                     <th rowspan="2">No</th>
-                    <th rowspan="2">Nomor Dokumen</th>
                     <th rowspan="2">Nama</th>
+                    <th rowspan="2">Nomor Dokumen</th>
                     <th rowspan="2">Posisi</th>
                     <th rowspan="2">Tujuan</th>
                     <th colspan="2">Transportasi / Angkutan</th>
@@ -185,8 +204,8 @@ class RekapitulasiService
                     .'<br><strong>SPD:</strong> '.e($this->neutralizeFormula($row['nomor_spd'] ?: '-'));
                 $values = [
                     ++$number,
-                    $documentNumbers,
                     $names ?: '-',
+                    $documentNumbers,
                     $positions ?: '-',
                     $destination,
                     $row['tingkat_biaya'] ?: '-',

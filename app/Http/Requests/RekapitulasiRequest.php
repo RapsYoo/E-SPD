@@ -25,11 +25,12 @@ class RekapitulasiRequest extends FormRequest
             'status' => ['nullable', Rule::in(SuratTugasStatus::ALL)],
             'kategori' => ['nullable', 'in:DALAM_NEGERI,LUAR_NEGERI'],
             'search' => ['nullable', 'string', 'max:100'],
+            'unit' => ['nullable', 'string', 'max:255'],
             'format' => ['nullable', 'in:csv,xls'],
         ];
     }
 
-    /** @return array{dari: ?string, sampai: ?string, status: ?string, kategori: ?string, search: ?string} */
+    /** @return array{dari: ?string, sampai: ?string, status: ?string, kategori: ?string, search: ?string, unit: ?string} */
     public function filters(): array
     {
         $data = $this->validated();
@@ -40,6 +41,7 @@ class RekapitulasiRequest extends FormRequest
             'status' => $data['status'] ?? null,
             'kategori' => $data['kategori'] ?? null,
             'search' => $data['search'] ?? null,
+            'unit' => $data['unit'] ?? null,
         ];
     }
 }

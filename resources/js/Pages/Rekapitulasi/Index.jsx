@@ -31,7 +31,7 @@ const statusClass = (status) => {
   return 'bg-amber-50 text-amber-700 ring-amber-600/15';
 };
 
-export default function Index({ rows, filters, statusOptions }) {
+export default function Index({ rows, filters, statusOptions, unitOptions }) {
   const searchTimeout = useRef(null);
   const [form, setForm] = useState({
     dari: filters.dari || '',
@@ -39,6 +39,7 @@ export default function Index({ rows, filters, statusOptions }) {
     status: filters.status || '',
     kategori: filters.kategori || '',
     search: filters.search || '',
+    unit: filters.unit || '',
   });
 
   useEffect(() => () => clearTimeout(searchTimeout.current), []);
@@ -57,8 +58,8 @@ export default function Index({ rows, filters, statusOptions }) {
     });
   };
 
-  const search = (value) => {
-    const updatedForm = { ...form, search: value };
+  const search = (key, value) => {
+    const updatedForm = { ...form, [key]: value };
     setForm(updatedForm);
     clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
@@ -78,7 +79,7 @@ export default function Index({ rows, filters, statusOptions }) {
 
   const reset = () => {
     clearTimeout(searchTimeout.current);
-    setForm({ dari: '', sampai: '', status: '', kategori: '', search: '' });
+    setForm({ dari: '', sampai: '', status: '', kategori: '', search: '', unit: '' });
     router.get('/rekapitulasi', {}, { preserveState: true, preserveScroll: true, replace: true });
   };
 
@@ -174,21 +175,24 @@ export default function Index({ rows, filters, statusOptions }) {
         </div>
 
         <form onSubmit={apply} className="no-print rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-slate-800">Filter &amp; pencarian</h2>
-              <p className="mt-0.5 text-xs text-slate-500">Atur rentang tanggal atau cari data tertentu.</p>
+              <p className="mt-0.5 text-xs text-slate-500">Cari UPT/Bidang atau data lain; hasil pencarian diperbarui otomatis.</p>
             </div>
             <Search className="h-5 w-5 text-slate-400" />
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 xl:items-end">
-            <label className="text-xs font-semibold text-slate-600 xl:col-span-2">Dari
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="block min-w-0 text-xs font-semibold text-slate-600">
+              <span className="mb-1.5 block">Dari</span>
               <input type="date" value={form.dari} onChange={(event) => updateFilter('dari', event.target.value)} className={inputClass} />
             </label>
-            <label className="text-xs font-semibold text-slate-600 xl:col-span-2">Sampai
+            <label className="block min-w-0 text-xs font-semibold text-slate-600">
+              <span className="mb-1.5 block">Sampai</span>
               <input type="date" value={form.sampai} onChange={(event) => updateFilter('sampai', event.target.value)} className={inputClass} />
             </label>
-            <label className="text-xs font-semibold text-slate-600 xl:col-span-2">Status
+            <label className="block min-w-0 text-xs font-semibold text-slate-600">
+              <span className="mb-1.5 block">Status</span>
               <select value={form.status} onChange={(event) => updateFilter('status', event.target.value)} className={inputClass}>
                 <option value="">Semua status</option>
                 {Object.entries(statusOptions).map(([value, label]) => (
@@ -196,23 +200,34 @@ export default function Index({ rows, filters, statusOptions }) {
                 ))}
               </select>
             </label>
-            <label className="text-xs font-semibold text-slate-600 xl:col-span-2">Kategori
+            <label className="block min-w-0 text-xs font-semibold text-slate-600">
+              <span className="mb-1.5 block">Kategori</span>
               <select value={form.kategori} onChange={(event) => updateFilter('kategori', event.target.value)} className={inputClass}>
                 <option value="">Semua kategori</option>
                 <option value="DALAM_NEGERI">Dalam Negeri</option>
                 <option value="LUAR_NEGERI">Luar Negeri</option>
               </select>
             </label>
-            <label className="text-xs font-semibold text-slate-600 xl:col-span-2">Cari data
-              <input type="text" value={form.search} onChange={(event) => search(event.target.value)} placeholder="Nomor, perihal, atau pegawai" className={inputClass} />
+            <label className="block min-w-0 text-xs font-semibold text-slate-600">
+              <span className="mb-1.5 block">Unit kerja (UPT/Bidang)</span>
+              <select value={form.unit} onChange={(event) => updateFilter('unit', event.target.value)} className={inputClass}>
+                <option value="">Semua UPT/Bidang</option>
+                {unitOptions.map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
             </label>
-            <div className="flex gap-2 sm:col-span-2 lg:col-span-3 xl:col-span-2">
-              <button type="submit" className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-[#0F2C59] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0B2247]">
-                <Search className="h-4 w-4" /> Filter
-              </button>
-              <button type="button" onClick={reset} aria-label="Reset filter" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50">
-                <RotateCcw className="h-4 w-4" />
-              </button>
+            <label className="block min-w-0 text-xs font-semibold text-slate-600 lg:col-span-2">
+              <span className="mb-1.5 block">Cari data</span>
+              <input type="text" value={form.search} onChange={(event) => search('search', event.target.value)} placeholder="Nomor, perihal, atau pegawai" className={inputClass} />
+            </label>
+            <div className="flex items-end justify-end gap-2">
+            <button type="submit" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0F2C59] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0B2247]">
+              <Search className="h-4 w-4" /> Filter
+            </button>
+            <button type="button" onClick={reset} aria-label="Reset filter" title="Reset filter" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50">
+              <RotateCcw className="h-4 w-4" />
+            </button>
             </div>
           </div>
         </form>
@@ -231,8 +246,8 @@ export default function Index({ rows, filters, statusOptions }) {
             <table className="rekap-table w-full min-w-[1450px] table-fixed border-collapse border border-black text-left text-[11px] leading-4 text-slate-700">
               <colgroup>
                 <col className="w-[4%]" />
-                <col className="w-[10%]" />
                 <col className="w-[12%]" />
+                <col className="w-[10%]" />
                 <col className="w-[10%]" />
                 <col className="w-[10%]" />
                 <col className="w-[7%]" />
@@ -247,8 +262,8 @@ export default function Index({ rows, filters, statusOptions }) {
               <thead className="text-center text-[10px] font-bold text-slate-800">
                 <tr>
                   <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">No</th>
-                  <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Nomor Dokumen</th>
                   <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Nama</th>
+                  <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Nomor Dokumen</th>
                   <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Posisi</th>
                   <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Tujuan</th>
                   <th colSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Transportasi / Angkutan</th>
@@ -280,15 +295,15 @@ export default function Index({ rows, filters, statusOptions }) {
                   <tr key={row.id} className="align-top odd:bg-white even:bg-slate-50/70">
                     <td className="border border-slate-300 px-2 py-2 text-center font-medium">{(rows.from ?? 1) + index}</td>
                     <td className="break-words border border-slate-300 px-2 py-2">
-                      <p><span className="font-semibold">ST:</span> {row.nomor_st || '-'}</p>
-                      <p className="mt-1"><span className="font-semibold">SPD:</span> {row.nomor_spd || '-'}</p>
-                    </td>
-                    <td className="break-words border border-slate-300 px-2 py-2">
                       {row.personel?.length ? row.personel.map((person, index) => (
                         <p key={`${person.nama}-${index}`} className={index > 0 ? 'mt-1 border-t border-slate-200 pt-1' : ''}>
                           {person.nama || '-'}
                         </p>
                       )) : row.pelaksana || '-'}
+                    </td>
+                    <td className="break-words border border-slate-300 px-2 py-2">
+                      <p><span className="font-semibold">ST:</span> {row.nomor_st || '-'}</p>
+                      <p className="mt-1"><span className="font-semibold">SPD:</span> {row.nomor_spd || '-'}</p>
                     </td>
                     <td className="break-words border border-slate-300 px-2 py-2">
                       {row.personel?.length ? row.personel.map((person, index) => (
