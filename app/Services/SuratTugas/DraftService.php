@@ -154,11 +154,28 @@ class DraftService
 
         $pegawaiIds = $validated['pegawai_ids'] ?? $draftData['pegawai_ids'] ?? [];
 
+        $alreadyCreated = false;
         try {
-            DB::transaction(function () use ($values, $pegawaiIds, &$suratTugas) {
+            DB::transaction(function () use ($values, $pegawaiIds, &$suratTugas, &$alreadyCreated) {
                 if ($suratTugas) {
                     $suratTugas->update($values);
                 } else {
+                    $recentDuplicate = SuratTugas::where('user_id', $values['user_id'])
+                        ->where('nomor_nota', $values['nomor_nota'])
+                        ->where('pengirim_nota', $values['pengirim_nota'])
+                        ->where('perihal_nota', $values['perihal_nota'])
+                        ->where('status', SuratTugasStatus::DRAFT)
+                        ->where('created_at', '>=', now()->subSeconds(10))
+                        ->orderByDesc('id')
+                        ->first();
+
+                    if ($recentDuplicate !== null) {
+                        $suratTugas = $recentDuplicate;
+                        $alreadyCreated = true;
+
+                        return;
+                    }
+
                     $suratTugas = SuratTugas::create($values);
                 }
 
@@ -168,6 +185,12 @@ class DraftService
             // Rollback file baru agar tidak yatim saat DB gagal.
             $files->rollback();
             throw $e;
+        }
+
+        if ($alreadyCreated) {
+            $files->rollback();
+
+            return $suratTugas;
         }
 
         $files->commit();

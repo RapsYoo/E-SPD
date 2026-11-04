@@ -60,6 +60,7 @@ export default function Index({ tingkatBiaya, jenisAngkutan }) {
 
   const handleTingkatSubmit = (e) => {
     e.preventDefault();
+    if (tingkatForm.processing) return;
     if (editingTingkat) {
       tingkatForm.put(`/admin/referensi/tingkat-biaya/${editingTingkat.id}`, {
         onSuccess: () => {
@@ -106,6 +107,7 @@ export default function Index({ tingkatBiaya, jenisAngkutan }) {
 
   const handleAngkutanSubmit = (e) => {
     e.preventDefault();
+    if (angkutanForm.processing) return;
     if (editingAngkutan) {
       angkutanForm.put(`/admin/referensi/jenis-angkutan/${editingAngkutan.id}`, {
         onSuccess: () => {
@@ -507,6 +509,7 @@ export default function Index({ tingkatBiaya, jenisAngkutan }) {
                 Batal
               </button>
               <button
+                data-action-btn="true"
                 onClick={handleTingkatDelete}
                 className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700"
               >
@@ -533,6 +536,7 @@ export default function Index({ tingkatBiaya, jenisAngkutan }) {
                 Batal
               </button>
               <button
+                data-action-btn="true"
                 onClick={handleAngkutanDelete}
                 className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700"
               >

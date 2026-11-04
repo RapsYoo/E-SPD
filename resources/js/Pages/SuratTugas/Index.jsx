@@ -48,11 +48,18 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
     router.get('/surat-tugas', { search, status: selectedStatus }, { preserveState: true, preserveScroll: true });
   };
 
+  const [deletingId, setDeletingId] = useState(null);
+
   const handleDelete = (surat) => {
+    if (deletingId) return;
     const identifier = surat.status === 'DRAFT' ? `Draft #${surat.id}` : (surat.nomor_st || `Surat #${surat.id}`);
     if (!window.confirm(`Hapus ${identifier} beserta histori proses dan lampirannya? Tindakan ini tidak dapat dibatalkan.`)) return;
 
-    router.delete(`/surat-tugas/${surat.id}`, { preserveScroll: true });
+    setDeletingId(surat.id);
+    router.delete(`/surat-tugas/${surat.id}`, {
+      preserveScroll: true,
+      onFinish: () => setDeletingId(null),
+    });
   };
 
   const getPegawaiList = (st) => st.pegawaiList ?? st.pegawai_list ?? st.pegawai_list_data ?? [];

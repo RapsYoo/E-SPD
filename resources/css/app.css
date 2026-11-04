@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body[data-submitting="true"] button[type="submit"],
+body[data-submitting="true"] button[data-action-btn="true"] {
+    pointer-events: none;
+    opacity: 0.65;
+    cursor: wait;
+}
+

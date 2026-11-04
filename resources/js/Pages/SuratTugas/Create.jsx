@@ -1,6 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import SearchableSelect from '@/Components/SearchableSelect';
+import {
+  DEPARTURE_OPTIONS,
+  WORLD_COUNTRIES,
+  formatTempatTujuan,
+  getCityOptions,
+  getProvinceOptions,
+  parseDestination,
+} from '@/Data/locations';
 import mammoth from 'mammoth';
 import { 
   FileSignature, 
@@ -56,6 +65,13 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
   const toDateInput = (val) => (typeof val === 'string' && val.includes('T') ? val.slice(0, 10) : val || '');
 
+  const initialParsedDestination = useMemo(
+    () => parseDestination(draftData.kategori_perjalanan, draftData.tempat_tujuan, draftData.negara_tujuan),
+    [draftData.kategori_perjalanan, draftData.tempat_tujuan, draftData.negara_tujuan]
+  );
+  const [provinsiTujuan, setProvinsiTujuan] = useState(initialParsedDestination.provinsi || '');
+  const [kotaTujuan, setKotaTujuan] = useState(initialParsedDestination.kota || '');
+
   const { data, setData, post, transform, processing, errors } = useForm({
     kategori_perjalanan: draftData.kategori_perjalanan || '',
     sumber_asal: draftData.sumber_asal || '',
@@ -68,7 +84,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
     ppk_id: draftData.ppk_id || '',
     tingkat_biaya_kode: draftData.tingkat_biaya_kode || '',
     jenis_angkutan_nama: draftData.jenis_angkutan_nama || '',
-    tempat_berangkat: draftData.tempat_berangkat || '',
+    tempat_berangkat: draftData.tempat_berangkat || 'Jakarta',
     tempat_tujuan: draftData.tempat_tujuan || '',
     negara_tujuan: draftData.negara_tujuan || '',
     no_setneg: draftData.no_setneg || '',
@@ -177,15 +193,78 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
   };
 
   const handleTravelCategoryChange = (value) => {
+    setProvinsiTujuan('');
+    setKotaTujuan('');
     setData({
       ...data,
       kategori_perjalanan: value,
-      ...(value === 'DALAM_NEGERI' ? { negara_tujuan: '', no_setneg: '' } : {}),
+      tempat_tujuan: '',
+      ...(value === 'DALAM_NEGERI' ? { negara_tujuan: '', no_setneg: '' } : { negara_tujuan: '' }),
+    });
+  };
+
+  const activeNegara = data.kategori_perjalanan === 'LUAR_NEGERI' ? data.negara_tujuan : 'Indonesia';
+
+  const provinceOptions = useMemo(
+    () => getProvinceOptions(data.kategori_perjalanan, activeNegara),
+    [data.kategori_perjalanan, activeNegara]
+  );
+
+  const cityOptions = useMemo(
+    () => getCityOptions(data.kategori_perjalanan, activeNegara, provinsiTujuan),
+    [data.kategori_perjalanan, activeNegara, provinsiTujuan]
+  );
+
+  const handleNegaraTujuanChange = (nextNegara) => {
+    setProvinsiTujuan('');
+    setKotaTujuan('');
+    setData({
+      ...data,
+      negara_tujuan: nextNegara,
+      tempat_tujuan: '',
+    });
+  };
+
+  const handleProvinsiTujuanChange = (nextProvinsi, meta) => {
+    const inferredCountry =
+      data.kategori_perjalanan === 'LUAR_NEGERI' && meta?.country
+        ? meta.country
+        : data.negara_tujuan;
+
+    // Reset kota jika provinsi diganti
+    const nextKota = nextProvinsi === provinsiTujuan ? kotaTujuan : '';
+    setProvinsiTujuan(nextProvinsi);
+    setKotaTujuan(nextKota);
+    setData({
+      ...data,
+      negara_tujuan: inferredCountry,
+      tempat_tujuan: formatTempatTujuan(nextKota, nextProvinsi),
+    });
+  };
+
+  const handleKotaTujuanChange = (nextKota, meta) => {
+    const nextProvinsi = meta?.province || provinsiTujuan;
+    const inferredCountry =
+      data.kategori_perjalanan === 'LUAR_NEGERI' && meta?.country
+        ? meta.country
+        : data.negara_tujuan;
+
+    setKotaTujuan(nextKota);
+    if (nextProvinsi && nextProvinsi !== provinsiTujuan) {
+      setProvinsiTujuan(nextProvinsi);
+    }
+    setData({
+      ...data,
+      negara_tujuan: inferredCountry,
+      tempat_tujuan: formatTempatTujuan(nextKota, nextProvinsi),
     });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (processing || savingDraft) {
+      return;
+    }
     setSubmitNotice('');
     if (activeStep >= 3 && selectedPegawaiIds.length === 0) {
       alert('Pilih setidaknya 1 pegawai untuk ditugaskan!');
@@ -236,6 +315,9 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
   const validationErrorEntries = Object.entries(errors).filter(([, message]) => Boolean(message));
 
   const handleSaveDraft = () => {
+    if (savingDraft || processing) {
+      return;
+    }
     router.post(
       draft ? `/surat-tugas/${draft.id}/draft` : '/surat-tugas/draft',
       { ...data, pegawai_ids: selectedPegawaiIds, draft_step: activeStep },
@@ -560,9 +642,10 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             <div className="pt-4 flex justify-end">
               <button
                 type="submit"
-                className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition"
+                disabled={processing || savingDraft}
+                className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span>Kirim Nota ke Kepala Pusat (Kapus)</span>
+                <span>{processing ? 'Mengirim ke Kapus...' : 'Kirim Nota ke Kepala Pusat (Kapus)'}</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -965,54 +1048,111 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Tempat Berangkat *</label>
-                  <input
-                    type="text"
+                  <SearchableSelect
+                    name="tempat_berangkat"
                     required
                     value={data.tempat_berangkat}
-                    onChange={(e) => setData('tempat_berangkat', e.target.value)}
-                    placeholder="Masukkan tempat berangkat"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs placeholder:text-slate-400"
+                    onChange={(val) => setData('tempat_berangkat', val)}
+                    options={DEPARTURE_OPTIONS}
+                    placeholder="Pilih kota keberangkatan"
+                    searchPlaceholder="Cari kota/kabupaten keberangkatan..."
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tempat Tujuan *</label>
-                  <input
-                    type="text"
+                  <label
+                    className={`block text-xs font-semibold mb-1 ${
+                      data.kategori_perjalanan === 'LUAR_NEGERI' ? 'text-amber-800' : 'text-slate-700'
+                    }`}
+                  >
+                    Negara Tujuan *
+                  </label>
+                  {data.kategori_perjalanan === 'LUAR_NEGERI' ? (
+                    <SearchableSelect
+                      name="negara_tujuan"
+                      required
+                      variant="amber"
+                      value={data.negara_tujuan}
+                      onChange={handleNegaraTujuanChange}
+                      options={WORLD_COUNTRIES}
+                      placeholder="Pilih atau cari negara tujuan"
+                      searchPlaceholder="Cari negara tujuan..."
+                    />
+                  ) : (
+                    <SearchableSelect
+                      name="negara_tujuan_domestik"
+                      value="Indonesia"
+                      onChange={() => {}}
+                      options={[{ value: 'Indonesia', label: 'Indonesia', sublabel: 'Perjalanan Dinas Dalam Negeri' }]}
+                      placeholder="Indonesia"
+                      searchPlaceholder="Cari negara..."
+                      allowCustom={false}
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {data.kategori_perjalanan === 'LUAR_NEGERI'
+                      ? 'Provinsi / Negara Bagian / Wilayah *'
+                      : 'Provinsi Tujuan *'}
+                  </label>
+                  <SearchableSelect
+                    name="provinsi_tujuan"
+                    required={!kotaTujuan}
+                    value={provinsiTujuan}
+                    onChange={handleProvinsiTujuanChange}
+                    options={provinceOptions}
+                    placeholder={
+                      data.kategori_perjalanan === 'LUAR_NEGERI'
+                        ? 'Pilih provinsi / wilayah / state'
+                        : 'Pilih provinsi tujuan'
+                    }
+                    searchPlaceholder={
+                      data.kategori_perjalanan === 'LUAR_NEGERI'
+                        ? 'Cari wilayah / negara bagian / prefektur...'
+                        : 'Cari provinsi di Indonesia...'
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {data.kategori_perjalanan === 'LUAR_NEGERI'
+                      ? 'Kota Tujuan *'
+                      : 'Kota / Kabupaten Tujuan *'}
+                  </label>
+                  <SearchableSelect
+                    name="tempat_tujuan"
                     required
-                    value={data.tempat_tujuan}
-                    onChange={(e) => setData('tempat_tujuan', e.target.value)}
-                    placeholder="Masukkan tempat tujuan"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs placeholder:text-slate-400"
+                    value={kotaTujuan}
+                    onChange={handleKotaTujuanChange}
+                    options={cityOptions}
+                    placeholder={
+                      data.kategori_perjalanan === 'LUAR_NEGERI'
+                        ? 'Pilih atau cari kota tujuan'
+                        : 'Pilih kota / kabupaten tujuan'
+                    }
+                    searchPlaceholder={
+                      data.kategori_perjalanan === 'LUAR_NEGERI'
+                        ? 'Cari kota tujuan luar negeri...'
+                        : 'Cari kota atau kabupaten...'
+                    }
                   />
                 </div>
 
                 {data.kategori_perjalanan === 'LUAR_NEGERI' && (
-                  <>
-                    <div>
-                      <label className="block text-xs font-semibold text-amber-800 mb-1">Negara Tujuan *</label>
-                      <input
-                        type="text"
-                        required
-                        value={data.negara_tujuan}
-                        onChange={(e) => setData('negara_tujuan', e.target.value)}
-                        placeholder="Contoh: Jepang (Tokyo)"
-                        className="w-full rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs placeholder:text-slate-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-amber-800 mb-1">Nomor Surat Izin Setneg *</label>
-                      <input
-                        type="text"
-                        required
-                        value={data.no_setneg}
-                        onChange={(e) => setData('no_setneg', e.target.value)}
-                        placeholder="Masukkan nomor surat izin Setneg"
-                        className="w-full rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs placeholder:text-slate-400"
-                      />
-                    </div>
-                  </>
+                  <div>
+                    <label className="block text-xs font-semibold text-amber-800 mb-1">Nomor Surat Izin Setneg *</label>
+                    <input
+                      type="text"
+                      required
+                      value={data.no_setneg}
+                      onChange={(e) => setData('no_setneg', e.target.value)}
+                      placeholder="Masukkan nomor surat izin Setneg"
+                      className="w-full rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs placeholder:text-slate-400"
+                    />
+                  </div>
                 )}
 
                 {jadwalMode === 'sama' && (
@@ -1042,6 +1182,18 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                   </>
                 )}
               </div>
+
+              {data.tempat_tujuan && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                  <span>Tujuan tercatat pada dokumen ST &amp; SPD:</span>
+                  <strong className="font-bold text-slate-900">
+                    {data.tempat_tujuan}
+                    {data.kategori_perjalanan === 'LUAR_NEGERI' && data.negara_tujuan
+                      ? ` (${data.negara_tujuan})`
+                      : ''}
+                  </strong>
+                </div>
+              )}
 
               {/* Kalkulasi durasi */}
               {jadwalMode === 'sama' ? (
@@ -1085,11 +1237,11 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
               <button
                 type="submit"
-                disabled={processing || selectedPegawaiIds.length === 0}
-                className="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5"
+                disabled={processing || savingDraft || selectedPegawaiIds.length === 0}
+                className="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Kirim Draft ST & SPD ke TU</span>
+                <span>{processing ? 'Mengirim ke TU...' : 'Kirim Draft ST & SPD ke TU'}</span>
               </button>
             </div>
           </div>

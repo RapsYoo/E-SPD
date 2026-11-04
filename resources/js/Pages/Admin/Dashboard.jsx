@@ -97,17 +97,20 @@ export default function Dashboard({ stats, recentPegawai }) {
           <p className="text-xs text-slate-500 mt-2">Pengguna dengan peran PPK</p>
         </Link>
 
-        {/* Unit Kerja */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 hover:shadow-md transition">
+        {/* UPT / Bidang */}
+        <Link
+          href="/admin/upt-bidang"
+          className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 hover:shadow-md hover:border-amber-400 transition block"
+        >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unit Kerja</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">UPT / Bidang</span>
             <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
               <Building2 className="w-5 h-5" />
             </div>
           </div>
           <div className="text-2xl font-bold text-slate-900">{stats.totalUnitKerja}</div>
-          <p className="text-xs text-slate-500 mt-2">Satker / Bagian Pusdiklat</p>
-        </div>
+          <p className="text-xs text-slate-500 mt-2">UPT & Bidang Pusdiklat</p>
+        </Link>
 
         {/* Tingkat Biaya */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 hover:shadow-md transition">
@@ -269,9 +272,8 @@ export default function Dashboard({ stats, recentPegawai }) {
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition" />
               </Link>
 
-              {/* Master Unit Kerja di-hide sementara sesuai arahan */}
-              {/* <Link
-                href="/admin/unit-kerja"
+              <Link
+                href="/admin/upt-bidang"
                 className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50 transition group"
               >
                 <div className="flex items-center space-x-3">
@@ -279,12 +281,12 @@ export default function Dashboard({ stats, recentPegawai }) {
                     <Building2 className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 text-sm group-hover:text-amber-700 transition">Master Unit Kerja</h4>
-                    <p className="text-xs text-slate-500">Kode & Nama Unit Pusdiklat</p>
+                    <h4 className="font-semibold text-slate-900 text-sm group-hover:text-amber-700 transition">Master UPT / Bidang</h4>
+                    <p className="text-xs text-slate-500">Kode & Nama UPT / Bidang Pusdiklat</p>
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition" />
-              </Link> */}
+              </Link>
 
               <Link
                 href="/admin/referensi"

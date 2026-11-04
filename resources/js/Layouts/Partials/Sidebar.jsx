@@ -182,17 +182,16 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                       <span>Data Pegawai</span>
                     </Link>
 
-                    {/* Menu Unit Kerja di-hide sementara sesuai arahan */}
-                    {/* <Link
-                      href="/admin/unit-kerja"
-                      className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/unit-kerja')
+                    <Link
+                      href="/admin/upt-bidang"
+                      className={`flex items-center space-x-3 px-3 py-2 rounded-md text-xs font-medium transition ${isActive('/admin/upt-bidang')
                         ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
                     >
                       <Building2 className="w-4 h-4" />
-                      <span>Unit Kerja</span>
-                    </Link> */}
+                      <span>UPT / Bidang</span>
+                    </Link>
 
                     <Link
                       href="/admin/users"
@@ -226,7 +225,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
         <div className="p-4 border-t border-slate-800 bg-[#081935] text-xs text-slate-400 flex flex-col space-y-1">
           <div className="flex items-center justify-between text-slate-300">
             <span className="font-semibold text-amber-400">e-SPD Pusdiklat</span>
-            <span className="font-mono text-slate-300">Beta v1.5.3</span>
+            <span className="font-mono text-slate-300">Beta v1.5.4</span>
           </div>
           <p className="text-[11px] text-slate-400">Kementerian Luar Negeri RI</p>
         </div>

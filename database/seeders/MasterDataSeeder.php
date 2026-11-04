@@ -6,6 +6,7 @@ use App\Models\JenisAngkutan;
 use App\Models\Pegawai;
 use App\Models\TingkatBiaya;
 use App\Models\UnitKerja;
+use App\Models\UptBidang;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -15,10 +16,30 @@ class MasterDataSeeder extends Seeder
 {
     public function run(): void
     {
+        // 0. Seed Master UPT / Bidang Pusdiklat
+        foreach (UptBidang::DEFAULT_ITEMS as $item) {
+            UptBidang::updateOrCreate(
+                ['kode' => $item['kode']],
+                [
+                    'nama' => $item['nama'],
+                    'keterangan' => $item['keterangan'],
+                    'is_active' => true,
+                ]
+            );
+        }
+
         // 1. Seed Master Pegawai (81 pegawai Pusdiklat dengan ID terurut 1..81)
         $sqlFile = database_path('seeders/sql/pegawai_2026.sql');
         if (is_file($sqlFile) && Pegawai::count() === 0) {
             DB::unprepared((string) file_get_contents($sqlFile));
+        }
+
+        // Tautkan relasi pegawai.upt_bidang_id ke tabel upt_bidang berdasarkan nama UPT/Bidang
+        $uptMap = UptBidang::pluck('id', 'nama');
+        foreach ($uptMap as $nama => $id) {
+            Pegawai::where('upt_bidang', $nama)
+                ->whereNull('upt_bidang_id')
+                ->update(['upt_bidang_id' => $id]);
         }
 
         // 2. Seed Akun Pengguna (ID terurut 1..7, tertaut langsung ke pegawai_id yang sesuai)

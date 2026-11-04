@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PegawaiController;
 use App\Http\Controllers\Admin\ReferensiController;
 use App\Http\Controllers\Admin\UnitKerjaController;
+use App\Http\Controllers\Admin\UptBidangController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PegawaiDirectoryController;
@@ -71,6 +72,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // Master Pegawai
     Route::resource('pegawai', PegawaiController::class)->except(['create', 'edit', 'show']);
+
+    // Master UPT / Bidang
+    Route::resource('upt-bidang', UptBidangController::class)
+        ->parameters(['upt-bidang' => 'uptBidang'])
+        ->except(['create', 'edit', 'show']);
 
     // Manajemen Akun Pengguna (akun dibuat dari data pegawai)
     Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);

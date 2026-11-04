@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PegawaiRequest;
 use App\Models\Pegawai;
+use App\Models\UptBidang;
 use App\Support\SearchQuery;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,7 +15,15 @@ class PegawaiController extends Controller
     public function index(Request $request)
     {
         return Inertia::render('Admin/Pegawai/Index', [
-            'pegawai' => SearchQuery::paginate(Pegawai::query(), $request->search, ['nama', 'nip', 'jabatan', 'upt_bidang', 'status_kepegawaian'], 'nama'),
+            'pegawai' => SearchQuery::paginate(
+                Pegawai::query()->with('upt:id,kode,nama,keterangan'),
+                $request->search,
+                ['nama', 'nip', 'jabatan', 'upt_bidang', 'status_kepegawaian'],
+                'nama'
+            ),
+            'uptBidangList' => UptBidang::where('is_active', true)
+                ->orderBy('nama')
+                ->get(['id', 'kode', 'nama', 'keterangan']),
             'filters' => $request->only(['search']),
         ]);
     }

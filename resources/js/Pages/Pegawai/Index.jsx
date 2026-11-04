@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Users, Search, ChevronLeft, ChevronRight, Mail, Phone } from 'lucide-react';
+import PegawaiProfileModal from '@/Components/PegawaiProfileModal';
+import { Users, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Index({ pegawai, filters }) {
   const searchTimeout = useRef(null);
   const [search, setSearch] = useState(filters?.search || '');
+  const [selectedProfilePegawai, setSelectedProfilePegawai] = useState(null);
 
   useEffect(() => () => clearTimeout(searchTimeout.current), []);
 
@@ -85,9 +87,16 @@ export default function Index({ pegawai, filters }) {
             <tbody className="divide-y divide-slate-100">
               {pegawai.data && pegawai.data.length > 0 ? (
                 pegawai.data.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                  <tr
+                    key={item.id}
+                    onClick={() => setSelectedProfilePegawai(item)}
+                    className="group cursor-pointer hover:bg-amber-50/50 transition"
+                    title={`Klik untuk melihat profil ${item.nama}`}
+                  >
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900">{item.nama}</div>
+                      <div className="font-bold text-slate-900 group-hover:text-[#0F2C59] group-hover:underline">
+                        {item.nama}
+                      </div>
                       <div className="text-xs text-slate-500 font-mono">NIP: {item.nip || '-'}</div>
                     </td>
                     <td className="py-3.5 px-4">
@@ -99,7 +108,7 @@ export default function Index({ pegawai, filters }) {
                       <div className="text-xs text-slate-400">{item.status_kepegawaian || ''}</div>
                     </td>
                     <td className="py-3.5 px-4 text-xs text-slate-600">
-                      {item.upt_bidang || <span className="text-slate-400 italic">-</span>}
+                      {item.upt?.nama || item.upt_bidang || <span className="text-slate-400 italic">-</span>}
                     </td>
                   </tr>
                 ))
@@ -145,6 +154,12 @@ export default function Index({ pegawai, filters }) {
           </div>
         )}
       </div>
+
+      <PegawaiProfileModal
+        pegawai={selectedProfilePegawai}
+        onClose={() => setSelectedProfilePegawai(null)}
+        showBankInfo={false}
+      />
     </AdminLayout>
   );
 }

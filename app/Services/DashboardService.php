@@ -7,7 +7,7 @@ use App\Models\Pegawai;
 use App\Models\SuratTugas;
 use App\Models\SuratTugasLog;
 use App\Models\TingkatBiaya;
-use App\Models\UnitKerja;
+use App\Models\UptBidang;
 use App\Models\User;
 use App\Support\SuratTugasStatus as S;
 use Illuminate\Database\Eloquent\Builder;
@@ -133,7 +133,7 @@ class DashboardService
                 'totalPegawai' => Pegawai::count(),
                 'pegawaiAktif' => Pegawai::where('is_active', true)->count(),
                 'totalPpk' => User::where('role', 'ppk')->count(),
-                'totalUnitKerja' => UnitKerja::where('is_active', true)->count(),
+                'totalUnitKerja' => UptBidang::where('is_active', true)->count(),
                 'totalTingkatBiaya' => TingkatBiaya::where('is_active', true)->count(),
                 'totalJenisAngkutan' => JenisAngkutan::where('is_active', true)->count(),
             ],

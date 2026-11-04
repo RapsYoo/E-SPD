@@ -140,6 +140,7 @@ export default function Index({ users, filters, roles, pegawaiOptions, currentUs
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (processing) return;
     const options = {
       preserveScroll: true,
       onSuccess: () => {
@@ -155,7 +156,7 @@ export default function Index({ users, filters, roles, pegawaiOptions, currentUs
   };
 
   const handleDelete = () => {
-    if (!deleteConfirmUser) return;
+    if (!deleteConfirmUser || processing) return;
     destroy(`/admin/users/${deleteConfirmUser.id}`, {
       preserveScroll: true,
       onFinish: () => setDeleteConfirmUser(null),

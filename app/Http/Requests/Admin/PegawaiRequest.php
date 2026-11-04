@@ -51,6 +51,7 @@ class PegawaiRequest extends FormRequest
                 },
             ],
             'keterangan' => 'nullable|string',
+            'upt_bidang_id' => 'nullable|integer|exists:upt_bidang,id',
             'is_active' => 'sometimes|boolean',
         ];
 

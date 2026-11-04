@@ -65,16 +65,19 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
 
   const handleKapusSubmit = (e) => {
     e.preventDefault();
+    if (kapusForm.processing) return;
     kapusForm.post(`/surat-tugas/${suratTugas.id}/disposisi`);
   };
 
   const handleTuSubmit = (e) => {
     e.preventDefault();
+    if (tuForm.processing) return;
     tuForm.post(`/surat-tugas/${suratTugas.id}/penomoran`);
   };
 
   const handlePpkSubmit = (e) => {
     e.preventDefault();
+    if (ppkForm.processing) return;
     ppkForm.post(`/surat-tugas/${suratTugas.id}/sign-ppk`);
   };
 
@@ -141,6 +144,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
               && suratTugas.user_id === authUserId
             )) && (
               <button
+                data-action-btn="true"
                 onClick={() => {
                   if (confirm('Ajukan ulang surat ini sebagai draft baru?')) {
                     router.post(`/surat-tugas/${suratTugas.id}/ajukan-ulang`);
@@ -384,7 +388,11 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => kapusForm.post(`/surat-tugas/${suratTugas.id}/actor-draft`, { preserveScroll: true })}
+                  data-action-btn="true"
+                  onClick={() => {
+                    if (kapusForm.processing) return;
+                    kapusForm.post(`/surat-tugas/${suratTugas.id}/actor-draft`, { preserveScroll: true });
+                  }}
                   disabled={kapusForm.processing}
                   className="w-full rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                 >
@@ -395,7 +403,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
                   disabled={kapusForm.processing}
                   className="w-full bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-xl transition shadow disabled:opacity-60"
                 >
-                  Proses Disposisi Kapus
+                  {kapusForm.processing ? 'Memproses...' : 'Proses Disposisi Kapus'}
                 </button>
               </div>
             </form>
@@ -560,7 +568,11 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => tuForm.post(`/surat-tugas/${suratTugas.id}/actor-draft`, { preserveScroll: true })}
+                  data-action-btn="true"
+                  onClick={() => {
+                    if (tuForm.processing) return;
+                    tuForm.post(`/surat-tugas/${suratTugas.id}/actor-draft`, { preserveScroll: true });
+                  }}
                   disabled={tuForm.processing}
                   className="w-full rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                 >
@@ -571,7 +583,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
                   disabled={tuForm.processing}
                   className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs py-2.5 rounded-xl transition shadow disabled:opacity-60"
                 >
-                  Simpan Penomoran TU & Terbitkan
+                  {tuForm.processing ? 'Menyimpan...' : 'Simpan Penomoran TU & Terbitkan'}
                 </button>
               </div>
             </form>
@@ -600,7 +612,11 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => ppkForm.post(`/surat-tugas/${suratTugas.id}/actor-draft`, { preserveScroll: true })}
+                  data-action-btn="true"
+                  onClick={() => {
+                    if (ppkForm.processing) return;
+                    ppkForm.post(`/surat-tugas/${suratTugas.id}/actor-draft`, { preserveScroll: true });
+                  }}
                   disabled={ppkForm.processing}
                   className="w-full rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                 >
@@ -617,7 +633,11 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
                 >
                   <Stamp className="w-4 h-4" />
                   <span>
-                    {suratTugas.is_ppk_signed ? 'Batalkan TTD Digital PPK' : 'Sematkan TTD Digital PPK'}
+                    {ppkForm.processing
+                      ? 'Memproses...'
+                      : suratTugas.is_ppk_signed
+                        ? 'Batalkan TTD Digital PPK'
+                        : 'Sematkan TTD Digital PPK'}
                   </span>
                 </button>
               </div>

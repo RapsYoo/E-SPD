@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import PegawaiProfileModal from '@/Components/PegawaiProfileModal';
 import { 
   Users, 
   Plus, 
   Search, 
+  Eye,
   Edit3, 
   Trash2, 
   X, 
@@ -16,17 +18,19 @@ import {
   ShieldAlert
 } from 'lucide-react';
 
-export default function Index({ pegawai, filters }) {
+export default function Index({ pegawai, uptBidangList = [], filters }) {
   const searchTimeout = useRef(null);
   const [search, setSearch] = useState(filters?.search || '');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPegawai, setEditingPegawai] = useState(null);
   const [deleteConfirmPegawai, setDeleteConfirmPegawai] = useState(null);
+  const [selectedProfilePegawai, setSelectedProfilePegawai] = useState(null);
 
   const emptyForm = {
     nama: '',
     nip: '',
     status_kepegawaian: '',
+    upt_bidang_id: '',
     upt_bidang: '',
     jenis_kelamin: '',
     agama: '',
@@ -83,8 +87,10 @@ export default function Index({ pegawai, filters }) {
   const openEditModal = (item) => {
     setEditingPegawai(item);
     clearErrors();
+    const matchedUptId = item.upt_bidang_id ?? (uptBidangList.find((u) => u.nama === item.upt_bidang)?.id ?? '');
     setData({
       ...Object.fromEntries(Object.keys(emptyForm).map((key) => [key, item[key] ?? ''])),
+      upt_bidang_id: matchedUptId,
       is_active: Boolean(item.is_active ?? true),
     });
     setIsModalOpen(true);
@@ -92,6 +98,7 @@ export default function Index({ pegawai, filters }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (processing) return;
     if (editingPegawai) {
       put(`/admin/pegawai/${editingPegawai.id}`, {
         onSuccess: () => {
@@ -110,7 +117,7 @@ export default function Index({ pegawai, filters }) {
   };
 
   const handleDelete = () => {
-    if (!deleteConfirmPegawai) return;
+    if (!deleteConfirmPegawai || processing) return;
     destroy(`/admin/pegawai/${deleteConfirmPegawai.id}`, {
       onSuccess: () => setDeleteConfirmPegawai(null),
     });
@@ -192,9 +199,16 @@ export default function Index({ pegawai, filters }) {
             <tbody className="divide-y divide-slate-100">
               {pegawai.data && pegawai.data.length > 0 ? (
                 pegawai.data.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                  <tr
+                    key={item.id}
+                    onClick={() => setSelectedProfilePegawai(item)}
+                    className="group cursor-pointer hover:bg-amber-50/50 transition"
+                    title={`Klik untuk melihat profil ${item.nama}`}
+                  >
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900">{item.nama}</div>
+                      <div className="font-bold text-slate-900 group-hover:text-[#0F2C59] group-hover:underline">
+                        {item.nama}
+                      </div>
                       <div className="text-xs text-slate-500 font-mono">NIP: {item.nip || '-'}</div>
                     </td>
                     <td className="py-3.5 px-4">
@@ -206,7 +220,7 @@ export default function Index({ pegawai, filters }) {
                       <div className="text-xs text-slate-400">{item.fungsional || item.struktural_lainnya || ''}</div>
                     </td>
                     <td className="py-3.5 px-4 text-xs text-slate-600">
-                      {item.upt_bidang || <span className="text-slate-400 italic">-</span>}
+                      {item.upt?.nama || item.upt_bidang || <span className="text-slate-400 italic">-</span>}
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       {item.is_active ? (
@@ -219,9 +233,21 @@ export default function Index({ pegawai, filters }) {
                         </span>
                       )}
                     </td>
-                    <td className="py-3.5 px-4 text-center">
+                    <td
+                      className="py-3.5 px-4 text-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="flex items-center justify-center space-x-2">
                         <button
+                          type="button"
+                          onClick={() => setSelectedProfilePegawai(item)}
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-100 text-slate-700 hover:text-blue-800 transition"
+                          title="Lihat Profil"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => openEditModal(item)}
                           className="p-1.5 rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-800 transition"
                           title="Edit"
@@ -229,6 +255,7 @@ export default function Index({ pegawai, filters }) {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => setDeleteConfirmPegawai(item)}
                           className="p-1.5 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-700 hover:text-red-700 transition"
                           title="Hapus"
@@ -284,6 +311,14 @@ export default function Index({ pegawai, filters }) {
           </div>
         )}
       </div>
+
+      {/* Modal Profil Detail Pegawai */}
+      <PegawaiProfileModal
+        pegawai={selectedProfilePegawai}
+        onClose={() => setSelectedProfilePegawai(null)}
+        onEdit={(item) => openEditModal(item)}
+        showBankInfo={true}
+      />
 
       {/* Modal Add/Edit Pegawai */}
       {isModalOpen && (
@@ -379,14 +414,29 @@ export default function Index({ pegawai, filters }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">UPT / Bidang</label>
-                  <input
-                    type="text"
-                    value={data.upt_bidang}
-                    onChange={(e) => setData('upt_bidang', e.target.value)}
-                    placeholder="TU, KSFD, UPT Sesdilu..."
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                  {errors.upt_bidang && <span className="text-xs text-red-500 mt-1 block">{errors.upt_bidang}</span>}
+                  <select
+                    value={data.upt_bidang_id || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const selected = uptBidangList.find((u) => String(u.id) === val);
+                      setData((prev) => ({
+                        ...prev,
+                        upt_bidang_id: val ? Number(val) : '',
+                        upt_bidang: selected ? selected.nama : '',
+                      }));
+                    }}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  >
+                    <option value="">-- Pilih UPT / Bidang --</option>
+                    {uptBidangList.map((upt) => (
+                      <option key={upt.id} value={upt.id}>
+                        {upt.nama}{upt.keterangan ? ` — ${upt.keterangan}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {(errors.upt_bidang_id || errors.upt_bidang) && (
+                    <span className="text-xs text-red-500 mt-1 block">{errors.upt_bidang_id || errors.upt_bidang}</span>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Status Kepegawaian</label>
@@ -642,9 +692,10 @@ export default function Index({ pegawai, filters }) {
               </button>
               <button
                 onClick={handleDelete}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-md shadow-red-600/20"
+                disabled={processing}
+                className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-md shadow-red-600/20 disabled:opacity-60"
               >
-                Ya, Hapus Data
+                {processing ? 'Menghapus...' : 'Ya, Hapus Data'}
               </button>
             </div>
           </div>

@@ -292,4 +292,27 @@ class SuratTugasDraftEdgeCaseTest extends TestCase
             ->get(route('surat-tugas.draft.edit', $surat->id))
             ->assertStatus(200);
     }
+
+    public function test_double_click_submit_tidak_membuat_surat_ganda(): void
+    {
+        $pemohon = $this->makeUser('pemohon');
+        $payload = [
+            'draft_step' => 1,
+            'kategori_perjalanan' => 'DALAM_NEGERI',
+            'sumber_asal' => 'EKSTERNAL',
+            'nomor_nota' => 'ND-DOUBLE/2026',
+            'pengirim_nota' => 'Tester',
+            'tanggal_nota' => '2026-11-04',
+            'perihal_nota' => 'Testing Anti Double Submit',
+        ];
+
+        $this->actingAs($pemohon)->post(route('surat-tugas.store'), $payload)->assertRedirect();
+        $this->actingAs($pemohon)->post(route('surat-tugas.store'), $payload)->assertRedirect();
+
+        $this->assertSame(
+            1,
+            SuratTugas::where('nomor_nota', 'ND-DOUBLE/2026')->count(),
+            'Double submit pada nota yang sama dalam waktu berdekatan tidak boleh menggandakan baris surat_tugas.'
+        );
+    }
 }

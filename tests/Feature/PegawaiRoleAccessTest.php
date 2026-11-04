@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Pegawai;
 use App\Models\SuratTugas;
 use App\Models\SuratTugasPegawai;
+use App\Models\UptBidang;
 use App\Models\User;
 use App\Support\SuratTugasStatus as S;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -157,5 +158,63 @@ class PegawaiRoleAccessTest extends TestCase
         $pemohon = User::factory()->create();
 
         $this->actingAs($pemohon)->get('/pegawai')->assertRedirect();
+    }
+
+    public function test_admin_can_assign_upt_bidang_from_dropdown_relation(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['role' => 'admin'])->save();
+
+        $upt = UptBidang::where('kode', 'TU')->firstOrFail();
+
+        $this->actingAs($admin)->post('/admin/pegawai', [
+            'nama' => 'Pegawai Baru TU',
+            'nip' => '199901012025011001',
+            'upt_bidang_id' => $upt->id,
+            'is_active' => true,
+        ])->assertRedirect();
+
+        $pegawai = Pegawai::where('nama', 'Pegawai Baru TU')->firstOrFail();
+        $this->assertSame($upt->id, $pegawai->upt_bidang_id);
+        $this->assertSame('TU', $pegawai->upt_bidang);
+        $this->assertSame('TU', $pegawai->upt?->nama);
+    }
+
+    public function test_admin_can_crud_upt_bidang_and_sync_related_pegawai(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['role' => 'admin'])->save();
+
+        // Create
+        $this->actingAs($admin)->post('/admin/upt-bidang', [
+            'kode' => 'UPT_BARU',
+            'nama' => 'UPT Baru',
+            'keterangan' => 'Unit Pelaksana Teknis Baru',
+            'is_active' => true,
+        ])->assertRedirect();
+
+        $upt = UptBidang::where('kode', 'UPT_BARU')->firstOrFail();
+
+        $pegawai = Pegawai::create([
+            'nama' => 'Pegawai UPT Baru',
+            'nip' => '199801012025011002',
+            'upt_bidang_id' => $upt->id,
+        ]);
+
+        // Update -> otomatis sinkron ke kolom upt_bidang pegawai
+        $this->actingAs($admin)->put("/admin/upt-bidang/{$upt->id}", [
+            'kode' => 'UPT_BARU',
+            'nama' => 'UPT Baru Revisi',
+            'keterangan' => 'Keterangan Diperbarui',
+            'is_active' => true,
+        ])->assertRedirect();
+
+        $this->assertSame('UPT Baru Revisi', $pegawai->fresh()->upt_bidang);
+
+        // Delete -> lepas tautan pegawai dengan aman
+        $this->actingAs($admin)->delete("/admin/upt-bidang/{$upt->id}")->assertRedirect();
+        $this->assertDatabaseMissing('upt_bidang', ['id' => $upt->id]);
+        $this->assertNull($pegawai->fresh()->upt_bidang_id);
+        $this->assertNull($pegawai->fresh()->upt_bidang);
     }
 }

@@ -59,8 +59,27 @@ class SubmissionService
         ];
 
         $suratTugas = null;
+        $alreadyCreated = false;
         try {
-            DB::transaction(function () use ($draft, $values, &$suratTugas) {
+            DB::transaction(function () use ($draft, $values, &$suratTugas, &$alreadyCreated) {
+                if ($draft === null) {
+                    $recentDuplicate = SuratTugas::where('user_id', $values['user_id'])
+                        ->where('nomor_nota', $values['nomor_nota'])
+                        ->where('pengirim_nota', $values['pengirim_nota'])
+                        ->where('perihal_nota', $values['perihal_nota'])
+                        ->where('status', SuratTugasStatus::MENUNGGU_DISPOSISI_KAPUS)
+                        ->where('created_at', '>=', now()->subSeconds(10))
+                        ->orderByDesc('id')
+                        ->first();
+
+                    if ($recentDuplicate !== null) {
+                        $suratTugas = $recentDuplicate;
+                        $alreadyCreated = true;
+
+                        return;
+                    }
+                }
+
                 $suratTugas = $draft ?? new SuratTugas;
                 $suratTugas->fill($values);
                 $suratTugas->save();
@@ -68,6 +87,12 @@ class SubmissionService
         } catch (\Throwable $e) {
             $files->rollback();
             throw $e;
+        }
+
+        if ($alreadyCreated) {
+            $files->rollback();
+
+            return $suratTugas;
         }
 
         $files->commit();
@@ -122,8 +147,27 @@ class SubmissionService
         ];
 
         $suratTugas = null;
+        $alreadyCreated = false;
         try {
-            DB::transaction(function () use ($draft, $values, $validated, &$suratTugas) {
+            DB::transaction(function () use ($draft, $values, $validated, &$suratTugas, &$alreadyCreated) {
+                if ($draft === null) {
+                    $recentDuplicate = SuratTugas::where('user_id', $values['user_id'])
+                        ->where('nomor_nota', $values['nomor_nota'])
+                        ->where('pengirim_nota', $values['pengirim_nota'])
+                        ->where('perihal_nota', $values['perihal_nota'])
+                        ->where('status', $values['status'])
+                        ->where('created_at', '>=', now()->subSeconds(10))
+                        ->orderByDesc('id')
+                        ->first();
+
+                    if ($recentDuplicate !== null) {
+                        $suratTugas = $recentDuplicate;
+                        $alreadyCreated = true;
+
+                        return;
+                    }
+                }
+
                 $suratTugas = $draft ?? new SuratTugas;
                 $suratTugas->fill($values);
                 $suratTugas->save();
@@ -133,6 +177,12 @@ class SubmissionService
         } catch (\Throwable $e) {
             $files->rollback();
             throw $e;
+        }
+
+        if ($alreadyCreated) {
+            $files->rollback();
+
+            return $suratTugas;
         }
 
         $files->commit();
