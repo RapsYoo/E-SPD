@@ -11,7 +11,7 @@ use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Layanan Rekapitulasi Jalis (Perjalanan Dinas) & Biaya per Pegawai.
+ * Layanan Rekapitulasi Jaldis (Perjalanan Dinas) & Biaya per Pegawai.
  */
 class RekapJalisPegawaiService
 {
@@ -390,7 +390,7 @@ class RekapJalisPegawaiService
     }
 
     /**
-     * Ekspor Rekapitulasi Jalis Pegawai ke CSV atau Excel.
+     * Ekspor Rekapitulasi Jaldis Pegawai ke CSV atau Excel.
      *
      * @param  array<string, mixed>  $filters
      */
@@ -398,7 +398,7 @@ class RekapJalisPegawaiService
     {
         $report = $this->buildReport($filters);
         $rows = $report['rows'];
-        $filename = 'rekap-jalis-pegawai-'.now()->format('Ymd-His').'.'.$format;
+        $filename = 'rekap-jaldis-pegawai-'.now()->format('Ymd-His').'.'.$format;
 
         if ($format === 'xls') {
             return response()->streamDownload(function () use ($rows, $report) {
@@ -413,7 +413,7 @@ class RekapJalisPegawaiService
                     .center { text-align: center; }
                     .right { text-align: right; }
                 </style></head><body>';
-                echo '<div class="title">REKAPITULASI PERJALANAN DINAS (JALIS) & BIAYA PEGAWAI</div>';
+                echo '<div class="title">REKAPITULASI PERJALANAN DINAS (JALDIS) & BIAYA PEGAWAI</div>';
                 echo '<table><thead><tr>
                     <th>No</th>
                     <th>Nama Pegawai</th>
@@ -421,9 +421,9 @@ class RekapJalisPegawaiService
                     <th>Pangkat / Gol.</th>
                     <th>Jabatan</th>
                     <th>UPT / Bidang</th>
-                    <th>Jalis Dalam Negeri</th>
-                    <th>Jalis Luar Negeri</th>
-                    <th>Total Jalis</th>
+                    <th>Jaldis Dalam Negeri</th>
+                    <th>Jaldis Luar Negeri</th>
+                    <th>Total Jaldis</th>
                     <th>Total Hari Dinas</th>
                     <th>Total Biaya (Rp)</th>
                 </tr></thead><tbody>';
@@ -467,9 +467,9 @@ class RekapJalisPegawaiService
                 'Golongan',
                 'Jabatan',
                 'UPT / Bidang',
-                'Jalis Dalam Negeri',
-                'Jalis Luar Negeri',
-                'Total Jalis',
+                'Jaldis Dalam Negeri',
+                'Jaldis Luar Negeri',
+                'Total Jaldis',
                 'Total Hari Dinas',
                 'Total Biaya (Rp)',
             ], ';');

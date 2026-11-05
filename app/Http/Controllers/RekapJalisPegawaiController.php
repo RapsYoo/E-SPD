@@ -15,7 +15,7 @@ use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Rekapitulasi Perjalanan Dinas (Jalis) & Biaya per Pegawai dalam bentuk Diagram & Daftar.
+ * Rekapitulasi Perjalanan Dinas (Jaldis) & Biaya per Pegawai dalam bentuk Diagram & Daftar.
  */
 class RekapJalisPegawaiController extends Controller
 {

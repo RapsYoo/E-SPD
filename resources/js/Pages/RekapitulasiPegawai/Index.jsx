@@ -41,6 +41,14 @@ const PIE_COLORS = [
   '#EF4444',
 ];
 
+function getUptColor(name) {
+  const colorIndex = [...name].reduce(
+    (value, character) => (value * 31 + character.charCodeAt(0)) % PIE_COLORS.length,
+    0
+  );
+  return PIE_COLORS[colorIndex];
+}
+
 function formatRupiah(value) {
   const num = Number(value || 0);
   return new Intl.NumberFormat('id-ID', {
@@ -197,7 +205,13 @@ function InteractiveDonutChart({
                 <span className="font-mono text-[11px] font-bold text-slate-700">
                   {valueFormatter(seg.value)}
                 </span>
-                <span className="min-w-[42px] rounded bg-slate-100 px-1.5 py-0.5 text-center text-[10px] font-bold text-slate-600">
+                <span
+                  className="min-w-[42px] rounded px-1.5 py-0.5 text-center text-[10px] font-bold"
+                  style={{
+                    backgroundColor: `${seg.color}18`,
+                    color: seg.color,
+                  }}
+                >
                   {seg.percentage}%
                 </span>
               </div>
@@ -353,15 +367,25 @@ export default function Index({
   const topBiaya = charts.topPegawaiBiaya || [];
   const distribusiUpt = charts.distribusiUpt || [];
   const distribusiTingkat = charts.distribusiTingkat || [];
+  const activeFilterCount = [
+    form.dari,
+    form.sampai,
+    form.status,
+    form.kategori,
+    form.unit,
+    form.search,
+    form.tampil !== 'semua',
+    form.sort !== 'jalis_desc',
+  ].filter(Boolean).length;
 
   const maxJalisCount = Math.max(1, ...topJalis.map((item) => item.total_jalis || 0));
   const maxBiayaCount = Math.max(1, ...topBiaya.map((item) => item.total_biaya || 0));
-  const maxUptJalis = Math.max(1, ...distribusiUpt.map((item) => item.total_jalis || 0));
+  const totalJalisUpt = distribusiUpt.reduce((total, item) => total + Number(item.total_jalis || 0), 0);
 
   const isBiayaMetric = pieMetric === 'biaya';
   const metricFormatter = isBiayaMetric
     ? (val) => formatCompactRupiah(val)
-    : (val) => `${val} Jalis`;
+    : (val) => `${val} Jaldis`;
 
   // Data Diagram Lingkaran 1:
   // Jika filter UPT/Bidang belum dipilih -> tampilkan proporsi antar UPT/Bidang.
@@ -374,11 +398,11 @@ export default function Index({
         color: PIE_COLORS[idx % PIE_COLORS.length],
         raw: p,
       }))
-    : distribusiUpt.map((u, idx) => ({
+    : distribusiUpt.map((u) => ({
         key: u.upt,
         label: u.upt,
         value: isBiayaMetric ? u.total_biaya : u.total_jalis,
-        color: PIE_COLORS[idx % PIE_COLORS.length],
+        color: getUptColor(u.upt),
         raw: u,
       }));
 
@@ -414,51 +438,164 @@ export default function Index({
       : [
           {
             key: 'pernah_jalis',
-            label: 'Pernah Jalis',
+            label: 'Pernah Jaldis',
             value: summary.total_pegawai_jalis ?? 0,
             color: '#10B981',
           },
           {
             key: 'belum_jalis',
-            label: 'Belum Pernah Jalis',
+            label: 'Belum Pernah Jaldis',
             value: summary.total_pegawai_belum_jalis ?? 0,
             color: '#94A3B8',
           },
         ];
 
   return (
-    <AdminLayout title="Rekap Jalis & Biaya Pegawai">
-      <Head title="Rekap Jalis & Biaya Pegawai - e-SPD Pusdiklat Kemlu" />
+    <AdminLayout title="Rekap Jaldis Pegawai">
+      <Head title="Rekap Jaldis Pegawai - e-SPD Pusdiklat Kemlu" />
 
       <style>{`
         @media print {
-          .no-print { display: none !important; }
-          aside, header { display: none !important; }
-          main { padding: 8mm !important; overflow: visible !important; }
+          @page {
+            size: landscape;
+            margin: 12mm;
+
+            @top-left-corner,
+            @top-left,
+            @top-center,
+            @top-right,
+            @top-right-corner,
+            @bottom-left-corner,
+            @bottom-left,
+            @bottom-center,
+            @bottom-right-corner {
+              content: "";
+            }
+
+            @bottom-right {
+              content: counter(page);
+              color: #64748b;
+              font-family: sans-serif;
+              font-size: 9pt;
+            }
+          }
+
+          html, body, #app, #app > div {
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+          }
+
+          body * {
+            visibility: hidden !important;
+          }
+
+          #app > div,
+          #app > div > div,
+          main {
+            display: block !important;
+            position: static !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            background: #fff !important;
+          }
+
+          .print-page,
+          .print-page * {
+            visibility: visible !important;
+          }
+
+          main > *:not(.print-page) {
+            display: none !important;
+          }
+
+          .print-page {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          .print-page > *:not(.printable-table),
+          .printable-table .no-print {
+            display: none !important;
+          }
+
+          .printable-table {
+            position: relative !important;
+            width: 100% !important;
+            overflow: visible !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+          }
+
+          .print-only {
+            display: block !important;
+          }
+
+          .printable-table .overflow-x-auto {
+            overflow: visible !important;
+          }
+
+          .printable-table table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 9pt !important;
+          }
+
+          .printable-table thead {
+            display: table-header-group;
+          }
+
+          .printable-table tr {
+            break-inside: avoid;
+          }
+
+          .printable-table th,
+          .printable-table td {
+            padding: 6px !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #0f172a !important;
+            vertical-align: middle !important;
+          }
+
+          .printable-table th {
+            background: #0f2c59 !important;
+            color: #fff !important;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
         }
       `}</style>
 
-      <div className="mx-auto max-w-[1600px] space-y-6">
+      <div className="print-page mx-auto max-w-[1600px] space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="hidden rounded-2xl bg-[#0F2C59] p-3 text-amber-400 shadow-lg shadow-blue-950/10 sm:block">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-white to-amber-50/80 p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-4 sm:p-6">
+          <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-amber-100/50 blur-3xl" />
+          <div className="relative flex items-start gap-3">
+            <div className="rounded-2xl bg-[#0F2C59] p-3 text-amber-400 shadow-lg shadow-blue-950/10">
               <PieChart className="h-6 w-6" />
             </div>
             <div>
-              <p className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-amber-600">
-                Analitik &amp; Laporan Perjalanan Dinas
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-600">
+                Analitik Perjalanan Dinas
               </p>
               <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-                Rekapitulasi Jalis &amp; Biaya Pegawai
+                Rekap Jaldis Pegawai
               </h1>
-              <p className="no-print mt-1 text-xs text-slate-500">
-                Diagram perbandingan frekuensi perjalanan dinas (Jalis) dan akumulasi biaya per pegawai Pusdiklat Kemlu.
+              <p className="no-print mt-1.5 text-sm text-slate-500">
+                Pantau perjalanan dinas, biaya, dan partisipasi pegawai.
               </p>
             </div>
           </div>
 
-          <div className="no-print flex flex-wrap gap-2 sm:justify-end">
+          <div className="no-print relative mt-4 flex flex-wrap gap-2 sm:mt-0 sm:justify-end">
             <button
               type="button"
               onClick={() => setIsTarifModalOpen(true)}
@@ -490,90 +627,84 @@ export default function Index({
 
         {/* 4 Summary KPI Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 border-t-4 border-t-blue-900 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Pegawai Melakukan Jalis
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Pegawai melakukan Jaldis
               </span>
               <div className="rounded-xl bg-blue-50 p-2.5 text-[#0F2C59]">
                 <Users className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-slate-900">
+              <span className="text-3xl font-extrabold tracking-tight text-slate-900">
                 {summary.total_pegawai_jalis ?? 0}
               </span>
-              <span className="text-xs font-semibold text-slate-500">
-                dari {summary.total_pegawai ?? 0} Pegawai
+              <span className="text-xs text-slate-500">
+                / {summary.total_pegawai ?? 0} pegawai
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-slate-400">
-              {summary.total_pegawai_belum_jalis ?? 0} pegawai belum memiliki riwayat jalis pada filter ini
+            <p className="mt-1.5 text-[11px] text-slate-500">
+              {summary.total_pegawai_belum_jalis ?? 0} belum melakukan perjalanan
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 border-t-4 border-t-emerald-500 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Total Frekuensi Jalis
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Total penugasan
               </span>
               <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600">
                 <Plane className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-slate-900">
+              <span className="text-3xl font-extrabold tracking-tight text-slate-900">
                 {summary.total_jalis ?? 0}
               </span>
-              <span className="text-xs font-semibold text-slate-500">Kali Penugasan</span>
+              <span className="text-xs text-slate-500">perjalanan dinas</span>
             </div>
-            <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold">
-              <span className="text-blue-600">
-                Dalam Negeri: {summary.jalis_dalam_negeri ?? 0}
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-800">
+                DN {summary.jalis_dalam_negeri ?? 0}
               </span>
-              <span className="text-amber-600">
-                Luar Negeri: {summary.jalis_luar_negeri ?? 0}
+              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">
+                LN {summary.jalis_luar_negeri ?? 0}
               </span>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 border-t-4 border-t-violet-500 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Total Hari Perjalanan
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Lama perjalanan
               </span>
               <div className="rounded-xl bg-purple-50 p-2.5 text-purple-600">
                 <Calendar className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-slate-900">
+              <span className="text-3xl font-extrabold tracking-tight text-slate-900">
                 {summary.total_hari ?? 0}
               </span>
-              <span className="text-xs font-semibold text-slate-500">Hari Kerja Dinas</span>
+              <span className="text-xs text-slate-500">hari dinas</span>
             </div>
-            <p className="mt-1 text-[11px] text-slate-400">
-              Akumulasi durasi perjalanan dinas seluruh personel
-            </p>
           </div>
 
-          <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50/80 to-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-amber-200 border-t-4 border-t-amber-500 bg-gradient-to-br from-amber-50/80 to-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                Total Biaya Jalis
+                Total biaya perjalanan
               </span>
               <div className="rounded-xl bg-amber-500 p-2.5 text-slate-950 shadow-sm">
                 <Coins className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-3">
-              <span className="text-xl font-extrabold text-slate-900 sm:text-2xl">
+              <span className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
                 {formatRupiah(summary.total_biaya ?? 0)}
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-amber-800/80">
-              Klik baris pegawai di bawah untuk melihat atau menyesuaikan rincian biaya
-            </p>
           </div>
         </div>
 
@@ -582,14 +713,33 @@ export default function Index({
           onSubmit={applyFilter}
           className="no-print rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5"
         >
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-bold text-slate-800">Filter &amp; Pengurutan Data</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Saring rekapitulasi jalis dan biaya pegawai berdasarkan periode, UPT/Bidang, kategori, maupun urutan tertinggi.
-              </p>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-slate-100 p-2 text-slate-600">
+                <Search className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Filter data</h2>
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  Persempit hasil berdasarkan periode, unit, atau pegawai.
+                </p>
+              </div>
             </div>
-            <Search className="h-5 w-5 text-slate-400" />
+            <div className="flex items-center gap-2">
+              {activeFilterCount > 0 && (
+                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
+                  {activeFilterCount} filter aktif
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={resetFilter}
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-900"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -666,8 +816,8 @@ export default function Index({
                 className={inputClass}
               >
                 <option value="semua">Semua Pegawai</option>
-                <option value="pernah_jalis">Hanya yang Pernah Jalis (&gt; 0)</option>
-                <option value="belum_jalis">Belum Pernah Jalis (0)</option>
+                <option value="pernah_jalis">Pernah melakukan Jaldis</option>
+                <option value="belum_jalis">Belum pernah melakukan Jaldis</option>
               </select>
             </label>
 
@@ -678,7 +828,7 @@ export default function Index({
                 onChange={(e) => updateFilter('sort', e.target.value)}
                 className={inputClass}
               >
-                <option value="jalis_desc">Total Jalis Terbanyak</option>
+                <option value="jalis_desc">Jaldis terbanyak</option>
                 <option value="biaya_desc">Total Biaya Tertinggi</option>
                 <option value="hari_desc">Total Hari Dinas Terbanyak</option>
                 <option value="nama_asc">Nama Pegawai (A - Z)</option>
@@ -696,14 +846,6 @@ export default function Index({
                   className={inputClass}
                 />
               </label>
-              <button
-                type="button"
-                onClick={resetFilter}
-                title="Reset Filter"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50"
-              >
-                <RotateCcw className="h-4 w-4" />
-              </button>
             </div>
           </div>
         </form>
@@ -717,11 +859,8 @@ export default function Index({
               </div>
               <div>
                 <h2 className="text-sm font-extrabold text-slate-900 sm:text-base">
-                  Diagram Lingkaran Proporsi Jalis &amp; Biaya (Menyesuaikan Filter)
+                  Ringkasan Jaldis &amp; Biaya
                 </h2>
-                <p className="text-[11px] text-slate-500">
-                  Klik pada irisan diagram lingkaran untuk menyaring data secara langsung.
-                </p>
               </div>
             </div>
 
@@ -736,7 +875,7 @@ export default function Index({
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Berdasarkan Jumlah Jalis
+                Jumlah Jaldis
               </button>
               <button
                 type="button"
@@ -747,14 +886,14 @@ export default function Index({
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Berdasarkan Total Biaya (Rp)
+                Total Biaya
               </button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Pie 1: Proporsi per UPT / Bidang (atau per Pegawai jika UPT difilter) */}
-            <div className="rounded-xl border border-slate-100 bg-slate-50/40 p-4">
+            <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
@@ -785,7 +924,7 @@ export default function Index({
                 centerValue={
                   isBiayaMetric
                     ? formatCompactRupiah(summary.total_biaya ?? 0)
-                    : `${summary.total_jalis ?? 0} Jalis`
+                    : `${summary.total_jalis ?? 0} Jaldis`
                 }
                 centerSub={`${pieUptOrPegawaiData.filter((d) => d.value > 0).length} Kelompok`}
                 valueFormatter={metricFormatter}
@@ -804,7 +943,7 @@ export default function Index({
             </div>
 
             {/* Pie 2: Proporsi Kategori Perjalanan (Dalam Negeri vs Luar Negeri) */}
-            <div className="rounded-xl border border-slate-100 bg-slate-50/40 p-4">
+            <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
@@ -837,7 +976,7 @@ export default function Index({
                 centerValue={
                   isBiayaMetric
                     ? formatCompactRupiah(summary.total_biaya ?? 0)
-                    : `${summary.total_jalis ?? 0} Jalis`
+                    : `${summary.total_jalis ?? 0} Jaldis`
                 }
                 centerSub={`${summary.total_hari ?? 0} Hari`}
                 valueFormatter={metricFormatter}
@@ -849,7 +988,7 @@ export default function Index({
             </div>
 
             {/* Pie 3: Komposisi Tingkat Biaya (A/B/C) atau Partisipasi Pegawai */}
-            <div className="rounded-xl border border-slate-100 bg-slate-50/40 p-4">
+            <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div>
                   <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
@@ -860,7 +999,7 @@ export default function Index({
                   <p className="text-[11px] text-slate-400">
                     {thirdPieMode === 'tingkat'
                       ? 'Distribusi Tingkat A, B, dan C'
-                      : 'Pernah Jalis vs Belum Pernah Jalis'}
+                      : 'Pernah vs belum pernah'}
                   </p>
                 </div>
                 <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-[10px] font-bold">
@@ -896,13 +1035,13 @@ export default function Index({
                   thirdPieMode === 'tingkat'
                     ? isBiayaMetric
                       ? formatCompactRupiah(summary.total_biaya ?? 0)
-                      : `${summary.total_jalis ?? 0} Jalis`
+                      : `${summary.total_jalis ?? 0} Jaldis`
                     : `${summary.total_pegawai ?? 0} Org`
                 }
                 centerSub={
                   thirdPieMode === 'tingkat'
                     ? 'A / B / C'
-                    : `${summary.total_pegawai_jalis ?? 0} Aktif Jalis`
+                    : `${summary.total_pegawai_jalis ?? 0} Pegawai aktif`
                 }
                 valueFormatter={
                   thirdPieMode === 'tingkat' ? metricFormatter : (val) => `${val} Pegawai`
@@ -921,7 +1060,7 @@ export default function Index({
 
         {/* DIAGRAM BATANG VISUAL */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Diagram 1: Frekuensi Jalis per Pegawai */}
+          {/* Diagram 1: Frekuensi Jaldis per Pegawai */}
           <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
@@ -930,11 +1069,8 @@ export default function Index({
                 </div>
                 <div>
                   <h3 className="text-sm font-extrabold text-slate-900">
-                    Diagram Frekuensi Jalis Pegawai (Top 10)
+                    Frekuensi Jaldis Terbanyak
                   </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Perbandingan jumlah perjalanan dinas Dalam Negeri &amp; Luar Negeri
-                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 text-[11px] font-semibold">
@@ -977,7 +1113,7 @@ export default function Index({
                           </span>
                         </div>
                         <div className="shrink-0 text-right font-bold text-slate-900">
-                          {item.total_jalis} Jalis{' '}
+                          {item.total_jalis} Jaldis{' '}
                           <span className="font-normal text-slate-400">
                             ({item.total_hari} hari)
                           </span>
@@ -989,14 +1125,14 @@ export default function Index({
                           <div
                             style={{ width: `${Math.max(dnPct, 4)}%` }}
                             className="h-full bg-[#0F2C59] transition-all duration-500"
-                            title={`Dalam Negeri: ${item.jalis_dalam_negeri} Jalis`}
+                            title={`Dalam Negeri: ${item.jalis_dalam_negeri} Jaldis`}
                           />
                         )}
                         {item.jalis_luar_negeri > 0 && (
                           <div
                             style={{ width: `${Math.max(lnPct, 4)}%` }}
                             className="h-full bg-amber-500 transition-all duration-500"
-                            title={`Luar Negeri: ${item.jalis_luar_negeri} Jalis`}
+                            title={`Luar Negeri: ${item.jalis_luar_negeri} Jaldis`}
                           />
                         )}
                       </div>
@@ -1012,7 +1148,7 @@ export default function Index({
             )}
           </div>
 
-          {/* Diagram 2: Total Biaya Jalis per Pegawai */}
+          {/* Diagram 2: Total Biaya Jaldis per Pegawai */}
           <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
@@ -1021,11 +1157,8 @@ export default function Index({
                 </div>
                 <div>
                   <h3 className="text-sm font-extrabold text-slate-900">
-                    Diagram Total Biaya Jalis Pegawai (Top 10)
+                    Biaya Jaldis Tertinggi
                   </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Akumulasi biaya perjalanan dinas tertinggi per pegawai (Rupiah)
-                  </p>
                 </div>
               </div>
               <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">
@@ -1057,7 +1190,7 @@ export default function Index({
                             {item.nama}
                           </span>
                           <span className="text-[11px] text-slate-400">
-                            ({item.total_jalis}x Jalis)
+                            ({item.total_jalis}x Jaldis)
                           </span>
                         </div>
                         <span className="shrink-0 font-mono text-xs font-extrabold text-emerald-700">
@@ -1092,17 +1225,18 @@ export default function Index({
               <div className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-amber-600" />
                 <h3 className="text-sm font-extrabold text-slate-900">
-                  Distribusi Jalis &amp; Biaya per UPT / Bidang
+                  Distribusi Jaldis per UPT / Bidang
                 </h3>
               </div>
               <span className="text-[11px] text-slate-400">
-                Klik nama UPT untuk menyaring tabel
+                Persentase dari total Jaldis
               </span>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {distribusiUpt.map((u) => {
-                const barWidth = Math.round(((u.total_jalis || 0) / maxUptJalis) * 100);
+                const share = totalJalisUpt > 0 ? (u.total_jalis / totalJalisUpt) * 100 : 0;
+                const uptColor = getUptColor(u.upt);
                 const isSelected = form.unit === u.upt;
                 return (
                   <div
@@ -1115,10 +1249,22 @@ export default function Index({
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-xs text-slate-900">{u.upt}</span>
-                      <span className="rounded-full bg-[#0F2C59] px-2 py-0.5 text-[10px] font-bold text-white">
-                        {u.total_jalis} Jalis
-                      </span>
+                      <span className="truncate text-xs font-bold text-slate-900">{u.upt}</span>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                          style={{
+                            backgroundColor: `${uptColor}18`,
+                            color: uptColor,
+                          }}
+                          title={`${share.toFixed(1)}% dari total Jaldis`}
+                        >
+                          {share.toFixed(1)}%
+                        </span>
+                        <span className="rounded-full bg-[#0F2C59] px-2 py-0.5 text-[10px] font-bold text-white">
+                          {u.total_jalis} Jaldis
+                        </span>
+                      </div>
                     </div>
                     <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-500">
                       <span>
@@ -1127,12 +1273,6 @@ export default function Index({
                       <span className="font-mono font-bold text-emerald-700">
                         {formatRupiah(u.total_biaya)}
                       </span>
-                    </div>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                      <div
-                        style={{ width: `${u.total_jalis > 0 ? Math.max(barWidth, 6) : 0}%` }}
-                        className="h-full bg-amber-500"
-                      />
                     </div>
                   </div>
                 );
@@ -1191,15 +1331,19 @@ export default function Index({
           </div>
         </div>
 
-        {/* TABEL / LIST REKAPITULASI JALIS & BIAYA PEGAWAI */}
-        <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-          <div className="flex flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* TABEL / LIST REKAPITULASI JALDIS & BIAYA PEGAWAI */}
+        <section className="printable-table overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+          <div className="print-only hidden border-b border-slate-200 px-0 py-0 pb-3">
+            <h1 className="text-xl font-bold text-slate-900">Rekap Jaldis &amp; Biaya Pegawai</h1>
+            <p className="mt-1 text-sm text-slate-600">Jumlah pegawai: {rows.length}</p>
+          </div>
+          <div className="no-print flex flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-base font-extrabold text-slate-900">
-                Daftar Rekapitulasi Jalis &amp; Biaya per Pegawai
+                Daftar Jaldis &amp; Biaya Pegawai
               </h2>
               <p className="text-xs text-slate-500">
-                Klik pada baris pegawai untuk melihat rincian perjalanan dinas, mengubah nominal biaya, atau membuka profil lengkap pegawai.
+                Pilih pegawai untuk melihat rincian.
               </p>
             </div>
             <div className="text-xs font-semibold text-slate-500">
@@ -1217,7 +1361,7 @@ export default function Index({
                   <th className="py-3.5 px-4">UPT / Bidang</th>
                   <th className="py-3.5 px-4 text-center">Dalam Negeri</th>
                   <th className="py-3.5 px-4 text-center">Luar Negeri</th>
-                  <th className="py-3.5 px-4 text-center">Total Jalis</th>
+                  <th className="py-3.5 px-4 text-center">Total Jaldis</th>
                   <th className="py-3.5 px-4 text-center">Total Hari</th>
                   <th className="py-3.5 px-4 text-right">Total Biaya (Rp)</th>
                   <th className="py-3.5 px-4 text-center no-print">Aksi</th>
@@ -1279,7 +1423,7 @@ export default function Index({
                               : 'bg-slate-100 text-slate-400'
                           }`}
                         >
-                          {item.total_jalis} Jalis
+                          {item.total_jalis} Jaldis
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center font-semibold text-slate-700">
@@ -1295,7 +1439,7 @@ export default function Index({
                         </div>
                         {item.total_jalis > 0 && (
                           <div className="text-[10px] text-slate-400">
-                            Rata-rata: {formatRupiah(item.rata_rata_biaya)}/jalis
+                            Rata-rata: {formatRupiah(item.rata_rata_biaya)}/Jaldis
                           </div>
                         )}
                       </td>
@@ -1308,7 +1452,7 @@ export default function Index({
                             type="button"
                             onClick={() => setSelectedPegawaiRekap(item)}
                             className="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2.5 py-1.5 text-[11px] font-bold text-amber-900 transition hover:bg-amber-200"
-                            title="Lihat Rincian Jalis & Biaya"
+                            title="Lihat Rincian Jaldis & Biaya"
                           >
                             <Eye className="h-3.5 w-3.5" />
                             <span>Rincian</span>
@@ -1348,7 +1492,7 @@ export default function Index({
                       {rows.reduce((acc, r) => acc + (r.jalis_luar_negeri || 0), 0)}x
                     </td>
                     <td className="py-3.5 px-4 text-center text-[#0F2C59]">
-                      {rows.reduce((acc, r) => acc + (r.total_jalis || 0), 0)} Jalis
+                      {rows.reduce((acc, r) => acc + (r.total_jalis || 0), 0)} Jaldis
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       {rows.reduce((acc, r) => acc + (r.total_hari || 0), 0)} Hari
@@ -1365,7 +1509,7 @@ export default function Index({
         </section>
       </div>
 
-      {/* MODAL RINCIAN JALIS & BIAYA PER PEGAWAI */}
+      {/* MODAL RINCIAN JALDIS & BIAYA PER PEGAWAI */}
       {selectedPegawaiRekap && (
         <div
           onClick={() => {
@@ -1394,7 +1538,7 @@ export default function Index({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pr-8">
                 <div>
                   <span className="inline-block rounded-full bg-amber-400/20 px-2.5 py-0.5 text-[11px] font-bold text-amber-300 border border-amber-400/30">
-                    Rincian Perjalanan Dinas (Jalis) &amp; Biaya Pegawai
+                    Rincian Perjalanan Dinas (Jaldis) &amp; Biaya Pegawai
                   </span>
                   <h3 className="mt-1 text-lg font-extrabold text-white sm:text-xl">
                     {selectedPegawaiRekap.nama}
@@ -1407,7 +1551,7 @@ export default function Index({
 
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="rounded-xl bg-white/10 px-3.5 py-2 text-center">
-                    <div className="text-[10px] uppercase text-slate-300">Total Jalis</div>
+                    <div className="text-[10px] uppercase text-slate-300">Total Jaldis</div>
                     <div className="text-base font-extrabold text-amber-400">
                       {selectedPegawaiRekap.total_jalis}x ({selectedPegawaiRekap.total_hari} Hari)
                     </div>
@@ -1422,7 +1566,7 @@ export default function Index({
               </div>
             </div>
 
-            {/* Body Daftar Riwayat Jalis */}
+            {/* Body Daftar Riwayat Jaldis */}
             <div className="p-6">
               {selectedPegawaiRekap.riwayat && selectedPegawaiRekap.riwayat.length > 0 ? (
                 <div className="overflow-x-auto rounded-xl border border-slate-200">
@@ -1696,4 +1840,3 @@ export default function Index({
     </AdminLayout>
   );
 }
-

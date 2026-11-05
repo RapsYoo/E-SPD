@@ -137,7 +137,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                     }`}
                 >
                   <PieChart className={`w-5 h-5 ${isActive('/rekapitulasi-pegawai') ? 'text-slate-950' : 'text-amber-400'}`} />
-                  <span>Rekap Jalis Pegawai</span>
+                  <span>Rekap Jaldis Pegawai</span>
                 </Link>
               </>
             )}

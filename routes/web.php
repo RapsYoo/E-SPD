@@ -58,7 +58,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/rekapitulasi', [RekapitulasiController::class, 'index'])->name('rekapitulasi.index');
         Route::get('/rekapitulasi/export', [RekapitulasiController::class, 'export'])->name('rekapitulasi.export');
 
-        // Rekapitulasi Jalis (Perjalanan Dinas) & Biaya per Pegawai (Diagram + List)
+        // Rekapitulasi Jaldis (Perjalanan Dinas) & Biaya per Pegawai (Diagram + List)
         Route::get('/rekapitulasi-pegawai', [RekapJalisPegawaiController::class, 'index'])->name('rekapitulasi-pegawai.index');
         Route::get('/rekapitulasi-pegawai/export', [RekapJalisPegawaiController::class, 'export'])->name('rekapitulasi-pegawai.export');
         Route::put('/rekapitulasi-pegawai/biaya/{suratTugasPegawai}', [RekapJalisPegawaiController::class, 'updateBiaya'])->name('rekapitulasi-pegawai.update-biaya');
