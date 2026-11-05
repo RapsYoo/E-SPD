@@ -13,6 +13,7 @@ import {
   FileText,
   KeyRound,
   BarChart3,
+  PieChart,
 } from 'lucide-react';
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
@@ -23,7 +24,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
   const [suratMenuOpen, setSuratMenuOpen] = useState(true);
   const currentRoute = window.location.pathname;
 
-  const isActive = (path) => currentRoute === path || (path !== '/' && currentRoute.startsWith(path));
+  const isActive = (path) => currentRoute === path || (path !== '/' && currentRoute.startsWith(`${path}/`));
 
   // Versi Sistem
   const APP_VERSION = 'Beta v1.3';
@@ -116,16 +117,29 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             </div>
 
             {canSeeRekap && (
-              <Link
-                href="/rekapitulasi"
-                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition ${isActive('/rekapitulasi')
-                  ? 'bg-amber-500 text-slate-950 font-bold shadow'
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-                  }`}
-              >
-                <BarChart3 className={`w-5 h-5 ${isActive('/rekapitulasi') ? 'text-slate-950' : 'text-amber-400'}`} />
-                <span>Rekapitulasi</span>
-              </Link>
+              <>
+                <Link
+                  href="/rekapitulasi"
+                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition ${isActive('/rekapitulasi')
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                    }`}
+                >
+                  <BarChart3 className={`w-5 h-5 ${isActive('/rekapitulasi') ? 'text-slate-950' : 'text-amber-400'}`} />
+                  <span>Rekapitulasi</span>
+                </Link>
+
+                <Link
+                  href="/rekapitulasi-pegawai"
+                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition ${isActive('/rekapitulasi-pegawai')
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                    }`}
+                >
+                  <PieChart className={`w-5 h-5 ${isActive('/rekapitulasi-pegawai') ? 'text-slate-950' : 'text-amber-400'}`} />
+                  <span>Rekap Jalis Pegawai</span>
+                </Link>
+              </>
             )}
 
             {/* Direktori Pegawai (read-only) untuk role pegawai */}

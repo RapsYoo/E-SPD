@@ -15,10 +15,12 @@ class TingkatBiaya extends Model
         'kode',
         'nama',
         'keterangan',
+        'tarif_harian',
         'is_active',
     ];
 
     protected $casts = [
+        'tarif_harian' => 'integer',
         'is_active' => 'boolean',
     ];
 }

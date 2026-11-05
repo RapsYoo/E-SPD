@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PegawaiDirectoryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RekapitulasiController;
+use App\Http\Controllers\RekapJalisPegawaiController;
 use App\Http\Controllers\SuratTugasController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +57,12 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,tu,ppk,kapus')->group(function () {
         Route::get('/rekapitulasi', [RekapitulasiController::class, 'index'])->name('rekapitulasi.index');
         Route::get('/rekapitulasi/export', [RekapitulasiController::class, 'export'])->name('rekapitulasi.export');
+
+        // Rekapitulasi Jalis (Perjalanan Dinas) & Biaya per Pegawai (Diagram + List)
+        Route::get('/rekapitulasi-pegawai', [RekapJalisPegawaiController::class, 'index'])->name('rekapitulasi-pegawai.index');
+        Route::get('/rekapitulasi-pegawai/export', [RekapJalisPegawaiController::class, 'export'])->name('rekapitulasi-pegawai.export');
+        Route::put('/rekapitulasi-pegawai/biaya/{suratTugasPegawai}', [RekapJalisPegawaiController::class, 'updateBiaya'])->name('rekapitulasi-pegawai.update-biaya');
+        Route::put('/rekapitulasi-pegawai/tarif', [RekapJalisPegawaiController::class, 'updateTarif'])->name('rekapitulasi-pegawai.update-tarif');
     });
     // P1: cetak akses luas — middleware longgar (semua role internal), otorisasi detail (owner/role+status) di controller.
     Route::get('/surat-tugas/{suratTugas}/cetak', [SuratTugasController::class, 'cetak'])->middleware('role:admin,pemohon,sespalu,kapus,tu,ppk,pegawai')->name('surat-tugas.cetak');

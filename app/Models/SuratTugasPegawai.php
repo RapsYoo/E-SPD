@@ -21,6 +21,11 @@ class SuratTugasPegawai extends Model
         'jabatan',
         'unit_kerja',
         'urutan',
+        'biaya',
+    ];
+
+    protected $casts = [
+        'biaya' => 'integer',
     ];
 
     public function suratTugas()
