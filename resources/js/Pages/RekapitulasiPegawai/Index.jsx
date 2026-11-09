@@ -73,151 +73,346 @@ function formatCompactRupiah(value) {
 }
 
 /**
- * Komponen Diagram Lingkaran (SVG Donut / Pie Chart) Interaktif
+ * Komponen Grafik Kombinasi (Clustered Column/Bar + Line Chart) beserta Tabel Ringkasan
+ * Menyerupai tampilan grafik kombinasi Excel (2 Batang Vertikal Biru & Oranye + 1 Garis Tren Abu-abu)
  */
-function InteractiveDonutChart({
-  data = [],
-  centerTitle = 'Total',
-  centerValue = '0',
-  centerSub = '',
+function ComboBarLineChart({
+  title = 'Rekapitulasi Jaldis',
+  categoryHeader = 'Bulan',
+  seriesALabel = 'Dalam Negeri',
+  seriesBLabel = 'Luar Negeri',
+  seriesCLabel = 'Total Jaldis',
+  items = [],
   valueFormatter = (v) => v,
-  emptyText = 'Belum ada data pada filter ini',
-  onSliceClick = null,
-  activeSliceKey = null,
+  axisFormatter = (v) => v,
+  onItemClick = null,
+  activeItemKey = null,
 }) {
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
-  const validData = data.filter((d) => Number(d.value || 0) > 0);
-  const total = validData.reduce((sum, item) => sum + Number(item.value || 0), 0);
+  // Hitung nilai maksimum untuk skala sumbu Y
+  const rawMax = Math.max(
+    0,
+    ...items.map((it) =>
+      Math.max(Number(it.seriesA || 0), Number(it.seriesB || 0), Number(it.seriesC || 0))
+    )
+  );
 
-  if (total <= 0 || validData.length === 0) {
-    return (
-      <div className="flex h-56 flex-col items-center justify-center text-center text-xs text-slate-400">
-        <PieChart className="mb-2 h-9 w-9 text-slate-300" />
-        <span>{emptyText}</span>
-      </div>
-    );
+  // Buat langkah skala Y yang rapi (6 interval)
+  const stepCount = 6;
+  const niceStep = (() => {
+    if (rawMax <= 0) return 1;
+    const rough = rawMax / stepCount;
+    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    const residual = rough / mag;
+    if (residual > 5) return 10 * mag;
+    if (residual > 2) return 5 * mag;
+    if (residual > 1) return 2 * mag;
+    return Math.max(1, mag);
+  })();
+  const yMax = Math.max(niceStep * stepCount, Math.ceil(rawMax / niceStep) * niceStep || 6);
+
+  const yTicks = [];
+  for (let val = yMax; val >= 0; val -= niceStep) {
+    yTicks.push(val);
   }
 
-  const radius = 64;
-  const circumference = 2 * Math.PI * radius;
-  let cumulativePercent = 0;
+  // Dimensi SVG
+  const count = Math.max(1, items.length);
+  const padLeft = 72;
+  const padRight = 28;
+  const padTop = 28;
+  const padBottom = 86;
+  const plotHeight = 230;
+  const slotWidth = Math.max(54, Math.min(82, Math.floor(680 / count)));
+  const plotWidth = count * slotWidth;
+  const svgWidth = padLeft + plotWidth + padRight;
+  const svgHeight = padTop + plotHeight + padBottom;
 
-  const segments = validData.map((item, idx) => {
-    const val = Number(item.value || 0);
-    const pct = total > 0 ? val / total : 0;
-    const strokeDasharray = `${pct * circumference} ${circumference}`;
-    const strokeDashoffset = -cumulativePercent * circumference;
-    cumulativePercent += pct;
+  const toY = (val) => {
+    const ratio = yMax > 0 ? Math.min(1, Math.max(0, Number(val || 0) / yMax)) : 0;
+    return padTop + plotHeight - ratio * plotHeight;
+  };
 
-    return {
-      ...item,
-      index: idx,
-      percentage: Math.round(pct * 1000) / 10,
-      strokeDasharray,
-      strokeDashoffset,
-      color: item.color || PIE_COLORS[idx % PIE_COLORS.length],
-    };
+  // Titik-titik garis untuk Series C
+  const linePoints = items.map((it, idx) => {
+    const cx = padLeft + idx * slotWidth + slotWidth / 2;
+    const cy = toY(it.seriesC);
+    return { x: cx, y: cy, val: Number(it.seriesC || 0) };
   });
 
-  const activeSegment = hoveredIdx !== null ? segments[hoveredIdx] : null;
+  const polylineStr = linePoints.map((pt) => `${pt.x},${pt.y}`).join(' ');
+
+  const totalA = items.reduce((acc, it) => acc + Number(it.seriesA || 0), 0);
+  const totalB = items.reduce((acc, it) => acc + Number(it.seriesB || 0), 0);
+  const totalC = items.reduce((acc, it) => acc + Number(it.seriesC || 0), 0);
 
   return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row">
-      {/* SVG Lingkaran */}
-      <div className="relative flex h-44 w-44 shrink-0 items-center justify-center">
-        <svg viewBox="0 0 160 160" className="h-full w-full -rotate-90 transform overflow-visible">
-          <circle
-            cx="80"
-            cy="80"
-            r={radius}
-            fill="transparent"
-            stroke="#F1F5F9"
-            strokeWidth="22"
-          />
-          {segments.map((seg, idx) => {
-            const isHovered = hoveredIdx === idx;
-            const isSelected = activeSliceKey && activeSliceKey === seg.key;
-            return (
-              <circle
-                key={seg.key || idx}
-                cx="80"
-                cy="80"
-                r={radius}
-                fill="transparent"
-                stroke={seg.color}
-                strokeWidth={isHovered || isSelected ? '26' : '22'}
-                strokeDasharray={seg.strokeDasharray}
-                strokeDashoffset={seg.strokeDashoffset}
-                onMouseEnter={() => setHoveredIdx(idx)}
-                onMouseLeave={() => setHoveredIdx(null)}
-                onClick={() => onSliceClick && onSliceClick(seg)}
-                className={`transition-all duration-300 ${
-                  onSliceClick ? 'cursor-pointer' : ''
-                }`}
-              />
-            );
-          })}
-        </svg>
-
-        {/* Teks Tengah Lingkaran */}
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
-          <span className="max-w-[105px] truncate text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            {activeSegment ? activeSegment.label : centerTitle}
-          </span>
-          <span className="mt-0.5 text-sm font-extrabold text-slate-900">
-            {activeSegment ? valueFormatter(activeSegment.value) : centerValue}
-          </span>
-          <span className="text-[10px] font-semibold text-amber-600">
-            {activeSegment ? `${activeSegment.percentage}%` : centerSub}
-          </span>
-        </div>
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+      {/* Tabel Ringkasan di Sisi Kiri (Gaya Spreadsheet) */}
+      <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm xl:col-span-4">
+        <table className="w-full border-collapse text-xs text-slate-800">
+          <thead>
+            <tr className="bg-slate-100 font-bold text-slate-900">
+              <th className="border border-slate-300 px-3 py-2 text-left">{categoryHeader}</th>
+              <th className="border border-slate-300 px-2.5 py-2 text-right text-[#2F5597]">
+                {seriesALabel}
+              </th>
+              <th className="border border-slate-300 px-2.5 py-2 text-right text-[#C55A11]">
+                {seriesBLabel}
+              </th>
+              <th className="border border-slate-300 px-2.5 py-2 text-right text-slate-700">
+                {seriesCLabel}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((it, idx) => {
+              const isHovered = hoveredIdx === idx;
+              const isSelected = activeItemKey && activeItemKey === it.key;
+              return (
+                <tr
+                  key={it.key || idx}
+                  onMouseEnter={() => setHoveredIdx(idx)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                  onClick={() => onItemClick && onItemClick(it)}
+                  className={`transition ${onItemClick ? 'cursor-pointer' : ''} ${
+                    isSelected
+                      ? 'bg-amber-50 font-bold'
+                      : isHovered
+                      ? 'bg-blue-50/70'
+                      : 'hover:bg-slate-50'
+                  }`}
+                >
+                  <td className="border border-slate-200 px-3 py-1.5 font-medium text-slate-900 truncate max-w-[140px]">
+                    {it.label}
+                  </td>
+                  <td className="border border-slate-200 px-2.5 py-1.5 text-right font-mono">
+                    {valueFormatter(it.seriesA)}
+                  </td>
+                  <td className="border border-slate-200 px-2.5 py-1.5 text-right font-mono">
+                    {valueFormatter(it.seriesB)}
+                  </td>
+                  <td className="border border-slate-200 px-2.5 py-1.5 text-right font-mono font-semibold">
+                    {valueFormatter(it.seriesC)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="bg-slate-100 font-extrabold text-slate-900">
+              <td className="border border-slate-300 px-3 py-2">Total</td>
+              <td className="border border-slate-300 px-2.5 py-2 text-right font-mono text-[#2F5597]">
+                {valueFormatter(totalA)}
+              </td>
+              <td className="border border-slate-300 px-2.5 py-2 text-right font-mono text-[#C55A11]">
+                {valueFormatter(totalB)}
+              </td>
+              <td className="border border-slate-300 px-2.5 py-2 text-right font-mono">
+                {valueFormatter(totalC)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
 
-      {/* Daftar Legenda */}
-      <div className="max-h-48 w-full flex-1 space-y-1.5 overflow-y-auto pr-1 text-xs">
-        {segments.map((seg, idx) => {
-          const isSelected = activeSliceKey && activeSliceKey === seg.key;
-          return (
-            <div
-              key={seg.key || idx}
-              onMouseEnter={() => setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
-              onClick={() => onSliceClick && onSliceClick(seg)}
-              className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 transition ${
-                onSliceClick ? 'cursor-pointer' : ''
-              } ${
-                isSelected
-                  ? 'bg-amber-50 ring-1 ring-amber-400 font-bold'
-                  : hoveredIdx === idx
-                  ? 'bg-slate-100'
-                  : 'hover:bg-slate-50'
-              }`}
-            >
-              <div className="flex min-w-0 items-center gap-2">
-                <span
-                  className="h-3 w-3 shrink-0 rounded-full shadow-sm"
-                  style={{ backgroundColor: seg.color }}
-                />
-                <span className="truncate font-semibold text-slate-800">{seg.label}</span>
-              </div>
-              <div className="flex shrink-0 items-center gap-2 text-right">
-                <span className="font-mono text-[11px] font-bold text-slate-700">
-                  {valueFormatter(seg.value)}
-                </span>
-                <span
-                  className="min-w-[42px] rounded px-1.5 py-0.5 text-center text-[10px] font-bold"
-                  style={{
-                    backgroundColor: `${seg.color}18`,
-                    color: seg.color,
-                  }}
+      {/* Grafik Kombinasi Batang + Garis di Sisi Kanan */}
+      <div className="flex flex-col justify-between rounded-xl border border-slate-300 bg-white p-5 shadow-sm xl:col-span-8">
+        {/* Judul Grafik */}
+        <div className="mb-2 text-center">
+          <h3 className="text-base font-bold tracking-tight text-slate-600 sm:text-lg">
+            {title}
+          </h3>
+        </div>
+
+        {/* Kanvas SVG Grafik */}
+        <div className="w-full overflow-x-auto">
+          <svg
+            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+            className="mx-auto h-auto min-w-[560px] w-full select-none"
+          >
+            {/* Garis Grid Horizontal & Label Sumbu Y */}
+            {yTicks.map((tickVal, i) => {
+              const y = toY(tickVal);
+              return (
+                <g key={i}>
+                  <line
+                    x1={padLeft}
+                    y1={y}
+                    x2={padLeft + plotWidth}
+                    y2={y}
+                    stroke="#D9D9D9"
+                    strokeWidth="1"
+                  />
+                  <text
+                    x={padLeft - 10}
+                    y={y + 4}
+                    textAnchor="end"
+                    className="fill-slate-500 text-[11px] font-medium"
+                  >
+                    {axisFormatter(tickVal)}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Batang Series A (Biru) & Series B (Oranye) per Kategori */}
+            {items.map((it, idx) => {
+              const groupCenter = padLeft + idx * slotWidth + slotWidth / 2;
+              const barWidth = Math.min(16, Math.max(10, Math.floor(slotWidth * 0.24)));
+              const barGap = 3;
+
+              const valA = Number(it.seriesA || 0);
+              const valB = Number(it.seriesB || 0);
+              const yA = toY(valA);
+              const hA = Math.max(0, padTop + plotHeight - yA);
+              const yB = toY(valB);
+              const hB = Math.max(0, padTop + plotHeight - yB);
+
+              const xA = groupCenter - barWidth - barGap / 2;
+              const xB = groupCenter + barGap / 2;
+              const isHovered = hoveredIdx === idx;
+              const isSelected = activeItemKey && activeItemKey === it.key;
+
+              return (
+                <g
+                  key={it.key || idx}
+                  onMouseEnter={() => setHoveredIdx(idx)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                  onClick={() => onItemClick && onItemClick(it)}
+                  className={onItemClick ? 'cursor-pointer' : ''}
                 >
-                  {seg.percentage}%
-                </span>
-              </div>
-            </div>
-          );
-        })}
+                  {/* Highlight Latar Kolom Saat Hover / Aktif */}
+                  {(isHovered || isSelected) && (
+                    <rect
+                      x={padLeft + idx * slotWidth + 2}
+                      y={padTop}
+                      width={slotWidth - 4}
+                      height={plotHeight}
+                      rx="4"
+                      fill={isSelected ? '#FEF3C7' : '#F1F5F9'}
+                      opacity="0.7"
+                    />
+                  )}
+
+                  {/* Batang Biru (Series A) */}
+                  <rect
+                    x={xA}
+                    y={yA}
+                    width={barWidth}
+                    height={hA}
+                    fill="#4472C4"
+                    rx="1.5"
+                  >
+                    <title>{`${it.label} — ${seriesALabel}: ${valueFormatter(valA)}`}</title>
+                  </rect>
+
+                  {/* Batang Oranye (Series B) */}
+                  <rect
+                    x={xB}
+                    y={yB}
+                    width={barWidth}
+                    height={hB}
+                    fill="#ED7D31"
+                    rx="1.5"
+                  >
+                    <title>{`${it.label} — ${seriesBLabel}: ${valueFormatter(valB)}`}</title>
+                  </rect>
+
+                  {/* Label Sumbu X Miring (-45 derajat) */}
+                  <text
+                    x={groupCenter}
+                    y={padTop + plotHeight + 16}
+                    textAnchor="end"
+                    transform={`rotate(-40, ${groupCenter}, ${padTop + plotHeight + 16})`}
+                    className={`text-[11px] ${
+                      isHovered || isSelected
+                        ? 'fill-slate-900 font-bold'
+                        : 'fill-slate-600 font-medium'
+                    }`}
+                  >
+                    {String(it.label).length > 16
+                      ? `${String(it.label).slice(0, 15)}…`
+                      : it.label}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Garis Tren Abu-abu (Series C) di Atas Batang */}
+            {linePoints.length > 1 && (
+              <polyline
+                fill="none"
+                stroke="#A5A5A5"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={polylineStr}
+              />
+            )}
+
+            {/* Titik Marker & Tooltip Nilai pada Garis Series C */}
+            {linePoints.map((pt, idx) => {
+              const isHovered = hoveredIdx === idx;
+              return (
+                <g
+                  key={idx}
+                  onMouseEnter={() => setHoveredIdx(idx)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                >
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={isHovered ? 5 : 3.5}
+                    fill={isHovered ? '#0F2C59' : '#A5A5A5'}
+                    stroke="#FFFFFF"
+                    strokeWidth="1.5"
+                  />
+                  {isHovered && (
+                    <g>
+                      <rect
+                        x={pt.x - 42}
+                        y={Math.max(4, pt.y - 28)}
+                        width="84"
+                        height="20"
+                        rx="4"
+                        fill="#0F2C59"
+                      />
+                      <text
+                        x={pt.x}
+                        y={Math.max(18, pt.y - 14)}
+                        textAnchor="middle"
+                        className="fill-white text-[10px] font-bold"
+                      >
+                        {valueFormatter(pt.val)}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
+        {/* Legenda Bawah (Persis Gaya Excel) */}
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-6 border-t border-slate-100 pt-3 text-xs font-medium text-slate-600">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-3 w-7 rounded-sm bg-[#4472C4]" />
+            <span>{seriesALabel}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-3 w-7 rounded-sm bg-[#ED7D31]" />
+            <span>{seriesBLabel}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-3 w-8 items-center">
+              <span className="h-[3px] w-full rounded bg-[#A5A5A5]" />
+              <span className="absolute left-1/2 -translate-x-1/2 h-2.5 w-2.5 rounded-full bg-[#A5A5A5] ring-2 ring-white" />
+            </span>
+            <span>{seriesCLabel}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -258,9 +453,9 @@ export default function Index({
   });
   const [savingTarif, setSavingTarif] = useState(false);
 
-  // State khusus Diagram Lingkaran agar dinamis terhadap metrik & filter
+  // State khusus Grafik Kombinasi agar dinamis terhadap metrik & tampilan sumbu X
   const [pieMetric, setPieMetric] = useState('jalis'); // 'jalis' | 'biaya'
-  const [thirdPieMode, setThirdPieMode] = useState('tingkat'); // 'tingkat' | 'partisipasi'
+  const [pieView, setPieView] = useState('bulanan'); // 'bulanan' | 'upt' | 'pegawai' | 'tingkat'
 
   useEffect(() => () => clearTimeout(searchTimeout.current), []);
 
@@ -363,6 +558,7 @@ export default function Index({
     );
   };
 
+  const rekapBulanan = charts.rekapBulanan || [];
   const topJalis = charts.topPegawaiJalis || [];
   const topBiaya = charts.topPegawaiBiaya || [];
   const distribusiUpt = charts.distribusiUpt || [];
@@ -383,72 +579,132 @@ export default function Index({
   const totalJalisUpt = distribusiUpt.reduce((total, item) => total + Number(item.total_jalis || 0), 0);
 
   const isBiayaMetric = pieMetric === 'biaya';
-  const metricFormatter = isBiayaMetric
+  const comboValueFormatter = isBiayaMetric
     ? (val) => formatCompactRupiah(val)
-    : (val) => `${val} Jaldis`;
+    : (val) => Number(val || 0).toLocaleString('id-ID');
+  const comboAxisFormatter = isBiayaMetric
+    ? (val) => formatCompactRupiah(val)
+    : (val) => Number(val || 0).toLocaleString('id-ID');
 
-  // Data Diagram Lingkaran 1:
-  // Jika filter UPT/Bidang belum dipilih -> tampilkan proporsi antar UPT/Bidang.
-  // Jika filter UPT/Bidang sedang dipilih -> otomatis tampilkan proporsi antar Pegawai di UPT tersebut.
-  const pieUptOrPegawaiData = form.unit
-    ? (isBiayaMetric ? topBiaya : topJalis).map((p, idx) => ({
-        key: String(p.pegawai_id || p.nama),
-        label: p.nama,
-        value: isBiayaMetric ? p.total_biaya : p.total_jalis,
-        color: PIE_COLORS[idx % PIE_COLORS.length],
-        raw: p,
-      }))
-    : distribusiUpt.map((u) => ({
-        key: u.upt,
-        label: u.upt,
-        value: isBiayaMetric ? u.total_biaya : u.total_jalis,
-        color: getUptColor(u.upt),
-        raw: u,
-      }));
+  const activeYearLabel = form.dari
+    ? String(form.dari).slice(0, 4)
+    : form.sampai
+    ? String(form.sampai).slice(0, 4)
+    : new Date().getFullYear();
 
-  // Data Diagram Lingkaran 2: Proporsi Kategori Perjalanan (Dalam Negeri vs Luar Negeri)
-  const pieKategoriData = [
-    {
-      key: 'DALAM_NEGERI',
-      label: 'Dalam Negeri',
-      value: isBiayaMetric
-        ? summary.biaya_dalam_negeri ?? 0
-        : summary.jalis_dalam_negeri ?? 0,
-      color: '#0F2C59',
-    },
-    {
-      key: 'LUAR_NEGERI',
-      label: 'Luar Negeri',
-      value: isBiayaMetric
-        ? summary.biaya_luar_negeri ?? 0
-        : summary.jalis_luar_negeri ?? 0,
-      color: '#F59E0B',
-    },
+  // 1. Data Grafik Kombinasi: Per Bulan (Januari - Desember)
+  const comboBulananItems = rekapBulanan.map((m) => ({
+    key: String(m.bulan_num),
+    label: m.bulan,
+    seriesA: isBiayaMetric ? m.biaya_dalam_negeri ?? 0 : m.jalis_dalam_negeri ?? 0,
+    seriesB: isBiayaMetric ? m.biaya_luar_negeri ?? 0 : m.jalis_luar_negeri ?? 0,
+    seriesC: isBiayaMetric ? m.total_biaya ?? 0 : m.total_jalis ?? 0,
+    raw: m,
+  }));
+
+  // 2. Data Grafik Kombinasi: Per UPT / Bidang
+  const comboUptItems = distribusiUpt.map((u) => ({
+    key: u.upt,
+    label: u.upt,
+    seriesA: isBiayaMetric ? u.biaya_dalam_negeri ?? 0 : u.jalis_dalam_negeri ?? 0,
+    seriesB: isBiayaMetric ? u.biaya_luar_negeri ?? 0 : u.jalis_luar_negeri ?? 0,
+    seriesC: isBiayaMetric ? u.total_biaya ?? 0 : u.total_jalis ?? 0,
+    raw: u,
+  }));
+
+  // 3. Data Grafik Kombinasi: Per Pegawai (Top 12)
+  const comboPegawaiItems = rows.slice(0, 12).map((r) => {
+    const biayaDN = (r.riwayat || []).reduce(
+      (sum, t) =>
+        (t.kategori_kode ?? '') !== 'LUAR_NEGERI' ? sum + Number(t.biaya_efektif || 0) : sum,
+      0
+    );
+    const biayaLN = (r.riwayat || []).reduce(
+      (sum, t) =>
+        (t.kategori_kode ?? '') === 'LUAR_NEGERI' ? sum + Number(t.biaya_efektif || 0) : sum,
+      0
+    );
+    return {
+      key: r.key,
+      label: r.nama,
+      seriesA: isBiayaMetric ? biayaDN : r.jalis_dalam_negeri ?? 0,
+      seriesB: isBiayaMetric ? biayaLN : r.jalis_luar_negeri ?? 0,
+      seriesC: isBiayaMetric ? r.total_biaya ?? 0 : r.total_jalis ?? 0,
+      raw: r,
+    };
+  });
+
+  // 4. Data Grafik Kombinasi: Per Tingkat Biaya (A / B / C)
+  const comboTingkatItems = distribusiTingkat.map((tb) => ({
+    key: tb.kode,
+    label: `Tingkat ${tb.kode}`,
+    seriesA: isBiayaMetric ? tb.biaya_dalam_negeri ?? 0 : tb.jalis_dalam_negeri ?? 0,
+    seriesB: isBiayaMetric ? tb.biaya_luar_negeri ?? 0 : tb.jalis_luar_negeri ?? 0,
+    seriesC: isBiayaMetric ? tb.total_biaya ?? 0 : tb.total_jalis ?? 0,
+    raw: tb,
+  }));
+
+  const chartViews = [
+    { id: 'bulanan', label: 'Per Bulan (Jan – Des)' },
+    { id: 'upt', label: 'Per UPT / Bidang' },
+    { id: 'pegawai', label: 'Per Pegawai' },
+    { id: 'tingkat', label: 'Tingkat Biaya (A/B/C)' },
   ];
 
-  // Data Diagram Lingkaran 3: Tingkat Biaya (A/B/C) atau Partisipasi Pegawai
-  const pieThirdData =
-    thirdPieMode === 'tingkat'
-      ? distribusiTingkat.map((tb, idx) => ({
-          key: tb.kode,
-          label: `Tingkat ${tb.kode}`,
-          value: isBiayaMetric ? tb.total_biaya : tb.total_jalis,
-          color: ['#0F2C59', '#F59E0B', '#10B981', '#8B5CF6'][idx % 4],
-        }))
-      : [
-          {
-            key: 'pernah_jalis',
-            label: 'Pernah Jaldis',
-            value: summary.total_pegawai_jalis ?? 0,
-            color: '#10B981',
-          },
-          {
-            key: 'belum_jalis',
-            label: 'Belum Pernah Jaldis',
-            value: summary.total_pegawai_belum_jalis ?? 0,
-            color: '#94A3B8',
-          },
-        ];
+  const chartConfigs = {
+    bulanan: {
+      title: `${
+        isBiayaMetric ? 'Rekapitulasi Biaya Jaldis' : 'Rekapitulasi Jaldis'
+      } Tahun ${activeYearLabel}`,
+      subtitle: 'Perbandingan Dalam Negeri, Luar Negeri, dan Total per Bulan',
+      categoryHeader: 'Bulan',
+      items: comboBulananItems,
+      activeItemKey: null,
+      resetLabel: null,
+      onReset: null,
+      onItemClick: null,
+    },
+    upt: {
+      title: `${
+        isBiayaMetric ? 'Rekapitulasi Biaya Jaldis' : 'Rekapitulasi Jaldis'
+      } per UPT / Bidang`,
+      subtitle: 'Klik baris atau batang UPT/Bidang untuk memfilter data',
+      categoryHeader: 'UPT / Bidang',
+      items: comboUptItems,
+      activeItemKey: form.unit || null,
+      resetLabel: form.unit ? 'Tampilkan Semua UPT' : null,
+      onReset: () => updateFilter('unit', ''),
+      onItemClick: (it) => updateFilter('unit', form.unit === it.key ? '' : it.key),
+    },
+    pegawai: {
+      title: `${
+        isBiayaMetric ? 'Rekapitulasi Biaya Jaldis' : 'Rekapitulasi Jaldis'
+      } per Pegawai (Top 12)`,
+      subtitle: 'Klik baris atau batang pegawai untuk membuka rincian perjalanan dinasnya',
+      categoryHeader: 'Nama Pegawai',
+      items: comboPegawaiItems,
+      activeItemKey: null,
+      resetLabel: null,
+      onReset: null,
+      onItemClick: (it) => {
+        if (it.raw) setSelectedPegawaiRekap(it.raw);
+      },
+    },
+    tingkat: {
+      title: `${
+        isBiayaMetric ? 'Rekapitulasi Biaya Jaldis' : 'Rekapitulasi Jaldis'
+      } per Tingkat Biaya`,
+      subtitle: 'Distribusi Tingkat Biaya A, B, dan C',
+      categoryHeader: 'Tingkat Biaya',
+      items: comboTingkatItems,
+      activeItemKey: null,
+      resetLabel: null,
+      onReset: null,
+      onItemClick: null,
+    },
+  };
+
+  const activeChart = chartConfigs[pieView] || chartConfigs.bulanan;
 
   return (
     <AdminLayout title="Rekap Jaldis Pegawai">
@@ -891,171 +1147,49 @@ export default function Index({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {/* Pie 1: Proporsi per UPT / Bidang (atau per Pegawai jika UPT difilter) */}
-            <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                    {form.unit
-                      ? `Proporsi Pegawai (${form.unit})`
-                      : 'Proporsi per UPT / Bidang'}
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    {form.unit
-                      ? 'Klik irisan untuk melihat rincian pegawai'
-                      : 'Klik irisan untuk memfilter UPT/Bidang'}
-                  </p>
-                </div>
-                {form.unit && (
-                  <button
-                    type="button"
-                    onClick={() => updateFilter('unit', '')}
-                    className="rounded-lg bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-800 hover:bg-amber-200"
-                  >
-                    Semua UPT
-                  </button>
-                )}
-              </div>
-
-              <InteractiveDonutChart
-                data={pieUptOrPegawaiData}
-                centerTitle={form.unit ? form.unit : 'Semua UPT'}
-                centerValue={
-                  isBiayaMetric
-                    ? formatCompactRupiah(summary.total_biaya ?? 0)
-                    : `${summary.total_jalis ?? 0} Jaldis`
-                }
-                centerSub={`${pieUptOrPegawaiData.filter((d) => d.value > 0).length} Kelompok`}
-                valueFormatter={metricFormatter}
-                activeSliceKey={form.unit || null}
-                onSliceClick={(seg) => {
-                  if (!form.unit) {
-                    updateFilter('unit', seg.key);
-                  } else {
-                    const target = rows.find(
-                      (r) => String(r.pegawai_id || r.nama) === seg.key
-                    );
-                    if (target) setSelectedPegawaiRekap(target);
-                  }
-                }}
-              />
+          {/* Pilihan Kategori Sumbu X yang Ditampilkan */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-slate-500">Tampilkan grafik:</span>
+              {chartViews.map((view) => (
+                <button
+                  key={view.id}
+                  type="button"
+                  onClick={() => setPieView(view.id)}
+                  className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold transition ${
+                    pieView === view.id
+                      ? 'border-[#0F2C59] bg-[#0F2C59] text-white shadow-sm'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-amber-400 hover:bg-amber-50'
+                  }`}
+                >
+                  {view.label}
+                </button>
+              ))}
             </div>
 
-            {/* Pie 2: Proporsi Kategori Perjalanan (Dalam Negeri vs Luar Negeri) */}
-            <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                    Proporsi Kategori Perjalanan
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Perbandingan Dalam Negeri vs Luar Negeri
-                  </p>
-                </div>
-                {form.kategori && (
-                  <button
-                    type="button"
-                    onClick={() => updateFilter('kategori', '')}
-                    className="rounded-lg bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-800 hover:bg-amber-200"
-                  >
-                    Semua Kategori
-                  </button>
-                )}
-              </div>
-
-              <InteractiveDonutChart
-                data={pieKategoriData}
-                centerTitle={
-                  form.kategori === 'DALAM_NEGERI'
-                    ? 'Dalam Negeri'
-                    : form.kategori === 'LUAR_NEGERI'
-                    ? 'Luar Negeri'
-                    : 'DN vs LN'
-                }
-                centerValue={
-                  isBiayaMetric
-                    ? formatCompactRupiah(summary.total_biaya ?? 0)
-                    : `${summary.total_jalis ?? 0} Jaldis`
-                }
-                centerSub={`${summary.total_hari ?? 0} Hari`}
-                valueFormatter={metricFormatter}
-                activeSliceKey={form.kategori || null}
-                onSliceClick={(seg) =>
-                  updateFilter('kategori', form.kategori === seg.key ? '' : seg.key)
-                }
-              />
-            </div>
-
-            {/* Pie 3: Komposisi Tingkat Biaya (A/B/C) atau Partisipasi Pegawai */}
-            <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                    {thirdPieMode === 'tingkat'
-                      ? 'Proporsi Tingkat Biaya'
-                      : 'Rasio Partisipasi Pegawai'}
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    {thirdPieMode === 'tingkat'
-                      ? 'Distribusi Tingkat A, B, dan C'
-                      : 'Pernah vs belum pernah'}
-                  </p>
-                </div>
-                <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-[10px] font-bold">
-                  <button
-                    type="button"
-                    onClick={() => setThirdPieMode('tingkat')}
-                    className={`rounded-md px-2 py-1 transition ${
-                      thirdPieMode === 'tingkat'
-                        ? 'bg-[#0F2C59] text-white'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    Tingkat
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setThirdPieMode('partisipasi')}
-                    className={`rounded-md px-2 py-1 transition ${
-                      thirdPieMode === 'partisipasi'
-                        ? 'bg-[#0F2C59] text-white'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    Pegawai
-                  </button>
-                </div>
-              </div>
-
-              <InteractiveDonutChart
-                data={pieThirdData}
-                centerTitle={thirdPieMode === 'tingkat' ? 'Tingkat Biaya' : 'Total Pegawai'}
-                centerValue={
-                  thirdPieMode === 'tingkat'
-                    ? isBiayaMetric
-                      ? formatCompactRupiah(summary.total_biaya ?? 0)
-                      : `${summary.total_jalis ?? 0} Jaldis`
-                    : `${summary.total_pegawai ?? 0} Org`
-                }
-                centerSub={
-                  thirdPieMode === 'tingkat'
-                    ? 'A / B / C'
-                    : `${summary.total_pegawai_jalis ?? 0} Pegawai aktif`
-                }
-                valueFormatter={
-                  thirdPieMode === 'tingkat' ? metricFormatter : (val) => `${val} Pegawai`
-                }
-                activeSliceKey={thirdPieMode === 'partisipasi' ? form.tampil : null}
-                onSliceClick={
-                  thirdPieMode === 'partisipasi'
-                    ? (seg) =>
-                        updateFilter('tampil', form.tampil === seg.key ? 'semua' : seg.key)
-                    : null
-                }
-              />
-            </div>
+            {activeChart.resetLabel && (
+              <button
+                type="button"
+                onClick={activeChart.onReset}
+                className="rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800 hover:bg-amber-200"
+              >
+                {activeChart.resetLabel}
+              </button>
+            )}
           </div>
+
+          <ComboBarLineChart
+            title={activeChart.title}
+            categoryHeader={activeChart.categoryHeader}
+            seriesALabel="Dalam Negeri"
+            seriesBLabel="Luar Negeri"
+            seriesCLabel={isBiayaMetric ? 'Total Biaya' : 'Total Jaldis'}
+            items={activeChart.items}
+            valueFormatter={comboValueFormatter}
+            axisFormatter={comboAxisFormatter}
+            activeItemKey={activeChart.activeItemKey}
+            onItemClick={activeChart.onItemClick}
+          />
         </section>
 
         {/* DIAGRAM BATANG VISUAL */}

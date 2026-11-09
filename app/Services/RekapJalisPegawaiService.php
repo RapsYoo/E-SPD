@@ -268,22 +268,89 @@ class RekapJalisPegawaiService
             $items = $items->where('total_jalis', 0);
         }
 
-        // Hitung ulang distribusi Tingkat Biaya dari item yang lolos seluruh filter
+        // Hitung ulang distribusi Tingkat Biaya & Rekap Bulanan (Januari - Desember) dari item yang lolos seluruh filter
+        $monthNames = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember',
+        ];
+        $rekapBulanan = [];
+        foreach ($monthNames as $mNum => $mLabel) {
+            $rekapBulanan[$mNum] = [
+                'bulan_num' => $mNum,
+                'bulan' => $mLabel,
+                'jalis_dalam_negeri' => 0,
+                'jalis_luar_negeri' => 0,
+                'total_jalis' => 0,
+                'total_hari' => 0,
+                'biaya_dalam_negeri' => 0,
+                'biaya_luar_negeri' => 0,
+                'total_biaya' => 0,
+            ];
+        }
+
+        foreach ($distribusiTingkat as $k => $v) {
+            $distribusiTingkat[$k]['jalis_dalam_negeri'] = 0;
+            $distribusiTingkat[$k]['jalis_luar_negeri'] = 0;
+            $distribusiTingkat[$k]['biaya_dalam_negeri'] = 0;
+            $distribusiTingkat[$k]['biaya_luar_negeri'] = 0;
+        }
+
         foreach ($items as $personRow) {
             foreach ($personRow['riwayat'] as $trip) {
                 $kode = $trip['tingkat_biaya'];
+                $isLN = ($trip['kategori_kode'] ?? '') === 'LUAR_NEGERI';
+                $biaya = (int) $trip['biaya_efektif'];
+                $hari = (int) ($trip['durasi_hari'] ?? 1);
+
                 if (! isset($distribusiTingkat[$kode])) {
                     $distribusiTingkat[$kode] = [
                         'kode' => $kode,
                         'nama' => 'Tingkat '.$kode,
                         'keterangan' => '',
                         'tarif_harian' => $tarifMap[$kode] ?? 750000,
+                        'jalis_dalam_negeri' => 0,
+                        'jalis_luar_negeri' => 0,
                         'total_jalis' => 0,
+                        'biaya_dalam_negeri' => 0,
+                        'biaya_luar_negeri' => 0,
                         'total_biaya' => 0,
                     ];
                 }
                 $distribusiTingkat[$kode]['total_jalis'] += 1;
-                $distribusiTingkat[$kode]['total_biaya'] += (int) $trip['biaya_efektif'];
+                $distribusiTingkat[$kode]['total_biaya'] += $biaya;
+                if ($isLN) {
+                    $distribusiTingkat[$kode]['jalis_luar_negeri'] += 1;
+                    $distribusiTingkat[$kode]['biaya_luar_negeri'] += $biaya;
+                } else {
+                    $distribusiTingkat[$kode]['jalis_dalam_negeri'] += 1;
+                    $distribusiTingkat[$kode]['biaya_dalam_negeri'] += $biaya;
+                }
+
+                // Tentukan bulan dari tanggal_berangkat
+                $tgl = $trip['tanggal_berangkat'] ?? null;
+                $mNum = $tgl ? (int) substr((string) $tgl, 5, 2) : 0;
+                if ($mNum >= 1 && $mNum <= 12) {
+                    $rekapBulanan[$mNum]['total_jalis'] += 1;
+                    $rekapBulanan[$mNum]['total_hari'] += $hari;
+                    $rekapBulanan[$mNum]['total_biaya'] += $biaya;
+                    if ($isLN) {
+                        $rekapBulanan[$mNum]['jalis_luar_negeri'] += 1;
+                        $rekapBulanan[$mNum]['biaya_luar_negeri'] += $biaya;
+                    } else {
+                        $rekapBulanan[$mNum]['jalis_dalam_negeri'] += 1;
+                        $rekapBulanan[$mNum]['biaya_dalam_negeri'] += $biaya;
+                    }
+                }
             }
         }
 
@@ -291,12 +358,28 @@ class RekapJalisPegawaiService
         $distribusiUpt = $items
             ->groupBy(fn (array $r) => $r['upt_bidang'] && $r['upt_bidang'] !== '-' ? $r['upt_bidang'] : 'Lainnya')
             ->map(function (Collection $group, string $uptName) {
+                $biayaDN = 0;
+                $biayaLN = 0;
+                foreach ($group as $person) {
+                    foreach ($person['riwayat'] as $trip) {
+                        if (($trip['kategori_kode'] ?? '') === 'LUAR_NEGERI') {
+                            $biayaLN += (int) $trip['biaya_efektif'];
+                        } else {
+                            $biayaDN += (int) $trip['biaya_efektif'];
+                        }
+                    }
+                }
+
                 return [
                     'upt' => $uptName,
                     'total_pegawai' => $group->count(),
                     'pegawai_jalis' => $group->where('total_jalis', '>', 0)->count(),
+                    'jalis_dalam_negeri' => (int) $group->sum('jalis_dalam_negeri'),
+                    'jalis_luar_negeri' => (int) $group->sum('jalis_luar_negeri'),
                     'total_jalis' => (int) $group->sum('total_jalis'),
                     'total_hari' => (int) $group->sum('total_hari'),
+                    'biaya_dalam_negeri' => $biayaDN,
+                    'biaya_luar_negeri' => $biayaLN,
                     'total_biaya' => (int) $group->sum('total_biaya'),
                 ];
             })
@@ -380,6 +463,7 @@ class RekapJalisPegawaiService
             'rows' => $sortedList->all(),
             'summary' => $summary,
             'charts' => [
+                'rekapBulanan' => array_values($rekapBulanan),
                 'topPegawaiJalis' => $topPegawaiJalis,
                 'topPegawaiBiaya' => $topPegawaiBiaya,
                 'distribusiUpt' => $distribusiUpt,
