@@ -6,6 +6,7 @@ use App\Models\JenisAngkutan;
 use App\Models\Pegawai;
 use App\Models\SuratTugas;
 use App\Models\SuratTugasLog;
+use App\Models\SuratTugasPegawai;
 use App\Models\TingkatBiaya;
 use App\Models\UptBidang;
 use App\Models\User;
@@ -60,6 +61,7 @@ class DashboardService
                 ->limit(5)
                 ->get(),
             'needsAction' => $this->needsAction($user),
+            'pendingDprs' => $this->pendingDprs($user),
             'onDutyToday' => $this->onDutyToday($today),
             'upcomingTrips' => $this->upcomingTrips($today, $upcomingLimit),
             'urgentPending' => $this->urgentPending($user, $urgentLimit),
@@ -79,7 +81,7 @@ class DashboardService
         $trips = SuratTugas::query()
             ->diikutiPegawai($user->pegawai_id)
             ->whereIn('status', S::PEGAWAI_VISIBLE)
-            ->with('pegawaiList')
+            ->with('pegawaiList.tickets')
             ->orderByDesc('tanggal_berangkat')
             ->get()
             ->map(function (SuratTugas $surat) use ($today, $user) {
@@ -92,6 +94,7 @@ class DashboardService
                     $kembali < $today => 'selesai',
                     default => 'berlangsung',
                 };
+                $peserta = $surat->pegawaiList->firstWhere('pegawai_id', $user->pegawai_id);
 
                 return [
                     'id' => $surat->id,
@@ -106,6 +109,14 @@ class DashboardService
                     'tanggal_kembali' => $surat->tanggal_kembali?->toDateString(),
                     'durasi_hari' => $surat->durasi_hari,
                     'phase' => $phase,
+                    'is_completed' => $surat->tanggal_kembali?->lt(today()) === true,
+                    'dpr_status' => $peserta?->dpr_status ?? SuratTugasPegawai::DPR_DRAFT,
+                    'has_ppk' => $surat->ppk_id !== null,
+                    'tickets' => ($peserta?->tickets ?? collect())->map(fn ($ticket) => [
+                        'id' => $ticket->id,
+                        'original_name' => $ticket->original_name,
+                        'download_url' => route('pegawai.tiket.download', [$surat->id, $ticket->id]),
+                    ])->values() ?? collect(),
                     'rekan' => $surat->pegawaiList
                         ->where('pegawai_id', '!=', $user->pegawai_id)
                         ->pluck('nama')
@@ -181,6 +192,55 @@ class DashboardService
     }
 
     /**
+     * DPR yang menunggu persetujuan PPK untuk perjalanan yang ditugaskan kepadanya.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function pendingDprs(User $user): array
+    {
+        if ($user->role !== 'ppk') {
+            return [];
+        }
+
+        return SuratTugasPegawai::query()
+            ->where('dpr_status', SuratTugasPegawai::DPR_PENDING_APPROVAL)
+            ->whereHas('suratTugas', fn (Builder $query) => $query
+                ->where('ppk_id', $user->id)
+                ->where('status', S::SELESAI_TERBIT)
+                ->where('tanggal_kembali', '<', today()))
+            ->with([
+                'suratTugas:id,ppk_id,nomor_st,nomor_spd,perihal_nota,tempat_tujuan,tanggal_berangkat,tanggal_kembali',
+                'tickets:id,surat_tugas_pegawai_id,original_name',
+            ])
+            ->orderBy('dpr_submitted_at')
+            ->limit(20)
+            ->get()
+            ->map(fn (SuratTugasPegawai $peserta) => [
+                'participant_id' => $peserta->id,
+                'surat_tugas_id' => $peserta->suratTugas->id,
+                'nama' => $peserta->nama,
+                'nip' => $peserta->nip,
+                'nomor_st' => $peserta->suratTugas->nomor_st,
+                'nomor_spd' => $peserta->suratTugas->nomor_spd,
+                'perihal_nota' => $peserta->suratTugas->perihal_nota,
+                'tempat_tujuan' => $peserta->suratTugas->tempat_tujuan,
+                'tanggal_berangkat' => $peserta->suratTugas->tanggal_berangkat?->toDateString(),
+                'tanggal_kembali' => $peserta->suratTugas->tanggal_kembali?->toDateString(),
+                'dpr_submitted_at' => $peserta->dpr_submitted_at?->toIso8601String(),
+                'tickets' => $peserta->tickets->map(fn ($ticket) => [
+                    'id' => $ticket->id,
+                    'original_name' => $ticket->original_name,
+                    'download_url' => route('ppk.dpr.ticket.download', [
+                        $peserta->suratTugas->id,
+                        $peserta->id,
+                        $ticket->id,
+                    ]),
+                ])->values(),
+            ])
+            ->all();
+    }
+
+    /**
      * Lencana notifikasi in-app: jumlah pekerjaan yang menunggu pengguna + beberapa item terbaru.
      * Dihitung langsung dari status surat sehingga selalu sinkron (tanpa tabel notifikasi terpisah).
      *
@@ -204,6 +264,34 @@ class DashboardService
             'message' => $this->actionMessage($user, $s),
             'url' => '/surat-tugas/'.$s->id,
         ])->all();
+
+        if ($user->role === 'ppk') {
+            $dprQuery = SuratTugasPegawai::query()
+                ->where('dpr_status', SuratTugasPegawai::DPR_PENDING_APPROVAL)
+                ->whereHas('suratTugas', fn (Builder $suratQuery) => $suratQuery
+                    ->where('ppk_id', $user->id)
+                    ->where('status', S::SELESAI_TERBIT)
+                    ->where('tanggal_kembali', '<', today()));
+
+            $dprCount = (clone $dprQuery)->count();
+            $dprItems = $dprQuery
+                ->with('suratTugas:id,perihal_nota')
+                ->orderBy('dpr_submitted_at')
+                ->limit(5)
+                ->get()
+                ->map(fn (SuratTugasPegawai $peserta) => [
+                    'id' => 'dpr-'.$peserta->id,
+                    'title' => $peserta->suratTugas->perihal_nota,
+                    'message' => 'DPR '.$peserta->nama.' menunggu persetujuan Anda',
+                    'url' => route('dashboard'),
+                ])
+                ->all();
+
+            return [
+                'count' => $count + $dprCount,
+                'items' => array_slice(array_merge($dprItems, $items), 0, 5),
+            ];
+        }
 
         return ['count' => $count, 'items' => $items];
     }

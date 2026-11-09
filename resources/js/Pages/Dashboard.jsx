@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { 
   FileSignature, 
@@ -25,7 +25,9 @@ import {
   Sparkles,
   History,
   User,
-  PenTool
+  PenTool,
+  FileCheck2,
+  FileText
 } from 'lucide-react';
 
 export default function Dashboard({ 
@@ -34,7 +36,8 @@ export default function Dashboard({
   kategoriStats = {}, 
   scopeStats = null,
   recentSurat = [], 
-  needsAction = [], 
+  needsAction = [],
+  pendingDprs = [],
   onDutyToday = [], 
   upcomingTrips = [], 
   urgentPending = [], 
@@ -44,6 +47,7 @@ export default function Dashboard({
   authUserId = null 
 }) {
   const [activeDutyTab, setActiveDutyTab] = useState('onDuty'); // 'onDuty' | 'upcoming'
+  const [approvingDprId, setApprovingDprId] = useState(null);
 
   // Persona Scope State: 'personal' (Usulan Saya) vs 'global' (Seluruh Pusdiklat)
   const defaultScope = (userRole === 'pemohon' || userRole === 'sespalu') ? 'personal' : 'global';
@@ -666,6 +670,72 @@ export default function Dashboard({
           </div>
         )}
       </div>
+
+      {userRole === 'ppk' && (
+        <section className="mb-8 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+              <FileCheck2 className="h-5 w-5 text-amber-600" />
+              DPR Menunggu Persetujuan
+            </h2>
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
+              {pendingDprs.length}
+            </span>
+          </div>
+
+          {pendingDprs.length === 0 ? (
+            <div className="py-6 text-center text-sm text-slate-400">
+              Tidak ada DPR yang menunggu persetujuan Anda.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pendingDprs.map((dpr) => (
+                <article key={dpr.participant_id} className="rounded-xl border border-slate-200 p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-900">{dpr.nama}</p>
+                      <p className="text-xs text-slate-500">NIP {dpr.nip || '-'} · ST {dpr.nomor_st || '-'} · SPD {dpr.nomor_spd || '-'}</p>
+                      <p className="mt-1 text-sm text-slate-700">{dpr.perihal_nota || '-'}</p>
+                      <p className="text-xs text-slate-500">
+                        {dpr.tempat_tujuan || '-'} · {formatDate(dpr.tanggal_berangkat)} s/d {formatDate(dpr.tanggal_kembali)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={approvingDprId === dpr.participant_id}
+                      onClick={() => router.post(
+                        route('ppk.dpr.approve', [dpr.surat_tugas_id, dpr.participant_id]),
+                        {},
+                        {
+                          preserveScroll: true,
+                          onStart: () => setApprovingDprId(dpr.participant_id),
+                          onFinish: () => setApprovingDprId(null),
+                        },
+                      )}
+                      className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      {approvingDprId === dpr.participant_id ? 'Memproses...' : 'Setujui DPR'}
+                    </button>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                    {dpr.tickets.map((ticket) => (
+                      <a
+                        key={ticket.id}
+                        href={ticket.download_url}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        {ticket.original_name}
+                      </a>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Main Grid: Charts & Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">

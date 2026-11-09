@@ -7,7 +7,9 @@ use App\Http\Controllers\Admin\UnitKerjaController;
 use App\Http\Controllers\Admin\UptBidangController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Pegawai\TiketPerjalananController;
 use App\Http\Controllers\PegawaiDirectoryController;
+use App\Http\Controllers\Ppk\DprController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RekapitulasiController;
 use App\Http\Controllers\RekapJalisPegawaiController;
@@ -69,6 +71,17 @@ Route::middleware('auth')->group(function () {
 
     // Direktori pegawai read-only untuk role pegawai.
     Route::get('/pegawai', [PegawaiDirectoryController::class, 'index'])->middleware('role:pegawai')->name('pegawai.index');
+
+    Route::middleware('role:pegawai')->group(function () {
+        Route::post('/surat-tugas/{suratTugas}/tiket', [TiketPerjalananController::class, 'store'])->name('pegawai.tiket.store');
+        Route::get('/surat-tugas/{suratTugas}/tiket/{ticket}', [TiketPerjalananController::class, 'download'])->name('pegawai.tiket.download');
+        Route::get('/surat-tugas/{suratTugas}/pengeluaran-rill', [TiketPerjalananController::class, 'cetakPengeluaranRill'])->name('pegawai.pengeluaran-rill');
+    });
+
+    Route::middleware('role:ppk')->prefix('ppk')->name('ppk.')->group(function () {
+        Route::get('/dpr/{suratTugas}/{peserta}/tiket/{ticket}', [DprController::class, 'downloadTicket'])->name('dpr.ticket.download');
+        Route::post('/dpr/{suratTugas}/{peserta}/approve', [DprController::class, 'approve'])->name('dpr.approve');
+    });
 
     // Hapus histori — admin saja.
     Route::delete('/surat-tugas/{suratTugas}', [SuratTugasController::class, 'destroy'])->middleware('role:admin')->name('surat-tugas.destroy');

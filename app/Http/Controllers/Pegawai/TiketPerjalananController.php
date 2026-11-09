@@ -25,6 +25,8 @@ class TiketPerjalananController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 403);
         $peserta = $this->completedTripParticipant($suratTugas, $user);
+        abort_unless($suratTugas->ppk_id !== null, 422, 'PPK perjalanan dinas belum ditetapkan.');
+        abort_unless($peserta->dpr_status === SuratTugasPegawai::DPR_DRAFT, 409, 'DPR sudah dikirim atau disetujui PPK.');
 
         $validated = $request->validate([
             'tickets' => ['required', 'array', 'min:1', 'max:5'],
@@ -39,6 +41,9 @@ class TiketPerjalananController extends Controller
         $storedPaths = [];
         try {
             DB::transaction(function () use ($validated, $suratTugas, $peserta, $user, &$storedPaths): void {
+                $peserta = SuratTugasPegawai::query()->lockForUpdate()->findOrFail($peserta->id);
+                abort_unless($peserta->dpr_status === SuratTugasPegawai::DPR_DRAFT, 409, 'DPR sudah dikirim atau disetujui PPK.');
+
                 foreach ($validated['tickets'] as $file) {
                     $path = $file->store('tiket-perjalanan/'.$suratTugas->id.'/'.$peserta->id, 'local');
                     if (! is_string($path)) {
@@ -52,6 +57,11 @@ class TiketPerjalananController extends Controller
                         'original_name' => basename($file->getClientOriginalName()),
                     ]);
                 }
+
+                $peserta->forceFill([
+                    'dpr_status' => SuratTugasPegawai::DPR_PENDING_APPROVAL,
+                    'dpr_submitted_at' => now(),
+                ])->save();
             });
         } catch (Throwable $exception) {
             Storage::disk('local')->delete($storedPaths);

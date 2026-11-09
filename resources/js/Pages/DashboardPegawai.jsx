@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import {
   Plane,
@@ -13,6 +13,8 @@ import {
   Globe,
   Link2Off,
   Inbox,
+  FileText,
+  Upload,
 } from 'lucide-react';
 
 const PHASE_META = {
@@ -38,7 +40,40 @@ function formatDate(value) {
 
 export default function DashboardPegawai({ trips = [], summary = {}, hasPegawaiLink = true, userName = 'Pegawai' }) {
   const [filter, setFilter] = useState('semua');
+  const [uploadingTripId, setUploadingTripId] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [uploadErrors, setUploadErrors] = useState({});
   const visibleTrips = filter === 'semua' ? trips : trips.filter((trip) => trip.phase === filter);
+
+  const uploadTickets = (event, trip) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const files = Array.from(form.elements.namedItem('tickets').files || []);
+
+    if (files.length === 0) {
+      setUploadErrors((current) => ({ ...current, [trip.id]: 'Pilih setidaknya satu bukti perjalanan.' }));
+      return;
+    }
+
+    setUploadErrors((current) => ({ ...current, [trip.id]: null }));
+    router.post(route('pegawai.tiket.store', trip.id), { tickets: files }, {
+      forceFormData: true,
+      preserveScroll: true,
+      onStart: () => setUploadingTripId(trip.id),
+      onProgress: (progress) => setUploadProgress(progress?.percentage ?? null),
+      onSuccess: () => form.reset(),
+      onError: (errors) => {
+        setUploadErrors((current) => ({
+          ...current,
+          [trip.id]: errors.tickets || Object.values(errors).find(Boolean) || 'Bukti perjalanan gagal diunggah.',
+        }));
+      },
+      onFinish: () => {
+        setUploadingTripId(null);
+        setUploadProgress(null);
+      },
+    });
+  };
 
   const summaryCards = [
     { key: 'total', label: 'Total Perjalanan', icon: Route, tone: 'bg-indigo-50 text-indigo-600' },
@@ -158,7 +193,7 @@ export default function DashboardPegawai({ trips = [], summary = {}, hasPegawaiL
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
                       <Link
                         href={`/surat-tugas/${trip.id}`}
                         className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition"
@@ -177,6 +212,87 @@ export default function DashboardPegawai({ trips = [], summary = {}, hasPegawaiL
                       </a>
                     </div>
                   </div>
+
+                  {trip.phase === 'selesai' && trip.is_completed && (
+                    <div className="mt-4 border-t border-slate-100 pt-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link
+                            href={route('pegawai.pengeluaran-rill', trip.id)}
+                            target="_blank"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 transition hover:bg-amber-100"
+                          >
+                            <Printer className="h-4 w-4" />
+                            Cetak Daftar Pengeluaran Riil
+                          </Link>
+                          {trip.dpr_status === 'MENUNGGU_PERSETUJUAN' && (
+                            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">
+                              Menunggu persetujuan PPK
+                            </span>
+                          )}
+                          {trip.dpr_status === 'DISETUJUI' && (
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
+                              DPR disetujui PPK
+                            </span>
+                          )}
+                        </div>
+
+                        {trip.dpr_status === 'DRAFT' && trip.has_ppk && (
+                          <form
+                            onSubmit={(event) => uploadTickets(event, trip)}
+                            className="flex flex-wrap items-center gap-2"
+                          >
+                            <input
+                              type="file"
+                              name="tickets"
+                              multiple
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              required
+                              className="max-w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-semibold"
+                            />
+                            <button
+                              type="submit"
+                              disabled={uploadingTripId === trip.id}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-[#0F2C59] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#193d73] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <Upload className="h-4 w-4" />
+                              {uploadingTripId === trip.id
+                                ? `Mengunggah${uploadProgress ? ` ${uploadProgress}%` : '...'}`
+                                : 'Unggah & Kirim DPR ke PPK'}
+                            </button>
+                            <p className="basis-full text-right text-[11px] text-slate-500">
+                              PDF/JPG/PNG, maksimal 5 berkas (10 MB per berkas).
+                            </p>
+                            {uploadErrors[trip.id] && (
+                              <p role="alert" className="basis-full text-right text-xs font-semibold text-rose-600">
+                                {uploadErrors[trip.id]}
+                              </p>
+                            )}
+                          </form>
+                        )}
+                        {trip.dpr_status === 'DRAFT' && !trip.has_ppk && (
+                          <p className="text-xs font-medium text-rose-600">
+                            PPK perjalanan dinas belum ditetapkan. Hubungi pengelola surat tugas sebelum mengirim DPR.
+                          </p>
+                        )}
+                      </div>
+
+                      {trip.tickets?.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {trip.tickets.map((ticket) => (
+                            <a
+                              key={ticket.id}
+                              href={ticket.download_url}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                              {ticket.original_name}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </li>
               );
             })}
