@@ -172,28 +172,25 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
             </Link>
           )}
 
-          {(userRole === 'tu' || userRole === 'admin') && ['MENUNGGU_PENOMORAN_TU', 'SELESAI_TERBIT'].includes(suratTugas.status) && (
+          {(userRole === 'tu' || userRole === 'admin') && suratTugas.status === 'MENUNGGU_PENOMORAN_TU' && (
             <Link
               href={`/surat-tugas/${suratTugas.id}/cetak`}
               className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition text-sm"
             >
               <Printer className="w-4 h-4" />
-              <span>{suratTugas.status === 'SELESAI_TERBIT' ? 'Cetak Dokumen Resmi PDF' : 'Pratinjau Dokumen'}</span>
+              <span>Pratinjau Dokumen</span>
             </Link>
           )}
 
-          {/* Cetak luas: kapus/ppk/pemilik saat sudah terbit */}
-          {['kapus','ppk','pemohon','sespalu','pegawai'].includes(userRole) && suratTugas.status === 'SELESAI_TERBIT' && (
-            ((userRole === 'pemohon' || userRole === 'sespalu') ? suratTugas.user_id === authUserId : true) && (
-              <a
-                href={`/surat-tugas/${suratTugas.id}/cetak`}
-                target="_blank"
-                className="inline-flex items-center justify-center space-x-2 bg-slate-900 hover:bg-slate-700 text-white font-bold px-5 py-2.5 rounded-xl shadow transition text-sm"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Cetak PDF</span>
-              </a>
-            )
+          {/* Semua user yang berkaitan dapat melihat & mencetak dokumen ketika sudah SELESAI_TERBIT */}
+          {suratTugas.status === 'SELESAI_TERBIT' && (
+            <Link
+              href={`/surat-tugas/${suratTugas.id}/cetak`}
+              className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition text-sm"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Lihat & Cetak Surat (ST & SPD)</span>
+            </Link>
           )}
         </div>
       </div>
@@ -350,6 +347,50 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
                 )}
               </div>
             </div>
+
+            {suratTugas.status === 'SELESAI_TERBIT' && (
+              <div className="mt-4 pt-4 border-t border-slate-100 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <span>Dokumen Resmi Terbit</span>
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    Siap Dilihat / Dicetak
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <Link
+                    href={`/surat-tugas/${suratTugas.id}/cetak?doc=st`}
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-800 px-3 py-2 font-semibold text-slate-700 transition"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span className="truncate">1. Surat Tugas</span>
+                  </Link>
+                  <Link
+                    href={`/surat-tugas/${suratTugas.id}/cetak?doc=spd`}
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-800 px-3 py-2 font-semibold text-slate-700 transition"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span className="truncate">2. Lembar SPD</span>
+                  </Link>
+                  <Link
+                    href={`/surat-tugas/${suratTugas.id}/cetak?doc=lampiran`}
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-800 px-3 py-2 font-semibold text-slate-700 transition"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span className="truncate">3. Lampiran SPD</span>
+                  </Link>
+                  <Link
+                    href={`/surat-tugas/${suratTugas.id}/cetak?doc=visum`}
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-800 px-3 py-2 font-semibold text-slate-700 transition"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span className="truncate">4. Lembar Visum</span>
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action Box 1: Disposisi Kapus */}

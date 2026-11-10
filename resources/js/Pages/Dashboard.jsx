@@ -188,8 +188,9 @@ export default function Dashboard({
     };
   };
 
-  // Helper cek izin cetak
+  // Helper cek izin cetak / lihat dokumen
   const canPrintSurat = (surat) => {
+    if (surat.status === 'SELESAI_TERBIT') return true;
     const isOwner = surat.user_id === authUserId;
     const allowedRole = ['tu', 'admin', 'kapus', 'ppk'].includes(userRole) || isOwner;
     const allowedStatus = ['MENUNGGU_PENOMORAN_TU', 'SELESAI_TERBIT'].includes(surat.status);

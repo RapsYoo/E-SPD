@@ -343,14 +343,14 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                               <span className="hidden md:inline">Detail</span>
                             </Link>
 
-                            {['MENUNGGU_PENOMORAN_TU', 'SELESAI_TERBIT'].includes(st.status) && (userRole === 'tu' || userRole === 'admin') && (
+                            {(st.status === 'SELESAI_TERBIT' || (st.status === 'MENUNGGU_PENOMORAN_TU' && (['tu', 'admin', 'kapus', 'ppk'].includes(userRole) || st.user_id === authUserId))) && (
                               <Link
                                 href={`/surat-tugas/${st.id}/cetak`}
                                 className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition flex items-center space-x-1 text-xs font-bold shadow-sm"
-                                title={st.status === 'SELESAI_TERBIT' ? 'Cetak PDF Dokumen Resmi' : 'Pratinjau dokumen sebelum diterbitkan'}
+                                title={st.status === 'SELESAI_TERBIT' ? 'Lihat & Cetak Dokumen Resmi (ST, SPD, Lampiran, Visum)' : 'Pratinjau dokumen sebelum diterbitkan'}
                               >
                                 <Printer className="w-4 h-4" />
-                                <span className="hidden md:inline">{st.status === 'SELESAI_TERBIT' ? 'Cetak' : 'Pratinjau'}</span>
+                                <span className="hidden md:inline">{st.status === 'SELESAI_TERBIT' ? 'Surat' : 'Pratinjau'}</span>
                               </Link>
                             )}
                           </>

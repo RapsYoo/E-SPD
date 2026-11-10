@@ -8,7 +8,12 @@ import LampiranMatriksSheet from './Partials/LampiranMatriksSheet';
 import VisumRampunganSheet from './Partials/VisumRampunganSheet';
 
 export default function Print({ suratTugas, kapus = {}, ppk = {} }) {
-  const [activeDocument, setActiveDocument] = useState('st');
+  const initialDoc = (() => {
+    if (typeof window === 'undefined') return 'st';
+    const param = new URLSearchParams(window.location.search).get('doc');
+    return ['st', 'spd', 'lampiran', 'visum'].includes(param) ? param : 'st';
+  })();
+  const [activeDocument, setActiveDocument] = useState(initialDoc);
   const pegawaiList = Array.isArray(suratTugas.pegawai_list) ? suratTugas.pegawai_list : [];
   const tujuanPerjalanan = [
     suratTugas.tempat_tujuan,

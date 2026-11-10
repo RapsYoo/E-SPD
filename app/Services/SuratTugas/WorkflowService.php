@@ -274,15 +274,23 @@ class WorkflowService
         }
     }
 
-    /** P1: akses cetak luas (TU/admin/kapus/ppk + pemilik), status minimal disetujui Kapus. */
+    /** P1: akses cetak luas — ketika sudah SELESAI_TERBIT, semua user yang berhak melihat surat dapat melihat/mencetak dokumen. */
     public function canPrint(SuratTugas $suratTugas, ?User $user): bool
     {
-        if ($user?->role === S::PEGAWAI_ROLE) {
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->role === S::PEGAWAI_ROLE) {
             return $this->canView($suratTugas, $user);
         }
 
-        $isOwner = $suratTugas->user_id === $user?->id;
-        $allowedRole = in_array($user?->role, S::PRINT_ROLES, true) || $isOwner;
+        if ($suratTugas->status === S::SELESAI_TERBIT) {
+            return $this->canView($suratTugas, $user);
+        }
+
+        $isOwner = $suratTugas->user_id === $user->id;
+        $allowedRole = in_array($user->role, S::PRINT_ROLES, true) || $isOwner;
         $allowedStatus = in_array($suratTugas->status, S::PRINTABLE, true);
 
         return $allowedRole && $allowedStatus;

@@ -186,6 +186,18 @@ class SuratTugasP1Test extends TestCase
             'surat_tugas_id' => $surat->id,
             'aksi' => 'CETAK',
         ]);
+        // Saat status SELESAI_TERBIT, semua user terkait (termasuk sespalu/pemohon lain yang bukan pembuat awal) dapat melihat & mencetak surat.
+        $admin = $this->makeUser('admin');
+        $sespalu = $this->makeUser('sespalu');
+        $ppk = $this->makeUser('ppk');
+        $tu = $this->makeUser('tu');
+        $suratTerbit = $this->makeSurat($admin, ['status' => 'SELESAI_TERBIT']);
+
+        foreach ([$admin, $sespalu, $pemohon, $kapus, $ppk, $tu] as $actor) {
+            $this->actingAs($actor)
+                ->get(route('surat-tugas.cetak', $suratTerbit->id))
+                ->assertOk();
+        }
     }
 
     public function test_cetak_ditolak_sebelum_disetujui_kapus(): void
