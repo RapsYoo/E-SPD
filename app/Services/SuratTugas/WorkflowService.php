@@ -32,14 +32,14 @@ class WorkflowService
         );
     }
 
-    // Step 2: Disposisi Kapus (Only Kapus or Admin)
+    // Step 3: Disposisi Kapus (Only Kapus or Admin)
     public function disposisi(SuratTugas $suratTugas, User $user, array $validated): void
     {
         $this->assertRole($user, ['kapus', 'admin'], 'Hanya Kepala Pusat (Kapus) atau Admin yang berhak memberikan disposisi.');
         $this->assertStatus($suratTugas, S::MENUNGGU_DISPOSISI_KAPUS, 'Disposisi Kapus hanya dapat dilakukan setelah usulan dikirim oleh Sespalu.');
 
         $status = match ($validated['kapus_decision']) {
-            'YA' => S::DISPOSISI_KAPUS_YA,
+            'YA' => S::MENUNGGU_PENOMORAN_TU,
             'REVISI' => S::DISPOSISI_KAPUS_REVISI,
             'STOP' => S::DISPOSISI_KAPUS_STOP,
             default => S::MENUNGGU_DISPOSISI_KAPUS,

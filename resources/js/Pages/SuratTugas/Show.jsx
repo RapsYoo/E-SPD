@@ -83,16 +83,16 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
 
   const workflowStatus = {
     MENUNGGU_DISPOSISI_KAPUS: {
-      label: 'Nota masuk ke Kapus',
-      message: 'Nota/undangan sudah dikirim Sespalu ke Kapus dan sedang menunggu persetujuan.',
+      label: 'Menunggu Disposisi Kapus',
+      message: 'Nota/undangan serta draft Surat Tugas dan SPD sudah dikirim dan sedang menunggu disposisi Kapus.',
     },
     DISPOSISI_KAPUS_YA: {
       label: 'Disetujui Kapus',
-      message: 'Kapus menyetujui penugasan. Sespalu dapat melanjutkan draft Surat Tugas dan SPD pada Tahap 3.',
+      message: 'Kapus menyetujui penugasan. Lengkapi draft Surat Tugas dan SPD sebelum dikirim kembali untuk disposisi.',
     },
     DISPOSISI_KAPUS_REVISI: {
       label: 'Perlu revisi Sespalu',
-      message: 'Kapus meminta perbaikan nota. Perbarui draft lalu kirim kembali untuk persetujuan.',
+      message: 'Kapus meminta perbaikan. Perbarui draft Surat Tugas dan SPD lalu kirim kembali untuk disposisi.',
     },
     DISPOSISI_KAPUS_STOP: {
       label: 'Dihentikan Kapus',
@@ -162,13 +162,13 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
           {(userRole === 'admin' || (
             (userRole === 'pemohon' || userRole === 'sespalu')
             && suratTugas.user_id === authUserId
-          )) && ['DISPOSISI_KAPUS_YA', 'DISPOSISI_KAPUS_REVISI'].includes(suratTugas.status) && (
+          )) && ['DRAFT', 'DISPOSISI_KAPUS_YA', 'DISPOSISI_KAPUS_REVISI'].includes(suratTugas.status) && (
             <Link
               href={`/surat-tugas/${suratTugas.id}/draft`}
               className="inline-flex items-center justify-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl shadow transition text-sm"
             >
               <PenTool className="w-4 h-4" />
-              <span>{suratTugas.status === 'DISPOSISI_KAPUS_REVISI' ? 'Perbaiki Nota' : 'Lanjutkan Draft ST & SPD'}</span>
+              <span>{suratTugas.status === 'DISPOSISI_KAPUS_REVISI' ? 'Perbaiki Draft ST & SPD' : 'Lanjutkan Draft ST & SPD'}</span>
             </Link>
           )}
 
@@ -368,7 +368,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
                   onChange={(e) => kapusForm.setData('kapus_decision', e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold"
                 >
-                  <option value="YA">Setuju (Lanjut ke Draft Sespalu)</option>
+                  <option value="YA">Setuju (Lanjut ke Penomoran TU)</option>
                   <option value="REVISI">Minta Revisi ke Sespalu</option>
                   <option value="STOP">Hentikan (Stop)</option>
                 </select>

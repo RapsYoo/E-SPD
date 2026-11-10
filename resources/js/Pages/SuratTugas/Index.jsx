@@ -69,11 +69,11 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
       case 'DRAFT':
         return { label: 'Sespalu / Pemohon', role: 'Konseptor', color: 'text-slate-700 bg-slate-100 border-slate-200' };
       case 'MENUNGGU_DISPOSISI_KAPUS':
-        return { label: 'Kapus (Kepala Pusat)', role: 'Disposisi', color: 'text-purple-700 bg-purple-50 border-purple-200' };
+        return { label: 'Kapus (Kepala Pusat)', role: 'Disposisi Tahap 3', color: 'text-purple-700 bg-purple-50 border-purple-200' };
       case 'DISPOSISI_KAPUS_YA':
         return { label: 'Sespalu / Pemohon', role: 'Draft Personel & SPD', color: 'text-blue-700 bg-blue-50 border-blue-200' };
       case 'DISPOSISI_KAPUS_REVISI':
-        return { label: 'Sespalu / Pemohon', role: 'Perlu Revisi Nota', color: 'text-amber-700 bg-amber-50 border-amber-200' };
+        return { label: 'Sespalu / Pemohon', role: 'Perlu Revisi Draft ST & SPD', color: 'text-amber-700 bg-amber-50 border-amber-200' };
       case 'DISPOSISI_KAPUS_STOP':
         return { label: 'Selesai (Stop)', role: 'Dihentikan', color: 'text-red-700 bg-red-50 border-red-200' };
       case 'MENUNGGU_PENOMORAN_TU':
@@ -96,7 +96,7 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
       case 'MENUNGGU_DISPOSISI_KAPUS':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-            <Clock className="w-3.5 h-3.5 mr-1" /> Nota Masuk Kapus - Menunggu Persetujuan
+            <Clock className="w-3.5 h-3.5 mr-1" /> Draft ST & SPD Masuk Kapus - Menunggu Disposisi
           </span>
         );
       case 'DISPOSISI_KAPUS_YA':
@@ -132,7 +132,7 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
       default:
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-            <Clock className="w-3.5 h-3.5 mr-1" /> Nota Masuk Kapus - Menunggu Persetujuan
+            <Clock className="w-3.5 h-3.5 mr-1" /> Menunggu Proses Surat Tugas
           </span>
         );
     }

@@ -91,8 +91,8 @@ class SuratTugasController extends Controller
         if ($request->isNoteStep()) {
             $suratTugas = $this->submissions->submitNote($validated, $undangan, $setneg, $user, $request->draft());
 
-            return redirect()->route('surat-tugas.show', $suratTugas->id)
-                ->with('success', 'Nota/undangan berhasil dikirim ke Kapus untuk mendapat persetujuan.');
+            return redirect()->route('surat-tugas.draft.edit', $suratTugas->id)
+                ->with('success', 'Nota/undangan disimpan sebagai draft. Lengkapi Surat Tugas & SPD sebelum dikirim ke Kapus.');
         }
 
         $suratTugas = $this->submissions->submitFull($validated, $undangan, $setneg, $user, $request->draft());
@@ -124,7 +124,7 @@ class SuratTugasController extends Controller
         ]);
     }
 
-    // Step 2: Disposisi Kapus (Only Kapus or Admin)
+    // Step 3: Disposisi Kapus (Only Kapus or Admin)
     public function disposisi(DisposisiRequest $request, SuratTugas $suratTugas)
     {
         $this->workflow->disposisi($suratTugas, $request->user(), $request->validated());

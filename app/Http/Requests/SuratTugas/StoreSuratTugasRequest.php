@@ -7,8 +7,8 @@ use App\Services\SuratTugas\WorkflowService;
 use Illuminate\Validation\Rule;
 
 /**
- * Validasi pengiriman usulan. Tahap 1 (nota ke Kapus) hanya memvalidasi data nota;
- * tahap lanjut memvalidasi juga data PPK, perjalanan, dan pegawai.
+ * Validasi pengiriman usulan. Tahap 1 hanya menyimpan nota sebagai draft;
+ * tahap 2 mengirim nota bersama data PPK, perjalanan, dan pegawai ke Kapus.
  */
 class StoreSuratTugasRequest extends ProposerRequest
 {
@@ -21,10 +21,10 @@ class StoreSuratTugasRequest extends ProposerRequest
         return 'Hanya Sespalu/Pemohon atau Admin yang dapat mengirim usulan Surat Tugas.';
     }
 
-    /** Tanpa draft_id atau draft_step == 1 → hanya kirim nota ke Kapus. */
+    /** Tahap 1 hanya berisi data nota; pengiriman ke Kapus dilakukan setelah tahap 2 lengkap. */
     public function isNoteStep(): bool
     {
-        return ! $this->filled('draft_id') || (int) $this->input('draft_step', 1) === 1;
+        return (int) $this->input('draft_step', 1) === 1;
     }
 
     /** Draft yang dilanjutkan (null bila usulan baru). Otorisasi akses draft dilakukan di sini. */

@@ -268,7 +268,7 @@ class FiturTahapLanjutanTest extends TestCase
                 ->where('kapus.nip', '197001011995031001'));
     }
 
-    public function test_tahap_3_draft_personel_dan_spd_dapat_dikirim_tanpa_tanggal_surat(): void
+    public function test_tahap_2_draft_personel_dan_spd_dikirim_untuk_disposisi_tanpa_tanggal_surat(): void
     {
         $sespalu = $this->userWithRole('sespalu');
         $ppk = $this->userWithRole('ppk');
@@ -306,7 +306,7 @@ class FiturTahapLanjutanTest extends TestCase
 
         $response = $this->actingAs($sespalu)->post('/surat-tugas', [
             'draft_id' => $surat->id,
-            'draft_step' => 3,
+            'draft_step' => 2,
             'kategori_perjalanan' => 'DALAM_NEGERI',
             'sumber_asal' => 'EKSTERNAL',
             'nomor_nota' => 'NOTA/321',
@@ -329,7 +329,8 @@ class FiturTahapLanjutanTest extends TestCase
         $response->assertRedirect("/surat-tugas/{$surat->id}");
 
         $surat->refresh();
-        $this->assertSame(S::MENUNGGU_PENOMORAN_TU, $surat->status);
+        $this->assertSame(S::MENUNGGU_DISPOSISI_KAPUS, $surat->status);
+        $this->assertNull($surat->kapus_decision);
         $this->assertSame('2026-10-28', $surat->getRawOriginal('tanggal_nota'));
         $this->assertNull($surat->tanggal_surat);
         $this->assertCount(1, $surat->pegawaiList);

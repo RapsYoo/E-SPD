@@ -9,7 +9,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Pengiriman usulan: tahap 1 (nota ke Kapus) dan pengiriman lengkap (ke TU / kembali ke Kapus).
+ * Pengiriman usulan dan penyimpanan nota tahap awal sebelum draft lengkap dikirim ke Kapus.
  */
 class SubmissionService
 {
@@ -23,13 +23,15 @@ class SubmissionService
     /** Pesan sukses untuk pengiriman lengkap, mengikuti status akhir. */
     public function messageFor(SuratTugas $suratTugas): string
     {
-        return $suratTugas->status === SuratTugasStatus::MENUNGGU_PENOMORAN_TU
-            ? 'Draft Surat Tugas & SPD berhasil dikirim ke TU untuk verifikasi dan penomoran.'
-            : 'Nota/undangan berhasil dikirim ke Kapus dan sedang menunggu persetujuan.';
+        return match ($suratTugas->status) {
+            SuratTugasStatus::MENUNGGU_PENOMORAN_TU => 'Surat Tugas & SPD berhasil dikirim ke TU untuk verifikasi dan penomoran.',
+            SuratTugasStatus::MENUNGGU_DISPOSISI_KAPUS => 'Nota/undangan beserta draft Surat Tugas & SPD berhasil dikirim ke Kapus untuk disposisi.',
+            default => 'Pengajuan Surat Tugas berhasil disimpan.',
+        };
     }
 
     /**
-     * Tahap 1: kirim nota/undangan ke Kapus.
+     * Simpan nota/undangan sebagai draft; dokumen belum dikirim ke Kapus.
      *
      * @param  array<string, mixed>  $validated
      */
@@ -51,11 +53,11 @@ class SubmissionService
             'perihal_nota' => $validated['perihal_nota'],
             'file_undangan' => $files->undangan,
             'file_izin_setneg' => $files->setneg,
-            'status' => SuratTugasStatus::MENUNGGU_DISPOSISI_KAPUS,
+            'status' => SuratTugasStatus::DRAFT,
             'kapus_decision' => null,
             'catatan_kapus' => null,
             'draft_data' => $draftData ?: null,
-            'draft_step' => null,
+            'draft_step' => 2,
         ];
 
         $suratTugas = null;
@@ -67,7 +69,7 @@ class SubmissionService
                         ->where('nomor_nota', $values['nomor_nota'])
                         ->where('pengirim_nota', $values['pengirim_nota'])
                         ->where('perihal_nota', $values['perihal_nota'])
-                        ->where('status', SuratTugasStatus::MENUNGGU_DISPOSISI_KAPUS)
+                        ->where('status', SuratTugasStatus::DRAFT)
                         ->where('created_at', '>=', now()->subSeconds(10))
                         ->orderByDesc('id')
                         ->first();
@@ -97,13 +99,13 @@ class SubmissionService
 
         $files->commit();
 
-        $this->audit->log($suratTugas, 'KIRIM_KE_KAPUS', $draft?->status ?? SuratTugasStatus::DRAFT, SuratTugasStatus::MENUNGGU_DISPOSISI_KAPUS, 'Nota dikirim ke Kapus');
+        $this->audit->log($suratTugas, 'SIMPAN_DRAFT_NOTA', $draft?->status ?? SuratTugasStatus::DRAFT, SuratTugasStatus::DRAFT, 'Nota disimpan sebagai draft sebelum pengisian ST & SPD');
 
         return $suratTugas;
     }
 
     /**
-     * Pengiriman lengkap: ke TU bila Kapus sudah menyetujui, selain itu ke Kapus.
+     * Pengiriman lengkap: nota/undangan dan draft Surat Tugas & SPD dikirim ke Kapus untuk disposisi.
      *
      * @param  array<string, mixed>  $validated
      */
@@ -124,9 +126,9 @@ class SubmissionService
             'perihal_nota' => $validated['perihal_nota'],
             'file_undangan' => $files->undangan,
             'file_izin_setneg' => $files->setneg,
-            'status' => $draft?->kapus_decision === 'YA'
-                ? SuratTugasStatus::MENUNGGU_PENOMORAN_TU
-                : SuratTugasStatus::MENUNGGU_DISPOSISI_KAPUS,
+            'status' => SuratTugasStatus::MENUNGGU_DISPOSISI_KAPUS,
+            'kapus_decision' => null,
+            'catatan_kapus' => null,
             'ppk_id' => $ppk->id,
             'ppk_nama_snapshot' => $ppkSnapshot['nama'],
             'ppk_nip_snapshot' => $ppkSnapshot['nip'],
@@ -187,10 +189,9 @@ class SubmissionService
 
         $files->commit();
 
-        $toTu = $suratTugas->status === SuratTugasStatus::MENUNGGU_PENOMORAN_TU;
         $this->audit->log(
             $suratTugas,
-            $toTu ? 'KIRIM_KE_TU' : 'KIRIM_KE_KAPUS',
+            'KIRIM_KE_KAPUS',
             $draft?->status ?? SuratTugasStatus::DRAFT,
             $suratTugas->status,
             $this->messageFor($suratTugas),

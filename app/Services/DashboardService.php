@@ -180,8 +180,9 @@ class DashboardService
             $user->role === 'tu' => SuratTugas::where('status', S::MENUNGGU_PENOMORAN_TU)->with(['user', 'pegawaiList']),
             $user->role === 'ppk' => SuratTugas::where('status', S::SELESAI_TERBIT)->where('is_ppk_signed', false)->with(['user', 'pegawaiList']),
             in_array($user->role, ['pemohon', 'sespalu'], true) => SuratTugas::where('user_id', $user->id)
-                ->whereIn('status', [S::DISPOSISI_KAPUS_YA, S::DISPOSISI_KAPUS_REVISI, S::DISPOSISI_KAPUS_STOP])->with(['pegawaiList']),
+                ->whereIn('status', [S::DRAFT, S::DISPOSISI_KAPUS_YA, S::DISPOSISI_KAPUS_REVISI, S::DISPOSISI_KAPUS_STOP])->with(['pegawaiList']),
             $user->role === 'admin' => SuratTugas::whereIn('status', [
+                S::DRAFT,
                 S::MENUNGGU_DISPOSISI_KAPUS,
                 S::MENUNGGU_PENOMORAN_TU,
                 S::DISPOSISI_KAPUS_YA,
@@ -330,6 +331,7 @@ class DashboardService
             $user->role === 'kapus' => 'Menunggu disposisi Anda',
             $user->role === 'tu' => 'Menunggu penomoran resmi',
             $user->role === 'ppk' => 'Menunggu tanda tangan digital Anda',
+            $surat->status === S::DRAFT => 'Lanjutkan pengisian Nota, Surat Tugas & SPD',
             $surat->status === S::DISPOSISI_KAPUS_YA => 'Disetujui Kapus — lengkapi draft ST & SPD',
             $surat->status === S::DISPOSISI_KAPUS_REVISI => 'Kapus meminta revisi nota',
             $surat->status === S::DISPOSISI_KAPUS_STOP => 'Dihentikan Kapus — dapat diajukan ulang',

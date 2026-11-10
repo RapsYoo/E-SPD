@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\SuratTugas;
-use App\Models\SuratTugasLog;
 use App\Models\User;
+use App\Services\SuratTugas\SubmissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -49,13 +49,55 @@ class SuratTugasP1Test extends TestCase
 
         $this->assertDatabaseHas('surat_tugas', [
             'id' => $surat->id,
-            'status' => 'DISPOSISI_KAPUS_YA',
+            'status' => 'MENUNGGU_PENOMORAN_TU',
         ]);
         $this->assertDatabaseHas('surat_tugas_logs', [
             'surat_tugas_id' => $surat->id,
             'aksi' => 'DISPOSISI_YA',
             'dari_status' => 'MENUNGGU_DISPOSISI_KAPUS',
-            'ke_status' => 'DISPOSISI_KAPUS_YA',
+            'ke_status' => 'MENUNGGU_PENOMORAN_TU',
+        ]);
+    }
+
+    public function test_nota_dan_draft_st_spd_dikirim_sebelum_menunggu_disposisi_kapus(): void
+    {
+        $sespalu = $this->makeUser('sespalu');
+        $ppk = $this->makeUser('ppk');
+
+        $submission = app(SubmissionService::class);
+        $note = [
+            'kategori_perjalanan' => 'DALAM_NEGERI',
+            'sumber_asal' => 'EKSTERNAL',
+            'nomor_nota' => 'NOTA/'.uniqid(),
+            'pengirim_nota' => 'Sespalu',
+            'tanggal_nota' => now()->toDateString(),
+            'perihal_nota' => 'Testing urutan disposisi',
+        ];
+
+        $surat = $submission->submitNote($note, null, null, $sespalu);
+
+        $this->assertSame('DRAFT', $surat->status);
+        $this->assertSame(2, $surat->draft_step);
+
+        $surat = $submission->submitFull($note + [
+            'ppk_id' => $ppk->id,
+            'tingkat_biaya_kode' => 'C',
+            'jenis_angkutan_nama' => 'Perjalanan Darat',
+            'tempat_berangkat' => 'Jakarta',
+            'tempat_tujuan' => 'Bandung',
+            'negara_tujuan' => null,
+            'no_setneg' => null,
+            'tanggal_berangkat' => now()->toDateString(),
+            'tanggal_kembali' => now()->addDay()->toDateString(),
+            'durasi_hari' => 2,
+            'pegawai_ids' => [],
+        ], null, null, $sespalu, $surat);
+
+        $this->assertSame('MENUNGGU_DISPOSISI_KAPUS', $surat->status);
+        $this->assertDatabaseHas('surat_tugas_logs', [
+            'surat_tugas_id' => $surat->id,
+            'aksi' => 'KIRIM_KE_KAPUS',
+            'ke_status' => 'MENUNGGU_DISPOSISI_KAPUS',
         ]);
     }
 

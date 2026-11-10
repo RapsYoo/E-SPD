@@ -10,11 +10,9 @@ import {
   getProvinceOptions,
   parseDestination,
 } from '@/Data/locations';
-import mammoth from 'mammoth';
 import { 
   FileSignature, 
   Upload, 
-  UserCheck, 
   PenTool, 
   Hash, 
   FileDigit,
@@ -33,16 +31,13 @@ import {
   ShieldCheck,
   Save,
   Coins,
-  Truck,
-  FileText
+  Truck
 } from 'lucide-react';
 
 export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBiayaList, jenisAngkutanList, userRole, draft = null, draftData = {}, draftStep = 1, draftAttachments = {} }) {
   const [activeStep, setActiveStep] = useState(draftStep || 1);
   const [selectedPegawaiIds, setSelectedPegawaiIds] = useState((draftData.pegawai_ids || []).map(Number));
   const [selectedMasterId, setSelectedMasterId] = useState('');
-  const [attachmentUrls, setAttachmentUrls] = useState({});
-  const [docxPreviews, setDocxPreviews] = useState({});
   const [savingDraft, setSavingDraft] = useState(false);
   const [submitNotice, setSubmitNotice] = useState('');
   const [pegawaiSearch, setPegawaiSearch] = useState('');
@@ -80,7 +75,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
     tanggal_nota: toDateInput(draftData.tanggal_nota),
     perihal_nota: draftData.perihal_nota || '',
     
-    // Step 3
+    // Tahap 2
     ppk_id: draftData.ppk_id || '',
     tingkat_biaya_kode: draftData.tingkat_biaya_kode || '',
     jenis_angkutan_nama: draftData.jenis_angkutan_nama || '',
@@ -102,45 +97,15 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
   });
 
   useEffect(() => {
-    const files = {
-      invitation: data.file_undangan,
-      setneg: data.file_izin_setneg,
-    };
-    const localUrls = Object.fromEntries(
-      Object.entries(files)
-        .filter(([, file]) => file)
-        .map(([key, file]) => [key, URL.createObjectURL(file)])
-    );
-    const urls = {
-      invitation: localUrls.invitation || draftAttachments.invitation?.url,
-      setneg: localUrls.setneg || draftAttachments.setneg?.url,
-    };
-    let cancelled = false;
+    if (!draft) return;
 
-    setAttachmentUrls(urls);
-    setDocxPreviews({});
-
-    Object.entries(files).forEach(async ([key, file]) => {
-      const savedAttachment = draftAttachments[key];
-      const fileName = file?.name || savedAttachment?.name || '';
-      if (!fileName.toLowerCase().endsWith('.docx')) return;
-
-      try {
-        const arrayBuffer = file
-          ? await file.arrayBuffer()
-          : await fetch(savedAttachment.url).then((response) => response.arrayBuffer());
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        if (!cancelled) setDocxPreviews((previews) => ({ ...previews, [key]: result.value }));
-      } catch {
-        if (!cancelled) setDocxPreviews((previews) => ({ ...previews, [key]: 'Isi DOCX tidak dapat dipratinjau. Buka atau unduh berkas asli untuk memeriksanya.' }));
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      Object.values(localUrls).forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [data.file_undangan, data.file_izin_setneg, draftAttachments.invitation?.url, draftAttachments.setneg?.url]);
+    setActiveStep(draftStep || 1);
+    setData((currentData) => ({
+      ...currentData,
+      draft_id: draft.id,
+      draft_step: draftStep || 1,
+    }));
+  }, [draft?.id, draftStep]);
 
   const handleAddPegawai = () => {
     if (!selectedMasterId) return;
@@ -266,18 +231,18 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       return;
     }
     setSubmitNotice('');
-    if (activeStep >= 3 && selectedPegawaiIds.length === 0) {
+    if (activeStep >= 2 && selectedPegawaiIds.length === 0) {
       alert('Pilih setidaknya 1 pegawai untuk ditugaskan!');
       return;
     }
 
-    // Submit via store() untuk tahap 1 & 3
+    // Nota/undangan dan draft ST/SPD dikirim bersama setelah tahap 2 lengkap.
     transform((formData) => {
       let tanggalBerangkat = formData.tanggal_berangkat;
       let tanggalKembali = formData.tanggal_kembali;
       let durasiHari = formData.durasi_hari;
 
-      if (activeStep >= 3 && jadwalMode === 'per_pegawai') {
+      if (activeStep >= 2 && jadwalMode === 'per_pegawai') {
         const jadwalList = selectedPegawaiIds
           .map((id) => jadwalPerPegawai[id])
           .filter((j) => j?.tanggal_berangkat && j?.tanggal_kembali);
@@ -308,8 +273,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       || event.target.closest('div')?.querySelector('label')?.innerText
       || event.target.placeholder
       || 'kolom wajib';
-    const targetRecipient = activeStep >= 3 ? 'TU' : 'Kapus';
-    setSubmitNotice(`Lengkapi ${fieldLabel.replace(/\*/g, '').trim()} sebelum mengirim ke ${targetRecipient}.`);
+    setSubmitNotice(`Lengkapi ${fieldLabel.replace(/\*/g, '').trim()} sebelum mengirim ke Kapus.`);
   };
 
   const validationErrorEntries = Object.entries(errors).filter(([, message]) => Boolean(message));
@@ -327,16 +291,6 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       }
     );
   };
-
-  const stageTwoAttachments = [
-    { key: 'invitation', label: 'Nota / Undangan', file: data.file_undangan, saved: draftAttachments.invitation },
-    ...(data.kategori_perjalanan === 'LUAR_NEGERI'
-      ? [{ key: 'setneg', label: 'Izin Setneg / Keppres', file: data.file_izin_setneg, saved: draftAttachments.setneg }]
-      : []),
-  ].map((attachment) => ({
-    ...attachment,
-    file: attachment.file || (attachment.saved ? { name: attachment.saved.name } : null),
-  })).filter(({ file }) => file);
 
   return (
     <AdminLayout title="Generate Surat Tugas & SPD Baru">
@@ -399,7 +353,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             }`}>
               2
             </span>
-            <span>2. Disposisi Kapus</span>
+            <span>2. Draft Personel & SPD</span>
           </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -418,7 +372,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             }`}>
               3
             </span>
-            <span>3. Draft Personel & SPD</span>
+            <span>3. Disposisi Kapus</span>
           </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -464,11 +418,11 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       <form onSubmit={handleSubmit} onInvalidCapture={handleInvalidCapture} onChangeCapture={() => setSubmitNotice('')}>
         {(submitNotice || validationErrorEntries.length > 0) && (
           <div role="alert" className="mb-4 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            <p className="font-bold">{activeStep >= 3 ? 'Draft ST & SPD belum terkirim' : 'Nota belum terkirim'}</p>
+            <p className="font-bold">{activeStep >= 2 ? 'Draft ST & SPD belum terkirim' : 'Nota belum lengkap'}</p>
             <p className="mt-1">
-              {submitNotice || (activeStep >= 3
-                ? 'Periksa kembali kolom wajib berikut sebelum dikirim ke TU.'
-                : 'Periksa kembali kolom wajib berikut sebelum dikirim ke Kapus.')}
+              {submitNotice || (activeStep >= 2
+              ? 'Periksa kembali kolom wajib berikut sebelum dikirim ke Kapus.'
+                : 'Periksa kembali kolom wajib sebelum melanjutkan ke draft ST & SPD.')}
             </p>
             {validationErrorEntries.length > 0 && (
               <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
@@ -645,137 +599,21 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                 disabled={processing || savingDraft}
                 className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span>{processing ? 'Mengirim ke Kapus...' : 'Kirim Nota ke Kepala Pusat (Kapus)'}</span>
+                <span>{processing ? 'Menyimpan Nota...' : 'Simpan Nota & Lanjutkan ke Draft Personel & SPD'}</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* ================= TAHAP 2: DISPOSISI KAPUS ================= */}
-        {draft && activeStep === 2 && (
-          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                  <UserCheck className="w-5 h-5 text-amber-500" />
-                  <span>Tahap 2: Meninjau Nota & Simulasi Disposisi Kapus</span>
-                </h2>
-                <p className="text-xs text-slate-500">Persetujuan & Instruksi Kepala Pusat Pendidikan dan Pelatihan</p>
-              </div>
-              <span className="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full">
-                Aktor: Kapus (Kepala Pusat)
-              </span>
-            </div>
-
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs space-y-2">
-              <h3 className="font-bold text-slate-800 text-sm flex items-center space-x-1.5">
-                <FileText className="w-4 h-4 text-blue-600" />
-                <span>Ringkasan Nota / Undangan:</span>
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700">
-                <div>Nomor Nota: <strong className="font-mono text-slate-900">{data.nomor_nota}</strong></div>
-                <div>Pengirim: <strong>{data.pengirim_nota}</strong></div>
-                <div className="sm:col-span-2">Perihal: <p className="font-medium text-slate-900 mt-0.5">{data.perihal_nota}</p></div>
-              </div>
-            </div>
-
-            <section className="space-y-3" aria-labelledby="kapus-attachments-title">
-              <div className="flex items-center justify-between">
-                <h3 id="kapus-attachments-title" className="text-sm font-bold text-slate-900">Lampiran untuk Ditinjau Kapus</h3>
-                <span className="text-xs text-slate-500">Berkas yang diunggah pada Tahap 1</span>
-              </div>
-
-              {stageTwoAttachments.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4">
-                  {stageTwoAttachments.map(({ key, label, file }) => {
-                    const extension = file.name.split('.').pop().toLowerCase();
-
-                    return (
-                      <div key={key} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
-                          <div>
-                            <p className="text-xs font-bold text-slate-800">{label}</p>
-                            <p className="mt-0.5 break-all text-xs text-slate-500">{file.name}</p>
-                          </div>
-                          {attachmentUrls[key] && (
-                            <a
-                              href={attachmentUrls[key]}
-                              target="_blank"
-                              rel="noreferrer"
-                              download={file.name}
-                              className="text-xs font-semibold text-blue-700 hover:text-blue-900"
-                            >
-                              Buka / Unduh
-                            </a>
-                          )}
-                        </div>
-
-                        {extension === 'pdf' && attachmentUrls[key] ? (
-                          <iframe title={`Pratinjau ${label}`} src={attachmentUrls[key]} className="h-[32rem] w-full bg-slate-100" />
-                        ) : ['jpg', 'jpeg', 'png'].includes(extension) && attachmentUrls[key] ? (
-                          <div className="flex max-h-[32rem] justify-center overflow-auto bg-slate-100 p-4">
-                            <img src={attachmentUrls[key]} alt={`Pratinjau ${label}`} className="h-auto max-w-full object-contain" />
-                          </div>
-                        ) : extension === 'docx' && docxPreviews[key] ? (
-                          <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap p-4 text-xs leading-6 text-slate-700">
-                            {docxPreviews[key]}
-                          </pre>
-                        ) : (
-                          <p className="p-4 text-xs text-slate-500">Gunakan tombol Buka / Unduh untuk melihat berkas ini.</p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-xs text-slate-500">
-                  Belum ada lampiran yang diunggah pada Tahap 1.
-                </p>
-              )}
-            </section>
-
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-700">Disposisi Instruksi Kapus *</label>
-              <textarea
-                rows="3"
-                value=""
-                readOnly
-                placeholder="Instruksi disposisi Kapus akan tercatat pada tahap ini"
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-amber-50/50 font-medium text-slate-800 focus:outline-none"
-              ></textarea>
-            </div>
-
-            <div className="pt-4 flex justify-between">
-              <button
-                type="button"
-                onClick={() => setActiveStep(1)}
-                className="inline-flex items-center space-x-1 text-slate-600 hover:text-slate-800 font-semibold text-xs"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Kembali ke Tahap 1</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveStep(3)}
-                className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition"
-              >
-                <span>Lanjut ke Draft Personel (Tahap 3)</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAHAP 3: DRAFT PERSONEL & DETAIL PERJALANAN ================= */}
-        {draft && activeStep === 3 && (
+        {/* ================= TAHAP 2: DRAFT PERSONEL & DETAIL PERJALANAN ================= */}
+        {activeStep === 2 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
                   <PenTool className="w-5 h-5 text-amber-500" />
-                  <span>Tahap 3: Draft Personel Ditugaskan & Rincian SPD</span>
+                  <span>Tahap 2: Draft Personel Ditugaskan & Rincian SPD</span>
                 </h2>
                 <p className="text-xs text-slate-500">Pilih Pejabat Komitmen (PPK) & Personel Pegawai yang ditugaskan</p>
               </div>
@@ -1232,7 +1070,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                 className="inline-flex items-center space-x-1 text-slate-600 hover:text-slate-800 font-semibold text-xs"
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span>Kembali ke Nota</span>
+                <span>Kembali ke Nota / Undangan</span>
               </button>
 
               <button
@@ -1241,7 +1079,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                 className="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>{processing ? 'Mengirim ke TU...' : 'Kirim Draft ST & SPD ke TU'}</span>
+                <span>{processing ? 'Mengirim ke Kapus...' : 'Kirim Nota, ST & SPD ke Disposisi Kapus'}</span>
               </button>
             </div>
           </div>

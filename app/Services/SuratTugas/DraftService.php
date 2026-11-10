@@ -50,9 +50,9 @@ class DraftService
         $suratTugas->load(['pegawaiList', 'ppk']);
 
         $draftStep = match ($suratTugas->status) {
-            SuratTugasStatus::DISPOSISI_KAPUS_YA => 3,
-            SuratTugasStatus::DISPOSISI_KAPUS_REVISI => 1,
-            default => $suratTugas->draft_step ?? 1,
+            SuratTugasStatus::DISPOSISI_KAPUS_YA,
+            SuratTugasStatus::DISPOSISI_KAPUS_REVISI => 2,
+            default => max(1, min($suratTugas->draft_step ?? 1, 2)),
         };
 
         $draftData = array_merge([
