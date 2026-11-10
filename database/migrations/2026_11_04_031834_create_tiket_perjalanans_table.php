@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('tiket_perjalanan')) {
+            return;
+        }
+
         Schema::create('tiket_perjalanan', function (Blueprint $table) {
             $table->id();
             $table->foreignId('surat_tugas_pegawai_id')

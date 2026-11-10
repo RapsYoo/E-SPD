@@ -678,9 +678,18 @@ export default function Dashboard({
               <FileCheck2 className="h-5 w-5 text-amber-600" />
               DPR Menunggu Persetujuan
             </h2>
-            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
-              {pendingDprs.length}
-            </span>
+            <div className="flex items-center gap-2.5">
+              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
+                {pendingDprs.length}
+              </span>
+              <Link
+                href="/ppk/dpr"
+                className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
+              >
+                <span>Kelola Semua DPR</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
 
           {pendingDprs.length === 0 ? (

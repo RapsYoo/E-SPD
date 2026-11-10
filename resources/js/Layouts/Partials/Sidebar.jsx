@@ -11,6 +11,7 @@ import {
   FileSignature,
   PlusCircle,
   FileText,
+  FileCheck2,
   KeyRound,
   BarChart3,
   PieChart,
@@ -115,6 +116,20 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                 </div>
               )}
             </div>
+
+            {/* Menu Khusus PPK: Manajemen DPR (Daftar Pengeluaran Riil) */}
+            {auth?.user?.role === 'ppk' && (
+              <Link
+                href="/ppk/dpr"
+                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition ${isActive('/ppk/dpr')
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                  }`}
+              >
+                <FileCheck2 className={`w-5 h-5 ${isActive('/ppk/dpr') ? 'text-slate-950' : 'text-amber-400'}`} />
+                <span className="flex-1">Kelola DPR</span>
+              </Link>
+            )}
 
             {canSeeRekap && (
               <>

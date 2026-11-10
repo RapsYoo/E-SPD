@@ -56,6 +56,21 @@ class DprWorkflowTest extends TestCase
                 ->where('notifications.items.0.message', 'DPR '.$peserta->nama.' menunggu persetujuan Anda')
             );
 
+        $this->actingAs($ppk)->get(route('ppk.dpr.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Ppk/Dpr/Index')
+                ->has('dprs', 1)
+                ->where('summary.total', 1)
+                ->where('summary.pending', 1)
+                ->where('dprs.0.participant_id', $peserta->id)
+            );
+
+        $this->actingAs($ppk)->get(route('ppk.dpr.cetak', [$suratTugas, $peserta]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Pegawai/PengeluaranRill')
+                ->where('backUrl', route('ppk.dpr.index'))
+            );
+
         $ticket = TiketPerjalanan::firstOrFail();
         $this->actingAs($ppk)->get(route('ppk.dpr.ticket.download', [$suratTugas, $peserta, $ticket]))
             ->assertDownload('tiket-perjalanan.pdf');

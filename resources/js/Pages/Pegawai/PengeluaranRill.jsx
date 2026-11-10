@@ -11,7 +11,7 @@ function formatDate(value) {
     : date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-export default function PengeluaranRill({ suratTugas, pegawai }) {
+export default function PengeluaranRill({ suratTugas, pegawai, backUrl = null }) {
   const tujuan = [
     suratTugas.tempat_tujuan,
     suratTugas.kategori_perjalanan === 'LUAR_NEGERI' ? suratTugas.negara_tujuan : null,
@@ -29,9 +29,9 @@ export default function PengeluaranRill({ suratTugas, pegawai }) {
       `}</style>
 
       <div className="no-print sticky top-0 z-10 flex items-center justify-between border-b-4 border-amber-500 bg-[#0F2C59] p-4 text-white shadow-lg">
-        <Link href={route('dashboard')} className="inline-flex items-center gap-2 text-sm font-bold text-amber-300 hover:text-white">
+        <Link href={backUrl || route('dashboard')} className="inline-flex items-center gap-2 text-sm font-bold text-amber-300 hover:text-white">
           <ArrowLeft className="h-4 w-4" />
-          Kembali ke Dashboard
+          {backUrl ? 'Kembali ke Kelola DPR' : 'Kembali ke Dashboard'}
         </Link>
         <button
           type="button"

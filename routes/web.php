@@ -79,6 +79,8 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('role:ppk')->prefix('ppk')->name('ppk.')->group(function () {
+        Route::get('/dpr', [DprController::class, 'index'])->name('dpr.index');
+        Route::get('/dpr/{suratTugas}/{peserta}/cetak', [DprController::class, 'cetak'])->name('dpr.cetak');
         Route::get('/dpr/{suratTugas}/{peserta}/tiket/{ticket}', [DprController::class, 'downloadTicket'])->name('dpr.ticket.download');
         Route::post('/dpr/{suratTugas}/{peserta}/approve', [DprController::class, 'approve'])->name('dpr.approve');
     });

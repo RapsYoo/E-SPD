@@ -12,10 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('surat_tugas_pegawai', function (Blueprint $table) {
-            $table->string('dpr_status')->default('DRAFT')->index();
-            $table->timestamp('dpr_submitted_at')->nullable();
-            $table->foreignId('dpr_approved_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('dpr_approved_at')->nullable();
+            if (! Schema::hasColumn('surat_tugas_pegawai', 'dpr_status')) {
+                $table->string('dpr_status')->default('DRAFT')->index();
+            }
+            if (! Schema::hasColumn('surat_tugas_pegawai', 'dpr_submitted_at')) {
+                $table->timestamp('dpr_submitted_at')->nullable();
+            }
+            if (! Schema::hasColumn('surat_tugas_pegawai', 'dpr_approved_by')) {
+                $table->foreignId('dpr_approved_by')->nullable()->constrained('users')->nullOnDelete();
+            }
+            if (! Schema::hasColumn('surat_tugas_pegawai', 'dpr_approved_at')) {
+                $table->timestamp('dpr_approved_at')->nullable();
+            }
         });
     }
 
