@@ -6,6 +6,7 @@ use App\Exceptions\WorkflowException;
 use App\Models\Pegawai;
 use App\Models\SuratTugas;
 use App\Models\User;
+use App\Services\Admin\RbacService;
 use App\Support\SuratTugasStatus as S;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -18,24 +19,24 @@ class WorkflowService
 {
     public function __construct(private AuditLogger $audit) {}
 
-    /** Draft hanya dapat dibuka pada status tertentu dan oleh admin/pemilik (pemohon/sespalu). */
+    /** Draft hanya dapat dibuka pada status tertentu dan oleh admin/pemilik yang memiliki izin surat_tugas.create. */
     public function assertDraftAccessible(SuratTugas $suratTugas, ?User $user): void
     {
         abort_unless(in_array($suratTugas->status, S::EDITABLE_DRAFT, true), 404);
         abort_unless(
             $user?->role === 'admin' || (
-                in_array($user?->role, ['pemohon', 'sespalu'], true)
-                && $suratTugas->user_id === $user->id
+                app(RbacService::class)->hasPermission($user, 'surat_tugas.create')
+                && $suratTugas->user_id === $user?->id
             ),
             403,
             'Anda tidak memiliki akses ke draft ini.'
         );
     }
 
-    // Step 3: Disposisi Kapus (Only Kapus or Admin)
+    // Step 3: Disposisi Kapus
     public function disposisi(SuratTugas $suratTugas, User $user, array $validated): void
     {
-        $this->assertRole($user, ['kapus', 'admin'], 'Hanya Kepala Pusat (Kapus) atau Admin yang berhak memberikan disposisi.');
+        $this->assertModule($user, 'surat_tugas.disposisi', 'Hanya Kepala Pusat (Kapus) atau Admin yang berhak memberikan disposisi.');
         $this->assertStatus($suratTugas, S::MENUNGGU_DISPOSISI_KAPUS, 'Disposisi Kapus hanya dapat dilakukan setelah usulan dikirim oleh Sespalu.');
 
         $status = match ($validated['kapus_decision']) {
@@ -66,10 +67,10 @@ class WorkflowService
         $this->audit->log($suratTugas->fresh(), 'DISPOSISI_'.$validated['kapus_decision'], $dari, $status, $validated['catatan_kapus'] ?? null);
     }
 
-    // Step 4: Penomoran Resmi TU (Only TU or Admin)
+    // Step 4: Penomoran Resmi TU
     public function penomoran(SuratTugas $suratTugas, User $user, array $validated): void
     {
-        $this->assertRole($user, ['tu', 'admin'], 'Hanya Tata Usaha (TU) atau Admin yang berhak melakukan penomoran naskah dinas.');
+        $this->assertModule($user, 'surat_tugas.penomoran', 'Hanya Tata Usaha (TU) atau Admin yang berhak melakukan penomoran naskah dinas.');
         $this->assertStatus($suratTugas, S::MENUNGGU_PENOMORAN_TU, 'Penomoran TU hanya dapat dilakukan setelah disposisi Kapus menyetujui usulan.');
 
         $draftData = $suratTugas->draft_data ?? [];
@@ -102,10 +103,10 @@ class WorkflowService
         }
     }
 
-    // Step 5: Signature PPK (Only PPK or Admin)
+    // Step 5: Signature PPK
     public function signPpk(SuratTugas $suratTugas, User $user, bool $isSigned): void
     {
-        $this->assertRole($user, ['ppk', 'admin'], 'Hanya Pejabat Pembuat Komitmen (PPK) atau Admin yang berhak menyematkan TTD digital.');
+        $this->assertModule($user, 'surat_tugas.sign_ppk', 'Hanya Pejabat Pembuat Komitmen (PPK) atau Admin yang berhak menyematkan TTD digital.');
         $this->assertStatus($suratTugas, S::SELESAI_TERBIT, 'TTD PPK dapat dilakukan setelah dokumen selesai diterbitkan oleh TU.');
 
         $draftData = $suratTugas->draft_data ?? [];
@@ -277,7 +278,7 @@ class WorkflowService
     /** P1: akses cetak luas — ketika sudah SELESAI_TERBIT, semua user yang berhak melihat surat dapat melihat/mencetak dokumen. */
     public function canPrint(SuratTugas $suratTugas, ?User $user): bool
     {
-        if (! $user) {
+        if (! $user || ! app(RbacService::class)->hasPermission($user, 'surat_tugas.print')) {
             return false;
         }
 
@@ -296,10 +297,14 @@ class WorkflowService
         return $allowedRole && $allowedStatus;
     }
 
-    /** Role pegawai hanya boleh melihat surat terbit yang menugaskan dirinya; role lain tidak dibatasi. */
+    /** Role pegawai hanya boleh melihat surat terbit yang menugaskan dirinya; role lain tidak dibatasi selama modul surat_tugas.view aktif. */
     public function canView(SuratTugas $suratTugas, ?User $user): bool
     {
-        if ($user?->role !== S::PEGAWAI_ROLE) {
+        if (! $user || ! app(RbacService::class)->hasPermission($user, 'surat_tugas.view')) {
+            return false;
+        }
+
+        if ($user->role !== S::PEGAWAI_ROLE) {
             return true;
         }
 
@@ -312,9 +317,9 @@ class WorkflowService
         $this->audit->log($suratTugas, 'CETAK', $suratTugas->status, $suratTugas->status, 'Dokumen dicetak oleh '.$user?->role);
     }
 
-    private function assertRole(User $user, array $roles, string $message): void
+    private function assertModule(User $user, string $moduleKey, string $message): void
     {
-        if (! in_array($user->role, $roles, true)) {
+        if (! app(RbacService::class)->hasPermission($user, $moduleKey)) {
             throw new WorkflowException($message);
         }
     }

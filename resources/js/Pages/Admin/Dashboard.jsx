@@ -16,7 +16,8 @@ import {
   Plus,
   Workflow,
   Sparkles,
-  ShieldAlert
+  ShieldAlert,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function Dashboard({ stats, recentPegawai }) {
@@ -53,6 +54,14 @@ export default function Dashboard({ stats, recentPegawai }) {
             >
               <KeyRound className="w-4 h-4 text-amber-400" />
               <span>Kelola Akun Pengguna</span>
+            </Link>
+
+            <Link
+              href="/admin/rbac"
+              className="inline-flex items-center space-x-2 bg-slate-800/90 hover:bg-slate-700 text-white font-semibold px-4 py-2.5 rounded-xl border border-slate-600 transition text-xs sm:text-sm"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Manajemen Hak Akses (RBAC)</span>
             </Link>
           </div>
         </div>
@@ -266,7 +275,23 @@ export default function Dashboard({ stats, recentPegawai }) {
                   </div>
                   <div>
                     <h4 className="font-semibold text-slate-900 text-sm group-hover:text-amber-700 transition">Akun Pengguna (Termasuk PPK)</h4>
-                    <p className="text-xs text-slate-500">Kelola Pengguna, Peran & Hak Akses</p>
+                    <p className="text-xs text-slate-500">Kelola Pengguna & Peran Akun</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition" />
+              </Link>
+
+              <Link
+                href="/admin/rbac"
+                className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50 transition group"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 text-sm group-hover:text-amber-700 transition">Hak Akses Modul (RBAC)</h4>
+                    <p className="text-xs text-slate-500">Atur Menu & Izin Modul Tiap Role</p>
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition" />

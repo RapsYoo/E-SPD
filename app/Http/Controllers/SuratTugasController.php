@@ -8,6 +8,7 @@ use App\Http\Requests\SuratTugas\PenomoranRequest;
 use App\Http\Requests\SuratTugas\SaveDraftRequest;
 use App\Http\Requests\SuratTugas\StoreSuratTugasRequest;
 use App\Models\SuratTugas;
+use App\Services\Admin\RbacService;
 use App\Services\SuratTugas\AttachmentService;
 use App\Services\SuratTugas\DraftService;
 use App\Services\SuratTugas\QueryService;
@@ -42,7 +43,7 @@ class SuratTugasController extends Controller
 
     public function create()
     {
-        if (! in_array(auth()->user()?->role, SuratTugasStatus::PROPOSER_ROLES)) {
+        if (! app(RbacService::class)->hasPermission(auth()->user(), 'surat_tugas.create')) {
             return redirect()->route('surat-tugas.index')->with('error', 'Hanya Sespalu/Pemohon atau Admin yang dapat membuat usulan Surat Tugas.');
         }
 
