@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: "Plus Jakarta Sans", sans-serif;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -13,4 +13,3 @@ body[data-submitting="true"] button[data-action-btn="true"] {
     opacity: 0.65;
     cursor: wait;
 }
-
