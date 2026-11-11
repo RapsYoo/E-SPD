@@ -1,58 +1,83 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# e-SPD & ST Online — Pusdiklat Kementerian Luar Negeri RI
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistem informasi pengelolaan **Surat Tugas (ST)** dan **Surat Perjalanan Dinas (SPD)** terintegrasi berbasis web untuk **Pusat Pendidikan dan Pelatihan (Pusdiklat) Kementerian Luar Negeri RI**. Sistem ini mendigitalisasi alur pengajuan nota/undangan dinas, disposisi pimpinan, penyusunan draft personel & rincian SPD, penomoran resmi Tata Usaha (TU), pengesahan Pejabat Pembuat Komitmen (PPK), hingga pencetakan dokumen resmi dan rekapitulasi laporan perjalanan dinas.
 
-## About Laravel
+> **Catatan Akses**: Sistem ini bersifat **internal & tertutup**. Pendaftaran publik dinonaktifkan sepenuhnya dan seluruh akses pengguna dikelola secara terpusat oleh Administrator internal.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Teknologi yang Digunakan (Tech Stack)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Backend Framework**: PHP 8.3 & Laravel 13
+- **Frontend & UI**: React 18, Inertia.js v2 (Single Page Application), Tailwind CSS, Headless UI, Lucide Icons
+- **Asset Bundler**: Vite 8
+- **Database**: MySQL / MariaDB
+- **Quality Assurance & Testing**: PHPUnit 12 & Laravel Pint
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Peran Aktor dalam Sistem (Role-Based Access Control)
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Aktor | Deskripsi & Cakupan Fitur |
+| :--- | :--- |
+| **Administrator Master** | Mengelola seluruh Master Database (Data Pegawai, Akun Pengguna, Tingkat Biaya & Jenis Angkutan), memantau seluruh dokumen perjalanan dinas, serta mengakses modul rekapitulasi. |
+| **Pemohon / Sespalu** | Mengajukan Nota/Undangan Masuk (Tahap 1), menyusun Draft Personel & Rincian SPD setelah disetujui Kapus (Tahap 3), merevisi usulan, atau mengajukan ulang surat yang dihentikan. |
+| **Kepala Pusat (Kapus)** | Meninjau nota/undangan masuk dan memberikan keputusan disposisi (**Setuju**, **Minta Revisi**, atau **Hentikan**) beserta catatan instruksi (Tahap 2), serta memantau rekapitulasi laporan. |
+| **Tata Usaha (TU)** | Memverifikasi kelengkapan draft ST & SPD dari Sespalu, menetapkan **Nomor Resmi ST**, **Nomor SPD**, dan **Tanggal Surat**, serta menerbitkan dokumen resmi (Tahap 4). |
+| **Pejabat Pembuat Komitmen (PPK)** | Menyematkan pengesahan / tanda tangan digital PPK pada dokumen SPD serta memantau dokumen perjalanan dinas dan rekapitulasi. |
+| **Pegawai Pelaksana** | Memantau status perjalanan dinas yang menugaskan dirinya melalui Dashboard Pegawai, mengunduh/mencetak dokumen ST & SPD miliknya sendiri, serta melihat direktori pegawai (*read-only*). |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+---
 
-## Agentic Development
+## Alur Kerja Sistem (Workflow 5 Tahap)
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```mermaid
+flowchart LR
+    A["1. Upload Nota / Undangan\n(Sespalu / Pemohon)"] --> B["2. Disposisi Kapus\n(Kepala Pusat)"]
+    B -- "Setuju (YA)" --> C["3. Draft Personel & SPD\n(Sespalu / Pemohon)"]
+    B -- "Minta Revisi" --> A
+    B -- "Dihentikan (STOP)" --> X["Status: Dihentikan Kapus\n(Dapat Diajukan Ulang)"]
+    X -- "Ajukan Ulang" --> A
+    C --> D["4. Verifikasi & Penomoran Resmi\n(Tata Usaha / TU)"]
+    D --> E["5. Terbit, TTD PPK & Cetak Dokumen\n(TU / PPK / Pegawai)"]
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+## Fitur Utama & Progres Pengembangan (Status: Selesai)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 1. Pengajuan & Alur Persetujuan 5 Tahap Terintegrasi
+- [x] **Tahap 1 — Registrasi Nota / Undangan Masuk**: Mendukung kategori perjalanan **Dalam Negeri** maupun **Luar Negeri** (dilengkapi validasi Nomor & Berkas Izin Setneg untuk perjalanan Luar Negeri), penyimpanan draft bertahap, serta pratinjau dokumen lampiran (PDF, Gambar, DOCX).
+- [x] **Tahap 2 — Disposisi Kepala Pusat**: Mendukung keputusan **Setuju**, **Minta Revisi**, dan **Hentikan (Stop)** beserta catatan disposisi dan fitur penyimpanan sub-draft.
+- [x] **Tahap 3 — Penyusunan Personel & Rincian SPD**: Pemilihan PPK, pemilihan multi-pegawai pelaksana, penentuan tingkat biaya & jenis angkutan, kalkulasi durasi perjalanan otomatis, serta dukungan mode **Jadwal Sama** maupun **Jadwal per Pegawai**.
+- [x] **Tahap 4 — Verifikasi & Penomoran Resmi TU**: Dilengkapi panduan rujukan nomor urut terakhir yang terbit (*running number guide*) serta validasi anti-duplikasi nomor ST dan nomor SPD.
+- [x] **Tahap 5 — Pengesahan PPK & Penerbitan Dokumen**: Pengesahan tanda tangan digital PPK dan pencetakan dokumen ukuran standar A4.
+- [x] **Mekanisme Pengajuan Ulang (*Resubmission*)**: Surat yang dihentikan pada tahap disposisi dapat diajukan ulang dan diperbaiki kembali oleh Pemohon/Sespalu tanpa kehilangan catatan riwayat sebelumnya.
 
-## Code of Conduct
+### 2. Pencetakan Dokumen Modular Berstandar Resmi
+Modul pencetakan telah dipisahkan per jenis dokumen untuk memudahkan pemeliharaan tata letak cetak:
+- [x] **Surat Tugas (ST)** lengkap dengan kop surat resmi dan blok tanda tangan Kepala Pusat.
+- [x] **Lampiran Surat Tugas** otomatis aktif apabila personel yang ditugaskan lebih dari 2 pegawai.
+- [x] **Lembar SPD Depan (Lembar 1)** untuk masing-masing pegawai yang ditugaskan.
+- [x] **Lembar SPD Belakang / Visum & Rampungan (Lembar 2, Blok I–VI)** untuk masing-masing pegawai.
+- [x] **Toolbar Pemilihan Dokumen** untuk mencetak seluruh bundel sekaligus atau memilih dokumen tertentu saja.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 3. Penguncian Data Arsip (*Immutable Snapshot Protection*)
+- [x] **Snapshot Personel Ditugaskan**: Nama, NIP, pangkat, golongan, jabatan, dan unit kerja pegawai dikunci saat surat dibuat.
+- [x] **Snapshot Pejabat Penandatangan (Kapus & PPK)**: Identitas Kepala Pusat dan PPK dikunci otomatis pada saat disposisi disetujui dan saat dokumen siap cetak/terbit.
+- [x] **Keaslian Arsip Historis**: Perubahan jabatan pegawai atau pergantian Kepala Pusat/PPK di database master di kemudian hari tidak akan mengubah isi surat yang sudah siap cetak maupun yang telah terbit.
 
-## Security Vulnerabilities
+### 4. Portal Khusus Pegawai & Isolasi Data
+- [x] **Isolasi Perjalanan Dinas (*Row-Level Isolation*)**: Setiap pegawai hanya dapat melihat dan mengunduh dokumen perjalanan dinas yang mencantumkan dirinya sebagai pelaksana tugas.
+- [x] **Direktori Pegawai (*Read-Only*)**: Menyediakan daftar informasi dasar kepegawaian tanpa akses ubah/hapus.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 5. Modul Rekapitulasi & Ekspor Laporan
+- [x] Penyaringan laporan perjalanan dinas berdasarkan tahun, bulan, kategori perjalanan, status dokumen, dan kata kunci.
+- [x] Ringkasan metrik perjalanan dinas dalam bentuk kartu statistik.
+- [x] Ekspor laporan ke format **CSV**, **Excel (`.xls`)**, dan **Cetak / Simpan PDF**.
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 6. Notifikasi In-App, Audit Trail & Tata Kelola Sistem
+- [x] **Notifikasi *In-App* Otomatis**: Indikator lonceng notifikasi dan *badge* menu yang menampilkan daftar dokumen yang membutuhkan tindakan sesuai peran pengguna.
+- [x] **Riwayat Audit (*Audit Trail*)**: Pencatatan kronologis setiap perubahan status, waktu kejadian, aktor pelaksana, dan catatan revisi/disposisi.
+- [x] **Manajemen Akun Terpusat**: Pembuatan akun pengguna ditautkan langsung dari data Master Pegawai tanpa akses registrasi publik.
+- [x] **Pemeliharaan Penyimpanan Otomatis**: Sistem dilengkapi utilitas pembersihan berkas lampiran usang (*orphan files*) agar ruang penyimpanan tetap efisien.
