@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
 body[data-submitting="true"] button[type="submit"],
 body[data-submitting="true"] button[data-action-btn="true"] {
     pointer-events: none;

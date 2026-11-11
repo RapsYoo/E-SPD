@@ -22,7 +22,6 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Building2,
-  Sparkles,
   History,
   User,
   PenTool,
@@ -48,6 +47,7 @@ export default function Dashboard({
 }) {
   const [activeDutyTab, setActiveDutyTab] = useState('onDuty'); // 'onDuty' | 'upcoming'
   const [approvingDprId, setApprovingDprId] = useState(null);
+  const [urgencyExpanded, setUrgencyExpanded] = useState(false);
 
   // Persona Scope State: 'personal' (Usulan Saya) vs 'global' (Seluruh Pusdiklat)
   const defaultScope = (userRole === 'pemohon' || userRole === 'sespalu') ? 'personal' : 'global';
@@ -173,13 +173,13 @@ export default function Dashboard({
     if (diffDays === 0) {
       return { 
         text: 'Berangkat Hari Ini', 
-        className: 'bg-rose-600 text-white font-bold animate-pulse' 
+        className: 'bg-rose-600 text-white font-semibold animate-pulse' 
       };
     }
     if (diffDays === 1) {
       return { 
         text: 'Berangkat Besok', 
-        className: 'bg-amber-500 text-white font-bold' 
+        className: 'bg-amber-500 text-white font-semibold' 
       };
     }
     return { 
@@ -201,20 +201,15 @@ export default function Dashboard({
     <AdminLayout title="Dashboard e-SPD">
       <Head title="Dashboard - e-SPD Pusdiklat Kemlu" />
 
-      {/* Welcome Section */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2.5">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Selamat datang, {userName}!
-            </h1>
-            <span className="text-xs font-bold uppercase tracking-wider bg-slate-200/80 text-slate-700 px-2.5 py-0.5 rounded-md">
-              {userRole}
-            </span>
-          </div>
-          <p className="text-sm text-slate-500 mt-1">
-            Dashboard monitoring Surat Tugas & Perjalanan Dinas Pusdiklat Kementerian Luar Negeri
-          </p>
+      {/* Header Section */}
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center space-x-2.5">
+          <h1 className="text-xl font-bold text-[#0F172A]">
+            Ringkasan Perjalanan Dinas
+          </h1>
+          <span className="text-xs font-semibold uppercase tracking-wider bg-slate-200/80 text-slate-700 px-2.5 py-0.5 rounded-md">
+            {userRole}
+          </span>
         </div>
 
         {/* Action Controls: Persona Toggle & Buat Usulan (Sejajar di sebelah kanan) */}
@@ -223,7 +218,7 @@ export default function Dashboard({
           <div className="inline-flex p-1 bg-white rounded-xl border border-slate-200 shadow-xs">
             <button
               onClick={() => setStatsScope('personal')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 statsScope === 'personal'
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -236,7 +231,7 @@ export default function Dashboard({
 
             <button
               onClick={() => setStatsScope('global')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 statsScope === 'global'
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -251,7 +246,7 @@ export default function Dashboard({
           {(userRole === 'pemohon' || userRole === 'sespalu' || userRole === 'admin') && (
             <Link
               href="/surat-tugas/create"
-              className="inline-flex items-center space-x-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-4 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5 text-xs sm:text-sm whitespace-nowrap"
+              className="inline-flex items-center space-x-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-4 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5 text-xs sm:text-sm whitespace-nowrap"
             >
               <span>+ Buat Usulan</span>
             </Link>
@@ -259,145 +254,129 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* Alert Peringatan: Keberangkatan Mendesak / Urgent Pending Trips */}
-      {urgentPending && urgentPending.length > 0 && (
-        <div className="mb-8 rounded-2xl bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-amber-500/10 border-2 border-amber-300/80 p-5 shadow-sm">
-          <div className="flex items-start space-x-3.5 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-base font-bold text-slate-900">
-                  Radar Urgensi: {urgentPending.length} Usulan Dinas Mepet (Berangkat ≤ 3 Hari)
-                </h3>
-                <span className="bg-rose-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
-                  Perlu Percepatan
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 mt-0.5">
-                Surat tugas berikut mendekati tanggal pelaksanaan namun belum tuntas proses penerbitannya. Mohon segera ditindaklanjuti agar administrasi tiket & perbekalan tidak terhambat.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {urgentPending.map((surat) => {
-              const urgency = getUrgencyBadge(surat.tanggal_berangkat);
-              const tujuan = surat.kategori_perjalanan === 'LUAR_NEGERI'
-                ? (surat.negara_tujuan || surat.tempat_tujuan || 'Luar Negeri')
-                : (surat.tempat_tujuan || 'Dalam Negeri');
-
-              return (
-                <div 
-                  key={surat.id}
-                  className="bg-white rounded-xl p-3.5 border border-amber-200/90 shadow-xs flex flex-col justify-between hover:shadow-md transition"
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      {urgency && (
-                        <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border ${urgency.className}`}>
-                          {urgency.text}
-                        </span>
-                      )}
-                      <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                        #{surat.id}
-                      </span>
-                    </div>
-
-                    <h4 className="text-sm font-bold text-slate-900 line-clamp-1 mb-1">
-                      {surat.perihal_nota}
-                    </h4>
-
-                    <div className="flex items-center space-x-1.5 text-xs text-slate-600 mb-1">
-                      <MapPin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                      <span className="truncate font-medium">{tujuan}</span>
-                      <span className="text-slate-300">•</span>
-                      <span>{formatDate(surat.tanggal_berangkat)}</span>
-                    </div>
-
-                    <div className="text-[11px] text-slate-500">
-                      Pengusul: <span className="font-semibold text-slate-700">{surat.user?.name || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
-                      {statusLabels[surat.status] || surat.status}
-                    </span>
-
-                    <Link
-                      href={`/surat-tugas/${surat.id}`}
-                      className="inline-flex items-center space-x-1 text-xs font-bold text-blue-600 hover:text-blue-700 group"
-                    >
-                      <span>Aksi</span>
-                      <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Scope Indicator Note */}
-      <div className="flex items-center justify-between mb-3 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-          <span>Statistik Aktif: <strong>{statsScope === 'personal' ? 'Usulan Anda Sendiri' : 'Seluruh Surat Pusdiklat'}</strong></span>
-        </span>
-        <span className="text-[11px] text-slate-400">Dapat diganti kapan saja melalui tombol di atas</span>
-      </div>
-
       {/* Stats Cards (Reactive to Persona Scope) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Total Surat */}
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-xs font-semibold uppercase tracking-wider">
-                {statsScope === 'personal' ? 'Usulan Saya' : 'Total Surat Tugas'}
-              </p>
-              <p className="text-4xl font-extrabold mt-2">{activeTotalSurat}</p>
-            </div>
-            <FileSignature className="w-12 h-12 text-blue-200 opacity-80" />
+        <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
+          <div className="w-2 h-10 rounded-full bg-blue-500 flex-shrink-0"></div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {statsScope === 'personal' ? 'Usulan Saya' : 'Total Surat Tugas'}
+            </p>
+            <p className="text-3xl font-extrabold text-slate-900 mt-0.5">{activeTotalSurat}</p>
           </div>
         </div>
 
         {/* Menunggu Disposisi Kapus */}
-        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-amber-100 text-xs font-semibold uppercase tracking-wider">Menunggu Kapus</p>
-              <p className="text-4xl font-extrabold mt-2">{activeStatusStats.MENUNGGU_DISPOSISI_KAPUS || 0}</p>
-            </div>
-            <Clock className="w-12 h-12 text-amber-200 opacity-80" />
+        <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
+          <div className="w-2 h-10 rounded-full bg-amber-500 flex-shrink-0"></div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Menunggu Kapus</p>
+            <p className="text-3xl font-extrabold text-slate-900 mt-0.5">{activeStatusStats.MENUNGGU_DISPOSISI_KAPUS || 0}</p>
           </div>
         </div>
 
         {/* Menunggu TU */}
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-xs font-semibold uppercase tracking-wider">Menunggu TU</p>
-              <p className="text-4xl font-extrabold mt-2">{activeStatusStats.MENUNGGU_PENOMORAN_TU || 0}</p>
-            </div>
-            <AlertCircle className="w-12 h-12 text-purple-200 opacity-80" />
+        <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
+          <div className="w-2 h-10 rounded-full bg-purple-500 flex-shrink-0"></div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Menunggu TU</p>
+            <p className="text-3xl font-extrabold text-slate-900 mt-0.5">{activeStatusStats.MENUNGGU_PENOMORAN_TU || 0}</p>
           </div>
         </div>
 
         {/* Selesai Terbit */}
-        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-emerald-100 text-xs font-semibold uppercase tracking-wider">Selesai Terbit</p>
-              <p className="text-4xl font-extrabold mt-2">{activeStatusStats.SELESAI_TERBIT || 0}</p>
-            </div>
-            <CheckCircle2 className="w-12 h-12 text-emerald-200 opacity-80" />
+        <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
+          <div className="w-2 h-10 rounded-full bg-emerald-500 flex-shrink-0"></div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Selesai Terbit</p>
+            <p className="text-3xl font-extrabold text-slate-900 mt-0.5">{activeStatusStats.SELESAI_TERBIT || 0}</p>
           </div>
         </div>
       </div>
+
+      {/* Alert Peringatan: Keberangkatan Mendesak / Urgent Pending Trips */}
+      {urgentPending && urgentPending.length > 0 && (
+        <div className="mb-6">
+          {/* Compact Alert Bar */}
+          <div
+            className="flex items-center justify-between gap-3 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl cursor-pointer hover:bg-amber-100 transition"
+            onClick={() => setUrgencyExpanded(!urgencyExpanded)}
+          >
+            <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <span>⚠️ Radar Urgensi: {urgentPending.length} Usulan Dinas Mepet (Berangkat ≤ 3 Hari)</span>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs font-semibold text-amber-700 bg-amber-200 px-2 py-0.5 rounded-full">Perlu Percepatan</span>
+              <ChevronRight
+                className={`w-4 h-4 text-amber-600 transition-transform ${urgencyExpanded ? 'rotate-90' : ''}`}
+              />
+            </div>
+          </div>
+
+          {/* Expandable Cards Grid */}
+          {urgencyExpanded && (
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {urgentPending.map((surat) => {
+                const urgency = getUrgencyBadge(surat.tanggal_berangkat);
+                const tujuan = surat.kategori_perjalanan === 'LUAR_NEGERI'
+                  ? (surat.negara_tujuan || surat.tempat_tujuan || 'Luar Negeri')
+                  : (surat.tempat_tujuan || 'Dalam Negeri');
+
+                return (
+                  <div 
+                    key={surat.id}
+                    className="bg-white rounded-xl p-3.5 border border-amber-200/90 shadow-xs flex flex-col justify-between hover:shadow-md transition"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        {urgency && (
+                          <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border ${urgency.className}`}>
+                            {urgency.text}
+                          </span>
+                        )}
+                        <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                          #{surat.id}
+                        </span>
+                      </div>
+
+                      <h4 className="text-sm font-bold text-slate-900 line-clamp-1 mb-1">
+                        {surat.perihal_nota}
+                      </h4>
+
+                      <div className="flex items-center space-x-1.5 text-xs text-slate-600 mb-1">
+                        <MapPin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                        <span className="truncate font-medium">{tujuan}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="tabular-nums">{formatDate(surat.tanggal_berangkat)}</span>
+                      </div>
+
+                      <div className="text-[11px] text-slate-500">
+                        Pengusul: <span className="font-semibold text-slate-700">{surat.user?.name || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                        {statusLabels[surat.status] || surat.status}
+                      </span>
+
+                      <Link
+                        href={`/surat-tugas/${surat.id}`}
+                        className="inline-flex items-center space-x-1 text-xs font-semibold text-blue-600 hover:text-blue-700 group"
+                      >
+                        <span>Aksi</span>
+                        <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Monitoring Penugasan Pegawai (Sedang Dinas Hari Ini & Keberangkatan Mendatang H-7) */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 mb-8">
@@ -419,7 +398,7 @@ export default function Dashboard({
           <div className="inline-flex p-1 bg-slate-100 rounded-xl self-start sm:self-auto border border-slate-200">
             <button
               onClick={() => setActiveDutyTab('onDuty')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                 activeDutyTab === 'onDuty'
                   ? 'bg-white text-blue-700 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -436,7 +415,7 @@ export default function Dashboard({
 
             <button
               onClick={() => setActiveDutyTab('upcoming')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                 activeDutyTab === 'upcoming'
                   ? 'bg-white text-blue-700 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -1058,7 +1037,7 @@ export default function Dashboard({
                             <span className="text-xs font-bold text-slate-900">
                               {log.user?.name || 'Sistem'}
                             </span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.badge}`}>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${meta.badge}`}>
                               {meta.label}
                             </span>
                           </div>
