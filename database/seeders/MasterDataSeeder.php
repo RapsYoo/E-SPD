@@ -10,6 +10,7 @@ use App\Models\UptBidang;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+
 use Illuminate\Support\Facades\Hash;
 
 class MasterDataSeeder extends Seeder
@@ -137,6 +138,72 @@ class MasterDataSeeder extends Seeder
         foreach ($jenisAngkutanData as $data) {
             JenisAngkutan::updateOrCreate(['kode' => $data['kode']], $data);
         }
+
+        // 7. Seed Sample Complete Surat Tugas & SPD
+        $ppkUser = User::with('pegawai')->where('role', 'ppk')->first();
+        $st = SuratTugas::updateOrCreate(
+            ['nomor_st' => 'ST/KP/08581/08/2026/79'],
+            [
+                'user_id' => User::where('role', 'pemohon')->first()?->id,
+                'kategori_perjalanan' => 'DALAM_NEGERI',
+                'sumber_asal' => 'EKSTERNAL',
+                'nomor_nota' => 'Undangan/OT/01710/08/2026/21',
+                'pengirim_nota' => 'Pusat Studi Jepang Universitas Indonesia',
+                'tanggal_nota' => '2026-08-20',
+                'perihal_nota' => 'Undangan Rapat Koordinasi Pembahasan Capaian Peta Jalan Postur Diplomasi Tahun 2026 serta reviu progres dan penghitungan capaian indikator.',
+                'status' => 'SELESAI_TERBIT',
+                'kapus_decision' => 'YA',
+                'catatan_kapus' => 'Tugaskan sdr. Geovannie Foresty Palembangan (Diplomat Ahli Madya) beserta tim pendamping untuk menghadiri rapat koordinasi tersebut.',
+                'ppk_id' => $ppkUser?->id,
+                'ppk_nama_snapshot' => $ppkUser?->pegawai?->nama ?? $ppkUser?->name ?? 'GEORGE JUNIOR',
+                'ppk_nip_snapshot' => $ppkUser?->pegawai?->nip ?? '19790315 200312 1 002',
+                'tingkat_biaya_kode' => 'C',
+                'jenis_angkutan_nama' => 'Perjalanan Darat',
+                'tempat_berangkat' => 'Jakarta',
+                'tempat_tujuan' => 'Depok, Jawa Barat',
+                'tanggal_berangkat' => '2026-08-27',
+                'tanggal_kembali' => '2026-09-01',
+                'durasi_hari' => 6,
+                'nomor_st' => 'ST/KP/08581/08/2026/79',
+                'nomor_spd' => '0088/DL-SPD/VIII/2026/79',
+                'tanggal_surat' => '2026-08-21',
+                'is_ppk_signed' => true,
+                'signed_at' => now(),
+            ]
+        );
+
+        // Attach Officers to sample ST
+        $peg1 = Pegawai::where('nama', 'like', '%Geovannie%')->first();
+        $peg2 = Pegawai::where('nama', 'like', '%Siti Rahmah%')->first();
+
+        if ($peg1) {
+            SuratTugasPegawai::updateOrCreate(
+                ['surat_tugas_id' => $st->id, 'pegawai_id' => $peg1->id],
+                [
+                    'nama' => $peg1->nama,
+                    'nip' => $peg1->nip,
+                    'pangkat' => $peg1->pangkat,
+                    'golongan' => $peg1->golongan,
+                    'jabatan' => $peg1->jabatan,
+                    'unit_kerja' => $peg1->unit_kerja,
+                    'urutan' => 1,
+                ]
+            );
+        }
+
+        if ($peg2) {
+            SuratTugasPegawai::updateOrCreate(
+                ['surat_tugas_id' => $st->id, 'pegawai_id' => $peg2->id],
+                [
+                    'nama' => $peg2->nama,
+                    'nip' => $peg2->nip,
+                    'pangkat' => $peg2->pangkat,
+                    'golongan' => $peg2->golongan,
+                    'jabatan' => $peg2->jabatan,
+                    'unit_kerja' => $peg2->unit_kerja,
+                    'urutan' => 2,
+                ]
+            );
+        }
     }
 }
-
