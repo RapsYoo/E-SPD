@@ -59,42 +59,42 @@ class RbacService
     public const MODULES = [
         [
             'key' => 'surat_tugas.view',
-            'category' => 'Dokumen ST & SPD',
-            'label' => 'Lihat Daftar & Detail ST/SPD',
-            'description' => 'Menampilkan menu Daftar ST & SPD di sidebar serta membuka halaman detail ruang kerja surat.',
+            'category' => 'Dokumen Jaldis',
+            'label' => 'Lihat Daftar & Detail Jaldis',
+            'description' => 'Menampilkan menu Daftar Jaldis di sidebar serta membuka halaman detail ruang kerja surat.',
             'route_hint' => '/surat-tugas',
         ],
         [
             'key' => 'surat_tugas.create',
-            'category' => 'Dokumen ST & SPD',
-            'label' => 'Buat & Edit Usulan Surat Baru',
-            'description' => 'Menampilkan menu Buat Surat Baru di sidebar serta mengizinkan pembuatan/penyuntingan draft ST & SPD.',
+            'category' => 'Dokumen Jaldis',
+            'label' => 'Buat Penugasan Baru',
+            'description' => 'Menampilkan menu Buat Penugasan di sidebar serta mengizinkan pembuatan/penyuntingan draft penugasan.',
             'route_hint' => '/surat-tugas/create',
         ],
         [
             'key' => 'surat_tugas.disposisi',
-            'category' => 'Dokumen ST & SPD',
+            'category' => 'Dokumen Jaldis',
             'label' => 'Proses Disposisi Kapus',
             'description' => 'Mengizinkan pemberian keputusan disposisi (Setuju, Revisi, atau Stop) pada usulan Surat Tugas.',
             'route_hint' => 'POST /surat-tugas/{id}/disposisi',
         ],
         [
             'key' => 'surat_tugas.penomoran',
-            'category' => 'Dokumen ST & SPD',
+            'category' => 'Dokumen Jaldis',
             'label' => 'Proses Penomoran Resmi TU',
             'description' => 'Mengizinkan pengisian nomor resmi Surat Tugas (ST) & SPD serta menerbitkan dokumen.',
             'route_hint' => 'POST /surat-tugas/{id}/penomoran',
         ],
         [
             'key' => 'surat_tugas.sign_ppk',
-            'category' => 'Dokumen ST & SPD',
+            'category' => 'Dokumen Jaldis',
             'label' => 'Sematkan TTD Digital PPK',
             'description' => 'Mengizinkan penyematan atau pembatalan tanda tangan digital PPK pada lembar SPD.',
             'route_hint' => 'POST /surat-tugas/{id}/sign-ppk',
         ],
         [
             'key' => 'surat_tugas.print',
-            'category' => 'Dokumen ST & SPD',
+            'category' => 'Dokumen Jaldis',
             'label' => 'Lihat & Cetak Dokumen Resmi',
             'description' => 'Mengizinkan akses halaman pratinjau/cetak Surat Tugas, SPD, Lampiran Matriks, dan Visum.',
             'route_hint' => '/surat-tugas/{id}/cetak',
@@ -398,4 +398,3 @@ class RbacService
         return $matrix;
     }
 }
-
