@@ -10,7 +10,6 @@ use App\Models\UptBidang;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-
 use Illuminate\Support\Facades\Hash;
 
 class MasterDataSeeder extends Seeder
@@ -53,7 +52,7 @@ class MasterDataSeeder extends Seeder
             ],
             [
                 'email' => 'pemohon@pusdiklat.kemlu.go.id',
-                'name' => 'Sespalu / Pemohon',
+                'name' => 'Sesparlu / Pemohon',
                 'role' => 'pemohon',
                 'pegawai_id' => null,
             ],

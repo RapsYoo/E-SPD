@@ -91,7 +91,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
       message: 'Kapus menyetujui penugasan. Lengkapi draft Surat Tugas dan SPD sebelum dikirim kembali untuk disposisi.',
     },
     DISPOSISI_KAPUS_REVISI: {
-      label: 'Perlu revisi Sespalu',
+      label: 'Perlu revisi Sesparlu',
       message: 'Kapus meminta perbaikan. Perbarui draft Surat Tugas dan SPD lalu kirim kembali untuk disposisi.',
     },
     DISPOSISI_KAPUS_STOP: {
@@ -99,12 +99,12 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
       message: 'Kapus menghentikan proses surat ini.',
     },
     DRAFT: {
-      label: 'Draft Sespalu',
+      label: 'Draft Sesparlu',
       message: 'Isian masih disimpan sebagai draft dan belum dikirim ke Kapus.',
     },
     MENUNGGU_PENOMORAN_TU: {
       label: 'Menunggu verifikasi dan nomor TU',
-      message: 'Draft Sespalu sudah dikirim. TU sedang memeriksa dan mengisi nomor resmi Surat Tugas serta SPD.',
+      message: 'Draft Sesparlu sudah dikirim. TU sedang memeriksa dan mengisi nomor resmi Surat Tugas serta SPD.',
     },
     SELESAI_TERBIT: {
       label: 'Selesai diterbitkan TU',
@@ -209,7 +209,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
               </div>
               <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-lg">
                 Diajukan oleh: <strong className="text-slate-800">{suratTugas.user?.name || 'Sistem'}</strong>
-                <span className="ml-1 text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase font-bold">({suratTugas.user?.role || 'user'})</span>
+                <span className="ml-1 text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase font-bold">({suratTugas.user?.role === 'sespalu' ? 'sesparlu' : (suratTugas.user?.role || 'user')})</span>
               </div>
             </div>
 
@@ -292,7 +292,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
             <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Lampiran Nota / Izin Setneg</h3>
-                <p className="mt-1 text-xs text-slate-500">Dokumen yang dikirim Sespalu untuk ditinjau dalam proses surat.</p>
+                <p className="mt-1 text-xs text-slate-500">Dokumen yang dikirim Sesparlu untuk ditinjau dalam proses surat.</p>
               </div>
               {[{ key: 'invitation', label: 'Nota / Undangan' }, { key: 'setneg', label: 'Izin Setneg / Keppres' }]
                 .filter(({ key }) => attachments[key])
@@ -410,7 +410,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold"
                 >
                   <option value="YA">Setuju (Lanjut ke Penomoran TU)</option>
-                  <option value="REVISI">Minta Revisi ke Sespalu</option>
+                  <option value="REVISI">Minta Revisi ke Sesparlu</option>
                   <option value="STOP">Hentikan (Stop)</option>
                 </select>
               </div>
@@ -725,7 +725,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
                           {log.dari_status || '-'} → {log.ke_status || '-'}
                         </span>
                       )}
-                      <span>oleh <strong className="text-slate-800">{log.user?.name || 'Sistem'} ({log.user?.role || '-'})</strong></span>
+                      <span>oleh <strong className="text-slate-800">{log.user?.name || 'Sistem'} ({log.user?.role === 'sespalu' ? 'sesparlu' : (log.user?.role || '-')})</strong></span>
                     </div>
                     {(log.catatan || log.keterangan) && (
                       <p className="text-[11px] text-slate-500 mt-1 italic">“{log.catatan || log.keterangan}”</p>

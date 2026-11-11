@@ -84,10 +84,10 @@ export default function Dashboard({
 
     // Status workflow labels
     const statusLabels = {
-        DRAFT: "Draft Sespalu",
+        DRAFT: "Draft Sesparlu",
         MENUNGGU_DISPOSISI_KAPUS: "Menunggu Kapus",
         DISPOSISI_KAPUS_YA: "Disetujui Kapus",
-        DISPOSISI_KAPUS_REVISI: "Revisi Sespalu",
+        DISPOSISI_KAPUS_REVISI: "Revisi Sesparlu",
         DISPOSISI_KAPUS_STOP: "Dihentikan",
         MENUNGGU_PENOMORAN_TU: "Menunggu TU",
         SELESAI_TERBIT: "Selesai Terbit",
@@ -98,7 +98,7 @@ export default function Dashboard({
         tu: "Menunggu Penomoran Resmi TU",
         ppk: "Menunggu TTD Digital PPK",
         pemohon: "Perlu Tindak Lanjut Pemohon",
-        sespalu: "Perlu Tindak Lanjut Sespalu",
+        sespalu: "Perlu Tindak Lanjut Sesparlu",
         admin: "Surat Menunggu Tindakan",
     };
 

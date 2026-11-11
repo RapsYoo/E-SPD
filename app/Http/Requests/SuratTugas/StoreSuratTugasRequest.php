@@ -18,7 +18,7 @@ class StoreSuratTugasRequest extends ProposerRequest
 
     protected function deniedMessage(): string
     {
-        return 'Hanya Sespalu/Pemohon atau Admin yang dapat mengirim usulan Surat Tugas.';
+        return 'Hanya Sesparlu/Pemohon atau Admin yang dapat mengirim usulan Surat Tugas.';
     }
 
     /** Tahap 1 hanya berisi data nota; pengiriman ke Kapus dilakukan setelah tahap 2 lengkap. */

@@ -25,7 +25,7 @@ class RbacService
             'badge' => 'Pemohon Usulan',
         ],
         'sespalu' => [
-            'label' => 'Sespalu',
+            'label' => 'Sesparlu',
             'description' => 'Sekretariat Pusdiklat pengelola nota & draft ST/SPD.',
             'badge' => 'Sekretariat',
         ],

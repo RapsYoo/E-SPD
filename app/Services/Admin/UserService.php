@@ -18,7 +18,7 @@ class UserService
     public const ROLES = [
         'admin' => 'Admin Master',
         'pemohon' => 'Pemohon',
-        'sespalu' => 'Sespalu',
+        'sespalu' => 'Sesparlu',
         'kapus' => 'Kepala Pusat (Kapus)',
         'tu' => 'Tata Usaha (TU)',
         'ppk' => 'PPK',

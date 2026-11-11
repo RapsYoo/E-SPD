@@ -43,7 +43,7 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
       default:
         return (
           <span className="bg-indigo-600 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
-            Pemohon / Sespalu
+            Pemohon / Sesparlu
           </span>
         );
     }

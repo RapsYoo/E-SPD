@@ -252,7 +252,7 @@ export default function AdminRbacIndex({
                   Konfigurasi Role: {activeRoleMeta.label}
                 </h2>
                 <span className="rounded-md bg-amber-100 px-2 py-0.5 font-mono text-[11px] font-bold uppercase text-amber-800">
-                  {selectedRole}
+                  {selectedRole === 'sespalu' ? 'sesparlu' : selectedRole}
                 </span>
                 {hasUnsavedChanges && (
                   <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-bold text-rose-700">

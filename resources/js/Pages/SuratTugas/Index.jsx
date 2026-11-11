@@ -95,7 +95,7 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
         switch (status) {
             case "DRAFT":
                 return {
-                    label: "Sespalu / Pemohon",
+                    label: "Sesparlu / Pemohon",
                     role: "Konseptor",
                     color: "text-slate-700 bg-slate-100 border-slate-200",
                 };
@@ -107,13 +107,13 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                 };
             case "DISPOSISI_KAPUS_YA":
                 return {
-                    label: "Sespalu / Pemohon",
+                    label: "Sesparlu / Pemohon",
                     role: "Draft Personel & SPD",
                     color: "text-blue-700 bg-blue-50 border-blue-200",
                 };
             case "DISPOSISI_KAPUS_REVISI":
                 return {
-                    label: "Sespalu / Pemohon",
+                    label: "Sesparlu / Pemohon",
                     role: "Perlu Revisi Draft ST & SPD",
                     color: "text-amber-700 bg-amber-50 border-amber-200",
                 };
@@ -627,8 +627,12 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                 </div>
                                                                 <div className="text-slate-500 mt-0.5 uppercase font-bold text-[10px] bg-slate-200 inline-block px-1.5 py-0.5 rounded">
                                                                     {st.user
-                                                                        ?.role ||
-                                                                        "user"}
+                                                                        ?.role ===
+                                                                    "sespalu"
+                                                                        ? "sesparlu"
+                                                                        : st.user
+                                                                              ?.role ||
+                                                                          "user"}
                                                                 </div>
                                                             </div>
 

@@ -44,7 +44,7 @@ class SuratTugasController extends Controller
     public function create()
     {
         if (! app(RbacService::class)->hasPermission(auth()->user(), 'surat_tugas.create')) {
-            return redirect()->route('surat-tugas.index')->with('error', 'Hanya Sespalu/Pemohon atau Admin yang dapat membuat usulan Surat Tugas.');
+            return redirect()->route('surat-tugas.index')->with('error', 'Hanya Sesparlu/Pemohon atau Admin yang dapat membuat usulan Surat Tugas.');
         }
 
         return Inertia::render('SuratTugas/Create', $this->drafts->formOptions() + [

@@ -440,10 +440,10 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                   <Upload className="w-5 h-5 text-amber-500" />
                   <span>Tahap 1: Registrasi Nota / Undangan Masuk</span>
                 </h2>
-                <p className="text-xs text-slate-500">Pemicu awal usulan penugasan dinas (Input oleh Pemohon / Sespalu)</p>
+                <p className="text-xs text-slate-500">Pemicu awal usulan penugasan dinas (Input oleh Pemohon / Sesparlu)</p>
               </div>
               <span className="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">
-                Aktor: Pemohon / Sespalu
+                Aktor: Pemohon / Sesparlu
               </span>
             </div>
 
@@ -618,7 +618,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                 <p className="text-xs text-slate-500">Pilih Pejabat Komitmen (PPK) & Personel Pegawai yang ditugaskan</p>
               </div>
               <span className="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">
-                Aktor: Sespalu / Konseptor
+                Aktor: Sesparlu / Konseptor
               </span>
             </div>
 

@@ -13,7 +13,7 @@ class SaveDraftRequest extends ProposerRequest
 {
     protected function deniedMessage(): string
     {
-        return 'Hanya Sespalu/Pemohon atau Admin yang dapat menyimpan draft.';
+        return 'Hanya Sesparlu/Pemohon atau Admin yang dapat menyimpan draft.';
     }
 
     public function authorize(): bool

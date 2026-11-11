@@ -37,7 +37,7 @@ class WorkflowService
     public function disposisi(SuratTugas $suratTugas, User $user, array $validated): void
     {
         $this->assertModule($user, 'surat_tugas.disposisi', 'Hanya Kepala Pusat (Kapus) atau Admin yang berhak memberikan disposisi.');
-        $this->assertStatus($suratTugas, S::MENUNGGU_DISPOSISI_KAPUS, 'Disposisi Kapus hanya dapat dilakukan setelah usulan dikirim oleh Sespalu.');
+        $this->assertStatus($suratTugas, S::MENUNGGU_DISPOSISI_KAPUS, 'Disposisi Kapus hanya dapat dilakukan setelah usulan dikirim oleh Sesparlu.');
 
         $status = match ($validated['kapus_decision']) {
             'YA' => S::MENUNGGU_PENOMORAN_TU,
