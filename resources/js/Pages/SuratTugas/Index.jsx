@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
+import "@/../css/rekapitulasi-pegawai.css";
 import {
     Plus,
     Search,
@@ -15,10 +16,77 @@ import {
     ArrowRight,
     Trash2,
     ChevronDown,
+    ChevronLeft,
+    ChevronRight,
     MoreHorizontal,
     User,
     UserCheck,
 } from "lucide-react";
+
+const formatDisplayValue = (value) => {
+    if (value == null) {
+        return "–";
+    }
+
+    const text = String(value).trim();
+    return !text || text.toLowerCase() === "null" ? "–" : text;
+};
+
+const formatDisplayDate = (value) => {
+    const text = formatDisplayValue(value);
+    if (text === "–") {
+        return null;
+    }
+
+    const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) {
+        return text;
+    }
+
+    const [, year, month, day] = match;
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+    if (Number.isNaN(date.getTime())) {
+        return text;
+    }
+
+    return new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    })
+        .format(date)
+        .replace(/\./g, "");
+};
+
+const formatDateRange = (startDate, endDate, duration) => {
+    const start = formatDisplayDate(startDate);
+    const end = formatDisplayDate(endDate);
+    if (!start && !end) {
+        return "–";
+    }
+
+    const range = `${start || "–"} – ${end || "–"}`;
+    const durationLabel = formatDisplayValue(duration).replace(/\s*hari$/i, "");
+    return durationLabel === "–"
+        ? range
+        : `${range}, ${durationLabel} hari`;
+};
+
+const formatCategoryLabel = (value) => {
+    const category = formatDisplayValue(value);
+    if (category === "–") {
+        return category;
+    }
+
+    return category
+        .replace(/_/g, " ")
+        .split(" ")
+        .map(
+            (word) =>
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+        )
+        .join(" ");
+};
 
 export default function Index({ suratTugas, filters, userRole, authUserId }) {
     const searchTimeout = useRef(null);
@@ -27,8 +95,28 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
     const [deletingId, setDeletingId] = useState(null);
     const [expandedRow, setExpandedRow] = useState(null);
     const [openMenu, setOpenMenu] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [theme, setTheme] = useState(() => {
+        if (typeof window === "undefined") {
+            return "light";
+        }
+
+        const savedTheme = window.localStorage.getItem("rekap-jaldis-theme");
+        const initialTheme =
+            savedTheme ||
+            (window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light");
+        document.documentElement.dataset.theme = initialTheme;
+        return initialTheme;
+    });
 
     useEffect(() => () => clearTimeout(searchTimeout.current), []);
+
+    useEffect(() => {
+        document.documentElement.dataset.theme = theme;
+        window.localStorage.setItem("rekap-jaldis-theme", theme);
+    }, [theme]);
 
     // Close kebab menu on outside click
     useEffect(() => {
@@ -53,6 +141,8 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                     preserveState: true,
                     preserveScroll: true,
                     replace: true,
+                    onStart: () => setIsLoading(true),
+                    onFinish: () => setIsLoading(false),
                 },
             );
         }, 350);
@@ -64,7 +154,12 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
         router.get(
             "/surat-tugas",
             { search, status: selectedStatus },
-            { preserveState: true, preserveScroll: true },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onStart: () => setIsLoading(true),
+                onFinish: () => setIsLoading(false),
+            },
         );
     };
 
@@ -97,49 +192,49 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                 return {
                     label: "Sesparlu / Pemohon",
                     role: "Konseptor",
-                    color: "text-slate-700 bg-slate-100 border-slate-200",
+                    color: "st-workflow-tag st-workflow-tag--neutral",
                 };
             case "MENUNGGU_DISPOSISI_KAPUS":
                 return {
                     label: "Kapus (Kepala Pusat)",
                     role: "Disposisi Tahap 3",
-                    color: "text-purple-700 bg-purple-50 border-purple-200",
+                    color: "st-workflow-tag st-workflow-tag--accent",
                 };
             case "DISPOSISI_KAPUS_YA":
                 return {
                     label: "Sesparlu / Pemohon",
                     role: "Draft Personel & SPD",
-                    color: "text-blue-700 bg-blue-50 border-blue-200",
+                    color: "st-workflow-tag st-workflow-tag--accent",
                 };
             case "DISPOSISI_KAPUS_REVISI":
                 return {
                     label: "Sesparlu / Pemohon",
                     role: "Perlu Revisi Draft ST & SPD",
-                    color: "text-amber-700 bg-amber-50 border-amber-200",
+                    color: "st-workflow-tag st-workflow-tag--warning",
                 };
             case "DISPOSISI_KAPUS_STOP":
                 return {
                     label: "Selesai (Stop)",
                     role: "Dihentikan",
-                    color: "text-red-700 bg-red-50 border-red-200",
+                    color: "st-workflow-tag st-workflow-tag--warning",
                 };
             case "MENUNGGU_PENOMORAN_TU":
                 return {
                     label: "Tata Usaha (TU)",
                     role: "Penomoran",
-                    color: "text-indigo-700 bg-indigo-50 border-indigo-200",
+                    color: "st-workflow-tag st-workflow-tag--accent",
                 };
             case "SELESAI_TERBIT":
                 return {
                     label: "PPK / Terbit Resmi",
                     role: "Selesai",
-                    color: "text-emerald-700 bg-emerald-50 border-emerald-200",
+                    color: "st-workflow-tag st-workflow-tag--success",
                 };
             default:
                 return {
                     label: "Sistem",
                     role: "-",
-                    color: "text-slate-600 bg-slate-100 border-slate-200",
+                    color: "st-workflow-tag st-workflow-tag--neutral",
                 };
         }
     };
@@ -148,52 +243,52 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
         switch (status) {
             case "DRAFT":
                 return (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">
+                    <span className="st-status st-status--draft">
                         <FileText className="w-3.5 h-3.5 mr-1" /> Draft
                     </span>
                 );
             case "MENUNGGU_DISPOSISI_KAPUS":
                 return (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                    <span className="st-status st-status--warning">
                         <Clock className="w-3.5 h-3.5 mr-1" /> Menunggu Kapus
                     </span>
                 );
             case "DISPOSISI_KAPUS_YA":
                 return (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-300">
+                    <span className="st-status st-status--accent">
                         <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Disetujui
                         Kapus
                     </span>
                 );
             case "SELESAI_TERBIT":
                 return (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    <span className="st-status st-status--success">
                         <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Selesai
                         Terbit
                     </span>
                 );
             case "MENUNGGU_PENOMORAN_TU":
                 return (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-300">
+                    <span className="st-status st-status--accent">
                         <Clock className="w-3.5 h-3.5 mr-1" /> Menunggu TU
                     </span>
                 );
             case "DISPOSISI_KAPUS_REVISI":
                 return (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-300">
+                    <span className="st-status st-status--warning">
                         <AlertCircle className="w-3.5 h-3.5 mr-1" /> Minta
                         Revisi
                     </span>
                 );
             case "DISPOSISI_KAPUS_STOP":
                 return (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-300">
+                    <span className="st-status st-status--warning">
                         <AlertCircle className="w-3.5 h-3.5 mr-1" /> Dihentikan
                     </span>
                 );
             default:
                 return (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                    <span className="st-status st-status--warning">
                         <Clock className="w-3.5 h-3.5 mr-1" /> Menunggu Proses
                     </span>
                 );
@@ -206,108 +301,173 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
             ["tu", "admin", "kapus", "ppk"].includes(userRole));
 
     return (
-        <AdminLayout title="Daftar Surat Tugas & SPD">
+        <AdminLayout
+            title="Daftar Surat Tugas & SPD"
+            variant="analytics"
+            theme={theme}
+            onThemeToggle={() => {
+                const nextTheme = theme === "dark" ? "light" : "dark";
+                document.documentElement.dataset.theme = nextTheme;
+                setTheme(nextTheme);
+            }}
+        >
             <Head title="Daftar Surat Tugas & SPD - Pusdiklat Kemlu" />
 
-            {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
-                    E-Surat Tugas & SPD Online
-                </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                    Pengelolaan Surat Tugas & SPD Pusdiklat Kemlu
-                </p>
-            </div>
+            <div className="surat-tugas-page" data-theme={theme}>
+                <header className="st-page-header">
+                    <div className="st-page-heading">
+                        <div className="st-title-icon">
+                            <FileText className="h-5 w-5" />
+                        </div>
+                        <div className="st-title-copy">
+                            <h1 className="st-title">
+                                Daftar Surat Tugas &amp; SPD
+                            </h1>
+                            <p className="st-subtitle">
+                                Pengelolaan dokumen perjalanan dinas
+                            </p>
+                        </div>
+                    </div>
+                    <div className="st-count-chip">
+                        <span className="st-count-dot" />
+                        {suratTugas.data?.length || 0} dokumen di halaman ini
+                    </div>
+                </header>
 
-            {/* Search & Filter Bar (inline, no card wrapper) */}
-            <form
-                onSubmit={handleSearch}
-                className="flex items-center gap-2 mb-6 flex-wrap"
-            >
-                <div className="relative flex-1 min-w-48">
-                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={(e) => searchSuratTugas(e.target.value)}
-                        placeholder="Cari nomor ST, nomor nota, perihal..."
-                        className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                    />
-                </div>
+                <form onSubmit={handleSearch} className="st-toolbar">
+                    <div className="st-search-field">
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => searchSuratTugas(e.target.value)}
+                            placeholder="Cari nomor ST, nomor nota, perihal..."
+                            aria-label="Cari nomor ST, nomor nota, atau perihal"
+                            className="st-search-input"
+                        />
+                        <button
+                            type="submit"
+                            className="st-search-submit"
+                            aria-label="Cari surat tugas"
+                            title="Cari"
+                        >
+                            <Search className="h-4 w-4" />
+                        </button>
+                    </div>
 
-                <select
-                    value={selectedStatus}
-                    onChange={(e) => {
-                        clearTimeout(searchTimeout.current);
-                        setSelectedStatus(e.target.value);
-                        router.get(
-                            "/surat-tugas",
-                            { search, status: e.target.value },
-                            {
-                                preserveState: true,
-                                preserveScroll: true,
-                                replace: true,
-                            },
-                        );
-                    }}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 focus:ring-amber-500 focus:outline-none"
-                >
-                    <option value="">Semua Status</option>
-                    <option value="DRAFT">Draft Saya</option>
-                    <option value="MENUNGGU_DISPOSISI_KAPUS">
-                        Menunggu Kapus
-                    </option>
-                    <option value="MENUNGGU_PENOMORAN_TU">Menunggu TU</option>
-                    <option value="SELESAI_TERBIT">Selesai Terbit</option>
-                </select>
-
-                <button
-                    type="submit"
-                    className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-2 rounded-lg text-sm transition"
-                >
-                    Cari
-                </button>
-
-                {(userRole === "pemohon" ||
-                    userRole === "sespalu" ||
-                    userRole === "admin") && (
-                    <Link
-                        href="/surat-tugas/create"
-                        className="inline-flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg shadow-sm shadow-amber-500/20 transition text-sm ml-auto"
+                    <select
+                        value={selectedStatus}
+                        onChange={(e) => {
+                            clearTimeout(searchTimeout.current);
+                            setSelectedStatus(e.target.value);
+                            router.get(
+                                "/surat-tugas",
+                                { search, status: e.target.value },
+                                {
+                                    preserveState: true,
+                                    preserveScroll: true,
+                                    replace: true,
+                                    onStart: () => setIsLoading(true),
+                                    onFinish: () => setIsLoading(false),
+                                },
+                            );
+                        }}
+                        className="st-status-filter"
+                        aria-label="Filter status"
                     >
-                        <Plus className="w-4 h-4" />
-                        <span>Buat Surat Tugas Baru</span>
-                    </Link>
-                )}
-            </form>
+                        <option value="">Semua Status</option>
+                        <option value="DRAFT">Draft Saya</option>
+                        <option value="MENUNGGU_DISPOSISI_KAPUS">
+                            Menunggu Kapus
+                        </option>
+                        <option value="MENUNGGU_PENOMORAN_TU">
+                            Menunggu TU
+                        </option>
+                        <option value="SELESAI_TERBIT">Selesai Terbit</option>
+                    </select>
 
-            {/* Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-600">
-                        <thead className="bg-slate-50 border-b border-slate-200 text-[12px] font-semibold text-slate-500 uppercase tracking-[0.05em]">
+                    {(userRole === "pemohon" ||
+                        userRole === "sespalu" ||
+                        userRole === "admin") && (
+                        <Link
+                            href="/surat-tugas/create"
+                            className="st-create-button"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span>Buat Surat Tugas Baru</span>
+                        </Link>
+                    )}
+                </form>
+
+                <section className="st-table-card">
+                    <div className="st-table-wrap">
+                    <table className="st-table">
+                        <thead className="st-table-head">
                             <tr>
-                                <th className="py-3 px-4 w-8"></th>
-                                <th className="py-3 px-4">Perihal</th>
-                                <th className="py-3 px-4">Tujuan & Tanggal</th>
-                                <th className="py-3 px-4 text-center">
-                                    Status
-                                </th>
-                                <th className="py-3 px-4 text-center">Aksi</th>
+                                <th aria-label="Detail" />
+                                <th>Perihal</th>
+                                <th>Tujuan &amp; Tanggal</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {suratTugas.data && suratTugas.data.length > 0 ? (
+                        <tbody className="st-table-body">
+                            {isLoading ? (
+                                Array.from({ length: 3 }, (_, idx) => (
+                                    <tr
+                                        className="st-skeleton-row"
+                                        key={`loading-${idx}`}
+                                    >
+                                        <td>
+                                            <span className="st-skeleton-line st-skeleton-line--icon" />
+                                        </td>
+                                        <td>
+                                            <span className="st-skeleton-line st-skeleton-line--subject" />
+                                        </td>
+                                        <td>
+                                            <span className="st-skeleton-line st-skeleton-line--trip" />
+                                        </td>
+                                        <td>
+                                            <span className="st-skeleton-line st-skeleton-line--status" />
+                                        </td>
+                                        <td>
+                                            <span className="st-skeleton-line st-skeleton-line--action" />
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : suratTugas.data && suratTugas.data.length > 0 ? (
                                 suratTugas.data.map((st) => {
                                     const isExpanded = expandedRow === st.id;
                                     const pegawaiList = getPegawaiList(st);
                                     const actor = getActorPosition(st.status);
+                                    const subject =
+                                        st.status === "DRAFT"
+                                            ? st.draft_data?.perihal_nota ||
+                                              "Draft belum lengkap"
+                                            : st.perihal_nota;
+                                    const destination =
+                                        st.status === "DRAFT"
+                                            ? st.draft_data?.tempat_tujuan
+                                            : st.tempat_tujuan;
+                                    const departureDate =
+                                        st.status === "DRAFT"
+                                            ? st.draft_data?.tanggal_berangkat
+                                            : st.tanggal_berangkat;
+                                    const returnDate =
+                                        st.status === "DRAFT"
+                                            ? st.draft_data?.tanggal_kembali
+                                            : st.tanggal_kembali;
+                                    const duration =
+                                        st.status === "DRAFT"
+                                            ? null
+                                            : st.durasi_hari;
 
                                     return (
                                         <React.Fragment key={st.id}>
-                                            <tr className="hover:bg-slate-50/60 transition">
+                                            <tr
+                                                className={`st-data-row ${isExpanded ? "is-expanded" : ""}`}
+                                            >
                                                 {/* Chevron toggle */}
-                                                <td className="py-3 px-4 w-8">
+                                                <td className="st-expand-cell">
                                                     <button
                                                         type="button"
                                                         onClick={() =>
@@ -317,63 +477,65 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                     : st.id,
                                                             )
                                                         }
-                                                        className="text-slate-400 hover:text-slate-700 transition"
+                                                        className="st-expand-button"
                                                         aria-label={
                                                             isExpanded
                                                                 ? "Tutup detail"
                                                                 : "Buka detail"
                                                         }
+                                                        aria-expanded={isExpanded}
                                                     >
                                                         <ChevronDown
-                                                            className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                                                            className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
                                                         />
                                                     </button>
                                                 </td>
 
                                                 {/* Perihal */}
-                                                <td className="py-3 px-4 max-w-xs">
-                                                    <div className="font-medium text-sm text-slate-900 line-clamp-2">
-                                                        {st.status === "DRAFT"
-                                                            ? st.draft_data
-                                                                  ?.perihal_nota ||
-                                                              "Draft belum lengkap"
-                                                            : st.perihal_nota}
+                                                <td className="st-subject-cell">
+                                                    <div
+                                                        className="st-subject"
+                                                        title={formatDisplayValue(
+                                                            subject,
+                                                        )}
+                                                    >
+                                                        {formatDisplayValue(
+                                                            subject,
+                                                        )}
                                                     </div>
                                                 </td>
 
                                                 {/* Tujuan & Tanggal */}
-                                                <td className="py-3 px-4 text-xs">
-                                                    <div className="flex items-center space-x-1 font-semibold text-slate-800">
-                                                        <MapPin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                                                        <span>
-                                                            {st.status ===
-                                                            "DRAFT"
-                                                                ? st.draft_data
-                                                                      ?.tempat_tujuan ||
-                                                                  "Belum diisi"
-                                                                : st.tempat_tujuan}
+                                                <td className="st-trip-cell">
+                                                    <div className="st-trip-line">
+                                                        <MapPin className="st-place-icon h-3.5 w-3.5" />
+                                                        <span className="st-trip-value">
+                                                            {formatDisplayValue(
+                                                                destination,
+                                                            )}
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-center space-x-1 text-slate-500 mt-1 tabular-nums">
-                                                        <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                                                        <span>
-                                                            {st.status ===
-                                                            "DRAFT"
-                                                                ? `${st.draft_data?.tanggal_berangkat || "-"} s/d ${st.draft_data?.tanggal_kembali || "-"}`
-                                                                : `${st.tanggal_berangkat} s/d ${st.tanggal_kembali} (${st.durasi_hari} Hari)`}
+                                                    <div className="st-trip-line st-trip-date tabular-nums">
+                                                        <Calendar className="st-date-icon h-3.5 w-3.5" />
+                                                        <span className="st-trip-value">
+                                                            {formatDateRange(
+                                                                departureDate,
+                                                                returnDate,
+                                                                duration,
+                                                            )}
                                                         </span>
                                                     </div>
                                                 </td>
 
                                                 {/* Status */}
-                                                <td className="py-3 px-4 text-center">
+                                                <td className="st-status-cell">
                                                     {getStatusBadge(st.status)}
                                                 </td>
 
                                                 {/* Aksi */}
-                                                <td className="py-3 px-4 text-center">
+                                                <td className="st-action-cell">
                                                     <div
-                                                        className="flex items-center justify-center gap-1.5"
+                                                        className="st-action-group"
                                                         data-kebab-menu
                                                     >
                                                         {st.status ===
@@ -385,7 +547,7 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                         authUserId) && (
                                                                     <Link
                                                                         href={`/surat-tugas/${st.id}/draft`}
-                                                                        className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold transition"
+                                                                        className="st-continue-button"
                                                                         title="Lanjutkan draft"
                                                                     >
                                                                         <ArrowRight className="w-3.5 h-3.5" />
@@ -403,7 +565,7 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                                 st,
                                                                             )
                                                                         }
-                                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 text-xs font-semibold transition"
+                                                                        className="st-delete-button"
                                                                         title="Hapus surat tugas"
                                                                     >
                                                                         <Trash2 className="w-3.5 h-3.5" />
@@ -424,17 +586,19 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                                     : st.id,
                                                                             )
                                                                         }
-                                                                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+                                                                        className="st-menu-trigger"
+                                                                        aria-label="Opsi lainnya"
                                                                         title="Opsi lainnya"
                                                                     >
-                                                                        <MoreHorizontal className="w-4 h-4" />
+                                                                        <MoreHorizontal className="h-4 w-4" />
                                                                     </button>
                                                                     {openMenu ===
                                                                         st.id && (
-                                                                        <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-slate-200 rounded-lg shadow-lg z-20 py-1">
+                                                                        <div className="st-menu">
                                                                             <Link
                                                                                 href={`/surat-tugas/${st.id}`}
-                                                                                className="flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 w-full"
+                                                                                className="st-menu-item"
+                                                                                aria-label="Buka detail surat tugas"
                                                                                 onClick={() =>
                                                                                     setOpenMenu(
                                                                                         null,
@@ -452,7 +616,8 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                             <>
                                                                 <Link
                                                                     href={`/surat-tugas/${st.id}`}
-                                                                    className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
+                                                                    className="st-detail-button"
+                                                                    aria-label="Buka detail surat tugas"
                                                                     title="Detail / Ruang Kerja Workflow"
                                                                 >
                                                                     <Eye className="w-3.5 h-3.5" />
@@ -469,7 +634,7 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                                 st,
                                                                             )
                                                                         }
-                                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 text-xs font-semibold transition"
+                                                                        className="st-delete-button"
                                                                         title="Hapus surat tugas"
                                                                     >
                                                                         <Trash2 className="w-3.5 h-3.5" />
@@ -493,20 +658,27 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                                     : st.id,
                                                                             )
                                                                         }
-                                                                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+                                                                        className="st-menu-trigger"
+                                                                        aria-label="Opsi lainnya"
                                                                         title="Opsi lainnya"
                                                                     >
-                                                                        <MoreHorizontal className="w-4 h-4" />
+                                                                        <MoreHorizontal className="h-4 w-4" />
                                                                     </button>
                                                                     {openMenu ===
                                                                         st.id && (
-                                                                        <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-slate-200 rounded-lg shadow-lg z-20 py-1">
+                                                                        <div className="st-menu">
                                                                             {isPrintable(
                                                                                 st,
                                                                             ) && (
                                                                                 <Link
                                                                                     href={`/surat-tugas/${st.id}/cetak`}
-                                                                                    className="flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 w-full"
+                                                                                    className="st-menu-item"
+                                                                                    aria-label={
+                                                                                        st.status ===
+                                                                                        "SELESAI_TERBIT"
+                                                                                            ? "Cetak surat tugas"
+                                                                                            : "Pratinjau surat tugas"
+                                                                                    }
                                                                                     onClick={() =>
                                                                                         setOpenMenu(
                                                                                             null,
@@ -531,65 +703,67 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
 
                                             {/* Expandable detail row */}
                                             {isExpanded && (
-                                                <tr className="bg-slate-50/80">
+                                                <tr className="st-expanded-row">
                                                     <td
                                                         colSpan={5}
-                                                        className="px-6 py-4"
+                                                        className="st-expanded-cell"
                                                     >
-                                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs">
+                                                        <div className="st-expanded-content">
                                                             {/* Nomor Dokumen */}
-                                                            <div>
-                                                                <div className="font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                                                            <div className="st-detail-column">
+                                                                <div className="st-detail-label">
                                                                     Nomor
                                                                     Dokumen
                                                                 </div>
                                                                 {st.status ===
                                                                 "DRAFT" ? (
-                                                                    <div className="font-mono font-bold text-slate-700">
+                                                                    <div className="st-detail-value st-detail-number">
                                                                         Draft #
                                                                         {st.id}
                                                                     </div>
                                                                 ) : st.nomor_st ? (
-                                                                    <div className="font-mono font-bold text-slate-900">
+                                                                    <div className="st-detail-value st-detail-number">
                                                                         {
                                                                             st.nomor_st
                                                                         }
                                                                     </div>
                                                                 ) : (
-                                                                    <div className="text-amber-600 font-medium italic">
+                                                                    <div className="st-detail-placeholder is-italic">
                                                                         [Belum
                                                                         Diisi
                                                                         TU]
                                                                     </div>
                                                                 )}
                                                                 {st.nomor_spd && (
-                                                                    <div className="font-mono text-slate-500 mt-0.5">
+                                                                    <div className="st-detail-secondary st-detail-number">
                                                                         SPD:{" "}
                                                                         {
                                                                             st.nomor_spd
                                                                         }
                                                                     </div>
                                                                 )}
-                                                                <div className="text-slate-400 mt-1">
+                                                                <div className="st-detail-secondary st-detail-category">
                                                                     Kategori:{" "}
-                                                                    <strong className="text-slate-600">
-                                                                        {st.status ===
-                                                                        "DRAFT"
-                                                                            ? st
-                                                                                  .draft_data
-                                                                                  ?.kategori_perjalanan ||
-                                                                              "Belum dipilih"
-                                                                            : st.kategori_perjalanan}
-                                                                    </strong>
+                                                                    <span>
+                                                                        {formatCategoryLabel(
+                                                                            st.status ===
+                                                                                "DRAFT"
+                                                                                ? st
+                                                                                      .draft_data
+                                                                                      ?.kategori_perjalanan ||
+                                                                                  "Belum dipilih"
+                                                                                : st.kategori_perjalanan,
+                                                                        )}
+                                                                    </span>
                                                                 </div>
                                                             </div>
 
                                                             {/* Asal Surat */}
-                                                            <div>
-                                                                <div className="font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                                                            <div className="st-detail-column">
+                                                                <div className="st-detail-label">
                                                                     Asal Surat
                                                                 </div>
-                                                                <div className="text-slate-800 font-medium">
+                                                                <div className="st-detail-value">
                                                                     {st.status ===
                                                                     "DRAFT"
                                                                         ? st
@@ -599,7 +773,7 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                         : st.pengirim_nota ||
                                                                           "—"}
                                                                 </div>
-                                                                <div className="font-mono text-slate-500 mt-0.5">
+                                                                <div className="st-detail-secondary st-detail-number">
                                                                     {st.status ===
                                                                     "DRAFT"
                                                                         ? st
@@ -612,52 +786,52 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                             </div>
 
                                                             {/* Diajukan oleh */}
-                                                            <div>
-                                                                <div className="font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                                                            <div className="st-detail-column">
+                                                                <div className="st-detail-label">
                                                                     Diajukan
                                                                     Oleh
                                                                 </div>
-                                                                <div className="flex items-center gap-1.5 text-slate-800 font-medium">
-                                                                    <User className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-                                                                    <span>
+                                                                <div className="st-detail-value st-detail-applicant">
+                                                                    <User className="h-3.5 w-3.5 shrink-0" />
+                                                                    <span className="st-detail-applicant-name">
                                                                         {st.user
                                                                             ?.name ||
                                                                             "Sistem"}
                                                                     </span>
                                                                 </div>
-                                                                <div className="text-slate-500 mt-0.5 uppercase font-bold text-[10px] bg-slate-200 inline-block px-1.5 py-0.5 rounded">
+                                                                <div className="st-detail-role">
                                                                     {st.user
                                                                         ?.role ===
                                                                     "sespalu"
                                                                         ? "sesparlu"
                                                                         : st.user
                                                                               ?.role ||
-                                                                          "user"}
+                                                                          "USER"}
                                                                 </div>
                                                             </div>
 
                                                             {/* Posisi Workflow */}
-                                                            <div>
-                                                                <div className="font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                                                            <div className="st-detail-column">
+                                                                <div className="st-detail-label">
                                                                     Posisi
                                                                     Workflow
                                                                 </div>
                                                                 <span
-                                                                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border ${actor.color}`}
+                                                                    className={`st-workflow-pill ${actor.color}`}
                                                                 >
-                                                                    <UserCheck className="w-3 h-3" />
+                                                                    <UserCheck className="h-3 w-3" />
                                                                     {
                                                                         actor.label
                                                                     }
                                                                 </span>
-                                                                <div className="text-slate-400 mt-1">
+                                                                <div className="st-detail-secondary st-detail-workflow-role">
                                                                     {actor.role}
                                                                 </div>
                                                             </div>
 
                                                             {/* Personel Pelaksana */}
-                                                            <div>
-                                                                <div className="font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                                                            <div className="st-detail-column">
+                                                                <div className="st-detail-label">
                                                                     Personel
                                                                     Pelaksana
                                                                 </div>
@@ -676,9 +850,9 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                                         peg.nip ||
                                                                                         idx
                                                                                     }
-                                                                                    className="text-slate-800 font-medium flex items-center gap-1.5"
+                                                                                    className="st-detail-value st-detail-personnel"
                                                                                 >
-                                                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>
+                                                                                    <span className="st-detail-personnel-dot" />
                                                                                     {
                                                                                         peg.nama
                                                                                     }
@@ -687,7 +861,7 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                         )}
                                                                     </div>
                                                                 ) : (
-                                                                    <span className="text-slate-400">
+                                                                    <span className="st-detail-placeholder">
                                                                         —
                                                                     </span>
                                                                 )}
@@ -703,21 +877,29 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                 <tr>
                                     <td
                                         colSpan={5}
-                                        className="py-10 text-center text-slate-400 text-sm"
+                                        className="st-empty-cell"
                                     >
-                                        Belum ada usulan Surat Tugas / SPD yang
-                                        dibuat.
+                                        <div className="st-empty-state">
+                                            <FileText className="h-5 w-5" />
+                                            <p>
+                                                Belum ada usulan Surat Tugas /
+                                                SPD yang dibuat.
+                                            </p>
+                                        </div>
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
-                </div>
-            </div>
+                    </div>
+                </section>
 
-            {/* Pagination */}
-            {suratTugas.links && suratTugas.links.length > 3 && (
-                <div className="flex items-center justify-center gap-1 mt-4 flex-wrap">
+                {/* Pagination */}
+                {suratTugas.links && suratTugas.last_page > 1 && (
+                    <nav
+                        className="st-pagination"
+                        aria-label="Paginasi daftar surat tugas"
+                    >
                     {suratTugas.links.map((link, idx) =>
                         link.url ? (
                             <Link
@@ -725,23 +907,52 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                 href={link.url}
                                 preserveScroll
                                 preserveState
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                                    link.active
-                                        ? "bg-amber-500 text-slate-950 border-amber-500 shadow-sm"
-                                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                                }`}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
+                                onStart={() => setIsLoading(true)}
+                                onFinish={() => setIsLoading(false)}
+                                className={`st-page-button ${link.active ? "is-active" : ""} ${idx === 0 || idx === suratTugas.links.length - 1 ? "st-page-direction" : ""}`}
+                                aria-label={
+                                    idx === 0
+                                        ? "Halaman sebelumnya"
+                                        : idx === suratTugas.links.length - 1
+                                          ? "Halaman berikutnya"
+                                          : `Halaman ${link.label}`
+                                }
+                                aria-current={link.active ? "page" : undefined}
+                            >
+                                {idx === 0 ? (
+                                    <ChevronLeft className="h-4 w-4" />
+                                ) : idx === suratTugas.links.length - 1 ? (
+                                    <ChevronRight className="h-4 w-4" />
+                                ) : (
+                                    link.label
+                                )}
+                            </Link>
                         ) : (
                             <span
                                 key={idx}
-                                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 border border-slate-100 cursor-default"
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
+                                className={`st-page-button is-disabled ${idx === 0 || idx === suratTugas.links.length - 1 ? "st-page-direction" : ""}`}
+                                aria-disabled="true"
+                                aria-label={
+                                    idx === 0
+                                        ? "Halaman sebelumnya"
+                                        : idx === suratTugas.links.length - 1
+                                          ? "Halaman berikutnya"
+                                          : `Halaman ${link.label}`
+                                }
+                            >
+                                {idx === 0 ? (
+                                    <ChevronLeft className="h-4 w-4" />
+                                ) : idx === suratTugas.links.length - 1 ? (
+                                    <ChevronRight className="h-4 w-4" />
+                                ) : (
+                                    link.label
+                                )}
+                            </span>
                         ),
                     )}
-                </div>
-            )}
+                    </nav>
+                )}
+            </div>
         </AdminLayout>
     );
 }

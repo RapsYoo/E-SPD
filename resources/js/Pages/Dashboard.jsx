@@ -281,6 +281,9 @@ export default function Dashboard({
                     <span className="text-xs font-semibold uppercase tracking-wider bg-slate-200/80 text-slate-700 px-2.5 py-0.5 rounded-md">
                         {userRole}
                     </span>
+                    <span className="text-xs font-semibold text-slate-600">
+                        Total {activeTotalSurat} surat
+                    </span>
                 </div>
 
                 {/* Action Controls: Persona Toggle & Buat Usulan (Sejajar di sebelah kanan) */}
@@ -324,63 +327,6 @@ export default function Dashboard({
                             <span>+ Buat Usulan</span>
                         </Link>
                     )}
-                </div>
-            </div>
-
-            {/* Stats Cards (Reactive to Persona Scope) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                {/* Total Surat */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
-                    <div className="w-2 h-10 rounded-full bg-blue-500 flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            {statsScope === "personal"
-                                ? "Usulan Saya"
-                                : "Total Surat Tugas"}
-                        </p>
-                        <p className="text-3xl font-extrabold text-slate-900 mt-0.5">
-                            {activeTotalSurat}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Menunggu Disposisi Kapus */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
-                    <div className="w-2 h-10 rounded-full bg-amber-500 flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            Menunggu Kapus
-                        </p>
-                        <p className="text-3xl font-extrabold text-slate-900 mt-0.5">
-                            {activeStatusStats.MENUNGGU_DISPOSISI_KAPUS || 0}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Menunggu TU */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
-                    <div className="w-2 h-10 rounded-full bg-purple-500 flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            Menunggu TU
-                        </p>
-                        <p className="text-3xl font-extrabold text-slate-900 mt-0.5">
-                            {activeStatusStats.MENUNGGU_PENOMORAN_TU || 0}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Selesai Terbit */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
-                    <div className="w-2 h-10 rounded-full bg-emerald-500 flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            Selesai Terbit
-                        </p>
-                        <p className="text-3xl font-extrabold text-slate-900 mt-0.5">
-                            {activeStatusStats.SELESAI_TERBIT || 0}
-                        </p>
-                    </div>
                 </div>
             </div>
 
@@ -1022,15 +968,6 @@ export default function Dashboard({
                                 />
                             </svg>
 
-                            {/* Center text */}
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <p className="text-3xl font-extrabold text-slate-900">
-                                    {totalKategori}
-                                </p>
-                                <p className="text-xs text-slate-500 font-semibold">
-                                    Total
-                                </p>
-                            </div>
                         </div>
                     </div>
 

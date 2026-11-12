@@ -25,7 +25,9 @@
         "@laravel/multiplex": "^0.4.1"
     },
     "dependencies": {
+        "chart.js": "^4.6.1",
         "lucide-react": "^1.52.0",
-        "mammoth": "^1.13.0"
+        "mammoth": "^1.13.0",
+        "react-chartjs-2": "^5.3.1"
     }
 }

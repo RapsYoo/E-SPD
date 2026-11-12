@@ -108,10 +108,10 @@ export default function PpkDprIndex({
   };
 
   const statusTabs = [
-    { id: 'ALL', label: 'Semua', count: summary.total ?? 0 },
-    { id: 'MENUNGGU_PERSETUJUAN', label: 'Menunggu Persetujuan', count: summary.pending ?? 0 },
-    { id: 'DISETUJUI', label: 'Disetujui', count: summary.approved ?? 0 },
-    { id: 'DRAFT', label: 'Belum Mengajukan', count: summary.draft ?? 0 },
+    { id: 'ALL', label: 'Semua' },
+    { id: 'MENUNGGU_PERSETUJUAN', label: 'Menunggu Persetujuan' },
+    { id: 'DISETUJUI', label: 'Disetujui' },
+    { id: 'DRAFT', label: 'Belum Mengajukan' },
   ];
 
   const summaryCards = [
@@ -212,13 +212,6 @@ export default function PpkDprIndex({
                   }`}
                 >
                   <span>{tab.label}</span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                      isActive ? 'bg-amber-400 text-slate-950' : 'bg-white text-slate-700'
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
                 </button>
               );
             })}
@@ -420,4 +413,3 @@ export default function PpkDprIndex({
     </AdminLayout>
   );
 }
-

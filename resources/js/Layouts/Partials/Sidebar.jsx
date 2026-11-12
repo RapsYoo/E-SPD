@@ -34,8 +34,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
     can('master_upt.manage') ||
     can('master_referensi.manage');
 
-  const [suratMenuOpen, setSuratMenuOpen] = useState(false);
-  const [rekapMenuOpen, setRekapMenuOpen] = useState(false);
+  const [suratMenuOpen, setSuratMenuOpen] = useState(true);
+  const [rekapMenuOpen, setRekapMenuOpen] = useState(true);
   const [masterMenuOpen, setMasterMenuOpen] = useState(false);
   const currentRoute = window.location.pathname;
 
@@ -54,7 +54,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-30 w-64 flex-shrink-0 h-full bg-[#0B2247] text-slate-200 shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0 flex flex-col justify-between border-r border-slate-800 ${
+        className={`admin-sidebar fixed lg:static inset-y-0 left-0 z-30 w-64 flex-shrink-0 h-full bg-[#0B2247] text-slate-200 shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0 flex flex-col justify-between border-r border-slate-800 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

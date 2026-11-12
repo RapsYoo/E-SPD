@@ -3,20 +3,28 @@ import Navbar from './Partials/Navbar';
 import Sidebar from './Partials/Sidebar';
 import FlashMessage from './Partials/FlashMessage';
 
-export default function AdminLayout({ children, title }) {
+export default function AdminLayout({ children, title, variant, theme, onThemeToggle }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isAnalytics = variant === 'analytics';
 
   return (
-    <div className="h-screen bg-slate-50 font-sans text-slate-800 flex flex-col overflow-hidden">
+    <div className={`admin-shell h-screen bg-slate-50 font-sans text-slate-800 flex flex-col overflow-hidden ${isAnalytics ? 'admin-shell-analytics' : ''}`}>
       {/* Top Header / Navigation Bar */}
-      <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <Navbar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        title={title}
+        variant={variant}
+        theme={theme}
+        onThemeToggle={onThemeToggle}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar Menu & User Account Footer */}
         <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
         {/* Main Content Area + Bottom Footerbar (Scrollable together so footer appears at the bottom of the page) */}
-        <div className="flex-1 overflow-y-auto bg-slate-100 flex flex-col">
+        <div className={`admin-shell-content flex-1 overflow-y-auto bg-slate-100 flex flex-col ${isAnalytics ? 'admin-shell-content-analytics' : ''}`}>
           <main className="flex-1 p-4 sm:p-6 lg:p-8">
             {/* Flash Alert Messages */}
             <FlashMessage />

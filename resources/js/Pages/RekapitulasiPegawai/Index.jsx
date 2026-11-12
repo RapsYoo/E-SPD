@@ -2,11 +2,26 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PegawaiProfileModal from '@/Components/PegawaiProfileModal';
+import '@/../css/rekapitulasi-pegawai.css';
+import {
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Tooltip,
+} from 'chart.js';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import {
   BarChart3,
   Briefcase,
   Building2,
   Calendar,
+  ChevronDown,
   Coins,
   Download,
   Edit3,
@@ -25,20 +40,34 @@ import {
   X,
 } from 'lucide-react';
 
+ChartJS.register(
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Filler,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Tooltip
+);
+
+ChartJS.defaults.font.family = 'Plus Jakarta Sans, sans-serif';
+
 const inputClass =
   'mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10';
 
 const PIE_COLORS = [
-  '#0F2C59',
-  '#F59E0B',
-  '#10B981',
-  '#3B82F6',
-  '#8B5CF6',
-  '#EC4899',
-  '#14B8A6',
-  '#F97316',
-  '#6366F1',
-  '#EF4444',
+  'var(--ra-primary)',
+  'var(--ra-warning)',
+  'var(--ra-success)',
+  'var(--ra-chart-4)',
+  'var(--ra-purple)',
+  'var(--ra-chart-6)',
+  'var(--ra-chart-7)',
+  'var(--ra-chart-8)',
+  'var(--ra-chart-9)',
+  'var(--ra-chart-10)',
 ];
 
 function getUptColor(name) {
@@ -70,6 +99,10 @@ function formatCompactRupiah(value) {
     return `Rp ${(num / 1_000).toFixed(0)} Rb`;
   }
   return formatRupiah(num);
+}
+
+function getThemeToken(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
 /**
@@ -150,18 +183,18 @@ function ComboBarLineChart({
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
       {/* Tabel Ringkasan di Sisi Kiri (Gaya Spreadsheet) */}
-      <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm xl:col-span-4">
+      <div className="rekap-card overflow-x-auto rounded-2xl border xl:col-span-4">
         <table className="w-full border-collapse text-xs text-slate-800">
           <thead>
-            <tr className="bg-slate-100 font-bold text-slate-900">
-              <th className="border border-slate-300 px-3 py-2 text-left">{categoryHeader}</th>
-              <th className="border border-slate-300 px-2.5 py-2 text-right text-[#2F5597]">
+            <tr className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+              <th className="border-b border-slate-200 px-3 py-2 text-left">{categoryHeader}</th>
+              <th className="border-b border-slate-200 px-2.5 py-2 text-right text-[var(--ra-primary)]">
                 {seriesALabel}
               </th>
-              <th className="border border-slate-300 px-2.5 py-2 text-right text-[#C55A11]">
+              <th className="border-b border-slate-200 px-2.5 py-2 text-right text-[var(--ra-warning)]">
                 {seriesBLabel}
               </th>
-              <th className="border border-slate-300 px-2.5 py-2 text-right text-slate-700">
+              <th className="border-b border-slate-200 px-2.5 py-2 text-right text-slate-700">
                 {seriesCLabel}
               </th>
             </tr>
@@ -184,16 +217,16 @@ function ComboBarLineChart({
                       : 'hover:bg-slate-50'
                   }`}
                 >
-                  <td className="border border-slate-200 px-3 py-1.5 font-medium text-slate-900 truncate max-w-[140px]">
+                  <td className="border-b border-slate-100 px-3 py-2 font-medium text-slate-900 truncate max-w-[140px]">
                     {it.label}
                   </td>
-                  <td className="border border-slate-200 px-2.5 py-1.5 text-right font-mono">
+                  <td className="border-b border-slate-100 px-2.5 py-2 text-right font-mono tabular-nums">
                     {valueFormatter(it.seriesA)}
                   </td>
-                  <td className="border border-slate-200 px-2.5 py-1.5 text-right font-mono">
+                  <td className="border-b border-slate-100 px-2.5 py-2 text-right font-mono tabular-nums">
                     {valueFormatter(it.seriesB)}
                   </td>
-                  <td className="border border-slate-200 px-2.5 py-1.5 text-right font-mono font-semibold">
+                  <td className="border-b border-slate-100 px-2.5 py-2 text-right font-mono font-semibold tabular-nums">
                     {valueFormatter(it.seriesC)}
                   </td>
                 </tr>
@@ -201,15 +234,15 @@ function ComboBarLineChart({
             })}
           </tbody>
           <tfoot>
-            <tr className="bg-slate-100 font-extrabold text-slate-900">
-              <td className="border border-slate-300 px-3 py-2">Total</td>
-              <td className="border border-slate-300 px-2.5 py-2 text-right font-mono text-[#2F5597]">
+            <tr className="bg-slate-50 font-semibold text-slate-900">
+              <td className="border-t border-slate-200 px-3 py-2">Total</td>
+              <td className="border-t border-slate-200 px-2.5 py-2 text-right font-mono tabular-nums text-[var(--ra-primary)]">
                 {valueFormatter(totalA)}
               </td>
-              <td className="border border-slate-300 px-2.5 py-2 text-right font-mono text-[#C55A11]">
+              <td className="border-t border-slate-200 px-2.5 py-2 text-right font-mono tabular-nums text-[var(--ra-warning)]">
                 {valueFormatter(totalB)}
               </td>
-              <td className="border border-slate-300 px-2.5 py-2 text-right font-mono">
+              <td className="border-t border-slate-200 px-2.5 py-2 text-right font-mono tabular-nums">
                 {valueFormatter(totalC)}
               </td>
             </tr>
@@ -218,7 +251,7 @@ function ComboBarLineChart({
       </div>
 
       {/* Grafik Kombinasi Batang + Garis di Sisi Kanan */}
-      <div className="flex flex-col justify-between rounded-xl border border-slate-300 bg-white p-5 shadow-sm xl:col-span-8">
+      <div className="rekap-card flex flex-col justify-between rounded-2xl border p-5 xl:col-span-8">
         {/* Judul Grafik */}
         <div className="mb-2 text-center">
           <h3 className="text-base font-bold tracking-tight text-slate-600 sm:text-lg">
@@ -242,7 +275,7 @@ function ComboBarLineChart({
                     y1={y}
                     x2={padLeft + plotWidth}
                     y2={y}
-                    stroke="#D9D9D9"
+                    stroke="var(--ra-chart-grid)"
                     strokeWidth="1"
                   />
                   <text
@@ -291,7 +324,7 @@ function ComboBarLineChart({
                       width={slotWidth - 4}
                       height={plotHeight}
                       rx="4"
-                      fill={isSelected ? '#FEF3C7' : '#F1F5F9'}
+                      fill={isSelected ? 'var(--ra-warning-soft)' : 'var(--ra-surface-soft)'}
                       opacity="0.7"
                     />
                   )}
@@ -302,8 +335,8 @@ function ComboBarLineChart({
                     y={yA}
                     width={barWidth}
                     height={hA}
-                    fill="#4472C4"
-                    rx="1.5"
+                    fill="var(--ra-primary)"
+                    rx="4"
                   >
                     <title>{`${it.label} — ${seriesALabel}: ${valueFormatter(valA)}`}</title>
                   </rect>
@@ -314,8 +347,8 @@ function ComboBarLineChart({
                     y={yB}
                     width={barWidth}
                     height={hB}
-                    fill="#ED7D31"
-                    rx="1.5"
+                    fill="var(--ra-warning)"
+                    rx="4"
                   >
                     <title>{`${it.label} — ${seriesBLabel}: ${valueFormatter(valB)}`}</title>
                   </rect>
@@ -344,7 +377,7 @@ function ComboBarLineChart({
             {linePoints.length > 1 && (
               <polyline
                 fill="none"
-                stroke="#A5A5A5"
+                stroke="var(--ra-text-subtle)"
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -365,8 +398,8 @@ function ComboBarLineChart({
                     cx={pt.x}
                     cy={pt.y}
                     r={isHovered ? 5 : 3.5}
-                    fill={isHovered ? '#0F2C59' : '#A5A5A5'}
-                    stroke="#FFFFFF"
+                    fill={isHovered ? 'var(--ra-primary)' : 'var(--ra-text-subtle)'}
+                    stroke="var(--ra-surface)"
                     strokeWidth="1.5"
                   />
                   {isHovered && (
@@ -377,7 +410,7 @@ function ComboBarLineChart({
                         width="84"
                         height="20"
                         rx="4"
-                        fill="#0F2C59"
+                        fill="var(--ra-primary)"
                       />
                       <text
                         x={pt.x}
@@ -398,17 +431,17 @@ function ComboBarLineChart({
         {/* Legenda Bawah (Persis Gaya Excel) */}
         <div className="mt-2 flex flex-wrap items-center justify-center gap-6 border-t border-slate-100 pt-3 text-xs font-medium text-slate-600">
           <div className="flex items-center gap-2">
-            <span className="inline-block h-3 w-7 rounded-sm bg-[#4472C4]" />
+            <span className="inline-block h-3 w-7 rounded-sm bg-[var(--ra-primary)]" />
             <span>{seriesALabel}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-block h-3 w-7 rounded-sm bg-[#ED7D31]" />
+            <span className="inline-block h-3 w-7 rounded-sm bg-[var(--ra-warning)]" />
             <span>{seriesBLabel}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-8 items-center">
-              <span className="h-[3px] w-full rounded bg-[#A5A5A5]" />
-              <span className="absolute left-1/2 -translate-x-1/2 h-2.5 w-2.5 rounded-full bg-[#A5A5A5] ring-2 ring-white" />
+              <span className="h-[3px] w-full rounded bg-[var(--ra-text-subtle)]" />
+              <span className="absolute left-1/2 -translate-x-1/2 h-2.5 w-2.5 rounded-full bg-[var(--ra-text-subtle)] ring-2 ring-white" />
             </span>
             <span>{seriesCLabel}</span>
           </div>
@@ -428,6 +461,14 @@ export default function Index({
   unitOptions = [],
 }) {
   const searchTimeout = useRef(null);
+  const periodInputRef = useRef(null);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'light';
+    const savedTheme = window.localStorage.getItem('rekap-jaldis-theme');
+    const initialTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = initialTheme;
+    return initialTheme;
+  });
   const [form, setForm] = useState({
     dari: filters.dari || '',
     sampai: filters.sampai || '',
@@ -438,6 +479,8 @@ export default function Index({
     tampil: filters.tampil || 'semua',
     sort: filters.sort || 'jalis_desc',
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const [selectedPegawaiRekap, setSelectedPegawaiRekap] = useState(null);
   const [selectedProfilePegawai, setSelectedProfilePegawai] = useState(null);
@@ -453,11 +496,20 @@ export default function Index({
   });
   const [savingTarif, setSavingTarif] = useState(false);
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('rekap-jaldis-theme', theme);
+  }, [theme]);
+
   // State khusus Grafik Kombinasi agar dinamis terhadap metrik & tampilan sumbu X
   const [pieMetric, setPieMetric] = useState('jalis'); // 'jalis' | 'biaya'
   const [pieView, setPieView] = useState('bulanan'); // 'bulanan' | 'upt' | 'pegawai' | 'tingkat'
 
   useEffect(() => () => clearTimeout(searchTimeout.current), []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [form.dari, form.sampai, form.status, form.kategori, form.unit, form.search, form.tampil, form.sort]);
 
   // Sinkronkan modal detail jika data rows diperbarui setelah edit biaya
   useEffect(() => {
@@ -573,6 +625,9 @@ export default function Index({
     form.tampil !== 'semua',
     form.sort !== 'jalis_desc',
   ].filter(Boolean).length;
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const hasMonthlyActivity = rekapBulanan.some((item) => Number(item.total_jalis || 0) > 0 || Number(item.total_biaya || 0) > 0);
+  const hasJourneyMix = Number(summary.jalis_dalam_negeri || 0) > 0 || Number(summary.jalis_luar_negeri || 0) > 0;
 
   const maxJalisCount = Math.max(1, ...topJalis.map((item) => item.total_jalis || 0));
   const maxBiayaCount = Math.max(1, ...topBiaya.map((item) => item.total_biaya || 0));
@@ -705,9 +760,109 @@ export default function Index({
   };
 
   const activeChart = chartConfigs[pieView] || chartConfigs.bulanan;
+  const chartAccent = getThemeToken('--accent');
+  const chartWarning = getThemeToken('--warning');
+  const chartSuccess = getThemeToken('--success');
+  const chartBorder = getThemeToken('--border');
+  const chartMuted = getThemeToken('--muted');
+  const monthlyCostData = {
+    labels: rekapBulanan.map((item) => item.bulan),
+    datasets: [
+      {
+        label: 'Dalam Negeri',
+        data: rekapBulanan.map((item) => Number(item.biaya_dalam_negeri || 0)),
+        backgroundColor: chartAccent,
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 22,
+      },
+      {
+        label: 'Luar Negeri',
+        data: rekapBulanan.map((item) => Number(item.biaya_luar_negeri || 0)),
+        backgroundColor: chartWarning,
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 22,
+      },
+    ],
+  };
+  const journeyMixData = {
+    labels: ['Dalam Negeri', 'Luar Negeri'],
+    datasets: [{
+      data: [Number(summary.jalis_dalam_negeri || 0), Number(summary.jalis_luar_negeri || 0)],
+      backgroundColor: [chartAccent, chartWarning],
+      borderColor: [getThemeToken('--card'), getThemeToken('--card')],
+      borderWidth: 3,
+      hoverOffset: 4,
+    }],
+  };
+  const activityData = {
+    labels: rekapBulanan.map((item) => item.bulan),
+    datasets: [{
+      label: 'Penugasan',
+      data: rekapBulanan.map((item) => Number(item.total_jalis || 0)),
+      borderColor: chartSuccess,
+      backgroundColor: getThemeToken('--success-soft'),
+      pointBackgroundColor: chartSuccess,
+      pointBorderColor: getThemeToken('--card'),
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      borderWidth: 2,
+      tension: 0.38,
+      fill: true,
+    }],
+  };
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { displayColors: false },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        border: { display: false },
+        ticks: { color: chartMuted, maxRotation: 0, autoSkip: true },
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: chartBorder, borderDash: [4, 4], drawTicks: false },
+        border: { display: false, dash: [4, 4] },
+        ticks: {
+          color: chartMuted,
+          padding: 8,
+          callback: (value) => formatCompactRupiah(value),
+        },
+      },
+    },
+  };
+  const activityOptions = {
+    ...chartOptions,
+    scales: {
+      ...chartOptions.scales,
+      y: {
+        ...chartOptions.scales.y,
+        ticks: {
+          ...chartOptions.scales.y.ticks,
+          precision: 0,
+          callback: (value) => Number(value).toLocaleString('id-ID'),
+        },
+      },
+    },
+  };
 
   return (
-    <AdminLayout title="Rekap Jaldis Pegawai">
+    <AdminLayout
+      title="Rekap Jaldis Pegawai"
+      variant="analytics"
+      theme={theme}
+      onThemeToggle={() => {
+        const nextTheme = theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = nextTheme;
+        setTheme(nextTheme);
+      }}
+    >
       <Head title="Rekap Jaldis Pegawai - e-SPD Pusdiklat Kemlu" />
 
       <style>{`
@@ -764,8 +919,19 @@ export default function Index({
             visibility: visible !important;
           }
 
-          main > *:not(.print-page) {
+          main > *:not(.rekap-analytics) {
             display: none !important;
+          }
+
+          .rekap-analytics > *:not(.print-page) {
+            display: none !important;
+          }
+
+          .rekap-analytics {
+            background: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            min-height: 0 !important;
           }
 
           .print-page {
@@ -830,287 +996,209 @@ export default function Index({
         }
       `}</style>
 
-      <div className="print-page mx-auto max-w-[1600px] space-y-6">
+      <div className="rekap-analytics space-y-3 rounded-[20px] p-3 sm:p-4" data-theme={theme}>
+      <div className="print-page mx-auto max-w-[1600px] space-y-3">
         {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-white to-amber-50/80 p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-4 sm:p-6">
-          <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-amber-100/50 blur-3xl" />
-          <div className="relative flex items-start gap-3">
-            <div className="rounded-2xl bg-[#0F2C59] p-3 text-amber-400 shadow-lg shadow-blue-950/10">
-              <PieChart className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-600">
-                Analitik Perjalanan Dinas
-              </p>
-              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-                Rekap Jaldis Pegawai
-              </h1>
-              <p className="no-print mt-1.5 text-sm text-slate-500">
-                Pantau perjalanan dinas, biaya, dan partisipasi pegawai.
-              </p>
-            </div>
+        <header className="no-print flex flex-col gap-3 py-1 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-[23px] font-bold leading-tight tracking-tight text-slate-900">Rekap Jaldis Pegawai</h1>
+            <button
+              type="button"
+              onClick={() => {
+                periodInputRef.current?.focus();
+                periodInputRef.current?.showPicker?.();
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+              aria-label="Ubah periode rekap"
+              title="Ubah periode"
+            >
+              <Calendar className="h-3.5 w-3.5 text-[var(--accent)]" />
+              <span>{form.dari || 'Semua tanggal'} – {form.sampai || 'sekarang'}</span>
+            </button>
           </div>
 
-          <div className="no-print relative mt-4 flex flex-wrap gap-2 sm:mt-0 sm:justify-end">
+          <div className="flex flex-wrap items-center gap-2">
+            <details className="rekap-filter-more relative">
+              <summary
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                aria-label="Buka menu ekspor"
+                title="Ekspor data"
+              >
+                <Download className="h-4 w-4" /> Ekspor <ChevronDown className="h-3.5 w-3.5" />
+              </summary>
+              <div className="absolute right-0 z-30 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+                <a href={exportUrl('csv')} className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50" aria-label="Unduh CSV" title="Unduh CSV">
+                  <Download className="h-4 w-4" /> CSV
+                </a>
+                <a href={exportUrl('xls')} className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50" aria-label="Unduh Excel" title="Unduh Excel">
+                  <FileSpreadsheet className="h-4 w-4" /> Excel
+                </a>
+                <button type="button" onClick={() => window.print()} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50" aria-label="Cetak atau simpan sebagai PDF" title="PDF / Cetak">
+                  <Printer className="h-4 w-4" /> PDF / Cetak
+                </button>
+              </div>
+            </details>
             <button
               type="button"
               onClick={() => setIsTarifModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:border-amber-400 hover:bg-amber-50"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Atur Standar Tarif Biaya"
+              title="Standar Tarif Biaya"
             >
-              <Settings className="h-4 w-4 text-amber-600" /> Standar Tarif Biaya
-            </button>
-            <a
-              href={exportUrl('csv')}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              <Download className="h-4 w-4" /> CSV
-            </a>
-            <a
-              href={exportUrl('xls')}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700"
-            >
-              <FileSpreadsheet className="h-4 w-4" /> Excel
-            </a>
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-3.5 py-2.5 text-xs font-bold text-slate-950 shadow-sm transition hover:bg-amber-400"
-            >
-              <Printer className="h-4 w-4" /> PDF / Cetak
+              <Settings className="h-4 w-4 text-[var(--warning)]" />
             </button>
           </div>
-        </div>
+        </header>
 
         {/* 4 Summary KPI Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200/80 border-t-4 border-t-blue-900 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Pegawai melakukan Jaldis
-              </span>
-              <div className="rounded-xl bg-blue-50 p-2.5 text-[#0F2C59]">
-                <Users className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold tracking-tight text-slate-900">
-                {summary.total_pegawai_jalis ?? 0}
-              </span>
-              <span className="text-xs text-slate-500">
-                / {summary.total_pegawai ?? 0} pegawai
-              </span>
-            </div>
-            <p className="mt-1.5 text-[11px] text-slate-500">
-              {summary.total_pegawai_belum_jalis ?? 0} belum melakukan perjalanan
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200/80 border-t-4 border-t-emerald-500 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Total penugasan
-              </span>
-              <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600">
-                <Plane className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold tracking-tight text-slate-900">
-                {summary.total_jalis ?? 0}
-              </span>
-              <span className="text-xs text-slate-500">perjalanan dinas</span>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-800">
-                DN {summary.jalis_dalam_negeri ?? 0}
-              </span>
-              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">
-                LN {summary.jalis_luar_negeri ?? 0}
-              </span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200/80 border-t-4 border-t-violet-500 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Lama perjalanan
-              </span>
-              <div className="rounded-xl bg-purple-50 p-2.5 text-purple-600">
-                <Calendar className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold tracking-tight text-slate-900">
-                {summary.total_hari ?? 0}
-              </span>
-              <span className="text-xs text-slate-500">hari dinas</span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-amber-200 border-t-4 border-t-amber-500 bg-gradient-to-br from-amber-50/80 to-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                Total biaya perjalanan
-              </span>
-              <div className="rounded-xl bg-amber-500 p-2.5 text-slate-950 shadow-sm">
-                <Coins className="h-5 w-5" />
-              </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rekap-card rounded-2xl border p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[11px] font-semibold text-slate-500">Pegawai melakukan Jaldis</span>
+              <div className="rekap-icon-primary rounded-lg p-2"><Users className="h-4 w-4" /></div>
             </div>
             <div className="mt-3">
-              <span className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
-                {formatRupiah(summary.total_biaya ?? 0)}
-              </span>
+              <span className="tabular-nums text-[28px] font-bold leading-none text-slate-900">{summary.total_pegawai_jalis ?? 0}</span>
+            </div>
+            <p className="mt-1 text-[10px] text-slate-500">{summary.total_pegawai_belum_jalis ?? 0} belum Jaldis</p>
+          </div>
+
+          <div className="rekap-card rounded-2xl border p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[11px] font-semibold text-slate-500">Total penugasan</span>
+              <div className="rekap-icon-success rounded-lg p-2"><Plane className="h-4 w-4" /></div>
+            </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="tabular-nums text-[28px] font-bold leading-none text-slate-900">{summary.total_jalis ?? 0}</span>
+              <span className="text-[11px] text-slate-500">perjalanan</span>
+            </div>
+          </div>
+
+          <div className="rekap-card rounded-2xl border p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[11px] font-semibold text-slate-500">Lama perjalanan</span>
+              <div className="rekap-icon-purple rounded-lg p-2"><Calendar className="h-4 w-4" /></div>
+            </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="tabular-nums text-[28px] font-bold leading-none text-slate-900">{summary.total_hari ?? 0}</span>
+              <span className="text-[11px] text-slate-500">hari dinas</span>
+            </div>
+          </div>
+
+          <div className="rekap-card rounded-2xl border p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[11px] font-semibold text-slate-500">Total biaya perjalanan</span>
+              <div className="rekap-icon-warning rounded-lg p-2"><Coins className="h-4 w-4" /></div>
+            </div>
+            <div className="mt-3">
+              <span className="tabular-nums text-[21px] font-bold leading-tight text-slate-900">{formatRupiah(summary.total_biaya ?? 0)}</span>
             </div>
           </div>
         </div>
 
-        {/* Filter & Pencarian */}
-        <form
-          onSubmit={applyFilter}
-          className="no-print rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5"
-        >
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-slate-100 p-2 text-slate-600">
-                <Search className="h-4 w-4" />
-              </div>
+        <section className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+          <div className="rekap-card rounded-2xl border p-4 xl:col-span-2">
+            <div className="mb-3 flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold text-slate-900">Filter data</h2>
-                <p className="mt-0.5 text-[11px] text-slate-500">
-                  Persempit hasil berdasarkan periode, unit, atau pegawai.
-                </p>
+                <h2 className="text-base font-semibold text-slate-900">Biaya per bulan</h2>
               </div>
+              <span className="rounded-lg bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)]">{activeYearLabel}</span>
             </div>
-            <div className="flex items-center gap-2">
-              {activeFilterCount > 0 && (
-                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
-                  {activeFilterCount} filter aktif
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={resetFilter}
-                className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-900"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                Reset
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="block text-xs font-semibold text-slate-600">
-              <span>Dari Tanggal</span>
-              <input
-                type="date"
-                value={form.dari}
-                onChange={(e) => updateFilter('dari', e.target.value)}
-                className={inputClass}
-              />
-            </label>
-
-            <label className="block text-xs font-semibold text-slate-600">
-              <span>Sampai Tanggal</span>
-              <input
-                type="date"
-                value={form.sampai}
-                onChange={(e) => updateFilter('sampai', e.target.value)}
-                className={inputClass}
-              />
-            </label>
-
-            <label className="block text-xs font-semibold text-slate-600">
-              <span>Status Surat Tugas</span>
-              <select
-                value={form.status}
-                onChange={(e) => updateFilter('status', e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Semua Status Aktif</option>
-                {Object.entries(statusOptions).map(([val, label]) => (
-                  <option key={val} value={val}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block text-xs font-semibold text-slate-600">
-              <span>Kategori Perjalanan</span>
-              <select
-                value={form.kategori}
-                onChange={(e) => updateFilter('kategori', e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Semua Kategori (DN &amp; LN)</option>
-                <option value="DALAM_NEGERI">Dalam Negeri</option>
-                <option value="LUAR_NEGERI">Luar Negeri</option>
-              </select>
-            </label>
-
-            <label className="block text-xs font-semibold text-slate-600">
-              <span>UPT / Bidang</span>
-              <select
-                value={form.unit}
-                onChange={(e) => updateFilter('unit', e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Semua UPT / Bidang</option>
-                {unitOptions.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block text-xs font-semibold text-slate-600">
-              <span>Tampilkan Pegawai</span>
-              <select
-                value={form.tampil}
-                onChange={(e) => updateFilter('tampil', e.target.value)}
-                className={inputClass}
-              >
-                <option value="semua">Semua Pegawai</option>
-                <option value="pernah_jalis">Pernah melakukan Jaldis</option>
-                <option value="belum_jalis">Belum pernah melakukan Jaldis</option>
-              </select>
-            </label>
-
-            <label className="block text-xs font-semibold text-slate-600">
-              <span>Urutkan Berdasarkan</span>
-              <select
-                value={form.sort}
-                onChange={(e) => updateFilter('sort', e.target.value)}
-                className={inputClass}
-              >
-                <option value="jalis_desc">Jaldis terbanyak</option>
-                <option value="biaya_desc">Total Biaya Tertinggi</option>
-                <option value="hari_desc">Total Hari Dinas Terbanyak</option>
-                <option value="nama_asc">Nama Pegawai (A - Z)</option>
-              </select>
-            </label>
-
-            <div className="flex items-end gap-2">
-              <label className="flex-1 text-xs font-semibold text-slate-600">
-                <span>Cari Pegawai / NIP</span>
-                <input
-                  type="text"
-                  value={form.search}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  placeholder="Ketik nama, NIP, atau jabatan..."
-                  className={inputClass}
+            {hasMonthlyActivity ? (
+              <div className="h-40">
+                <Bar
+                  data={monthlyCostData}
+                  options={{
+                    ...chartOptions,
+                    plugins: {
+                      ...chartOptions.plugins,
+                      tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${formatRupiah(context.parsed.y)}` } },
+                    },
+                  }}
                 />
-              </label>
-            </div>
+              </div>
+            ) : (
+              <div className="flex h-40 items-center justify-center text-xs text-slate-500">Belum ada data biaya untuk periode ini.</div>
+            )}
           </div>
-        </form>
+
+          <div className="rekap-card flex flex-col rounded-2xl border p-4">
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">DN vs LN</h2>
+            </div>
+            {hasJourneyMix ? (
+              <>
+                <div className="mx-auto mt-2 h-24 w-full max-w-[140px]">
+                  <Doughnut
+                    data={journeyMixData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      cutout: '74%',
+                      plugins: { legend: { display: false } },
+                    }}
+                  />
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center justify-between rounded-lg bg-[var(--accent-soft)] px-2.5 py-2 text-[var(--accent)]">
+                    <span>DN</span><strong className="tabular-nums">{summary.jalis_dalam_negeri ?? 0}</strong>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg bg-amber-50 px-2.5 py-2 text-amber-800">
+                    <span>LN</span><strong className="tabular-nums">{summary.jalis_luar_negeri ?? 0}</strong>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex h-32 items-center justify-center text-xs text-slate-500">Belum ada data komposisi perjalanan.</div>
+            )}
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+          <div className="rekap-card rounded-2xl border p-4 xl:col-span-2">
+            <div className="mb-3">
+              <h2 className="text-base font-semibold text-slate-900">Aktivitas perjalanan</h2>
+            </div>
+            {hasMonthlyActivity ? (
+              <div className="h-32">
+                <Line data={activityData} options={activityOptions} />
+              </div>
+            ) : (
+              <div className="flex h-32 items-center justify-center text-xs text-slate-500">Belum ada data perjalanan untuk periode ini.</div>
+            )}
+          </div>
+
+          <div className="rekap-card rounded-2xl border p-4">
+            <div className="mb-2">
+              <h2 className="text-base font-semibold text-slate-900">Top pegawai</h2>
+            </div>
+            {topJalis.length > 0 ? (
+              <ol className="divide-y divide-slate-100">
+                {topJalis.slice(0, 5).map((pegawai, index) => (
+                  <li key={pegawai.pegawai_id || pegawai.nama} className="flex items-center gap-2 py-1.5">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[11px] font-semibold text-[var(--accent)]">{index + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-slate-900">{pegawai.nama}</p>
+                      <p className="text-[11px] text-slate-500">{pegawai.total_jalis} perjalanan</p>
+                    </div>
+                    <span className="shrink-0 text-right text-[11px] font-semibold tabular-nums text-slate-600">{formatCompactRupiah(pegawai.total_biaya)}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div className="flex h-40 items-center justify-center text-sm text-slate-500">Belum ada data pegawai.</div>
+            )}
+          </div>
+        </section>
 
         {/* DIAGRAM LINGKARAN (PIE / DONUT CHARTS) DINAMIS SESUAI FILTER */}
+        <details className="no-print rekap-more-analytics rekap-card rounded-[18px] border p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-slate-700">Analisis tambahan per kategori, pegawai, dan unit</summary>
+          <div className="mt-4 space-y-5">
         <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
           <div className="mb-5 flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="rounded-xl bg-[#0F2C59] p-2 text-amber-400">
+              <div className="rekap-icon-primary rounded-xl p-2">
                 <PieChart className="h-5 w-5" />
               </div>
               <div>
@@ -1127,7 +1215,7 @@ export default function Index({
                 onClick={() => setPieMetric('jalis')}
                 className={`rounded-lg px-3 py-1.5 font-bold transition ${
                   pieMetric === 'jalis'
-                    ? 'bg-[#0F2C59] text-white shadow-sm'
+                    ? 'bg-[var(--accent)] text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -1158,7 +1246,7 @@ export default function Index({
                   onClick={() => setPieView(view.id)}
                   className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold transition ${
                     pieView === view.id
-                      ? 'border-[#0F2C59] bg-[#0F2C59] text-white shadow-sm'
+                      ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-sm'
                       : 'border-slate-200 bg-white text-slate-600 hover:border-amber-400 hover:bg-amber-50'
                   }`}
                 >
@@ -1198,7 +1286,7 @@ export default function Index({
           <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="rounded-xl bg-blue-50 p-2 text-[#0F2C59]">
+                <div className="rekap-icon-primary rounded-xl p-2">
                   <BarChart3 className="h-5 w-5" />
                 </div>
                 <div>
@@ -1209,7 +1297,7 @@ export default function Index({
               </div>
               <div className="flex items-center gap-3 text-[11px] font-semibold">
                 <span className="inline-flex items-center gap-1 text-slate-600">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-[#0F2C59]" /> Dalam Negeri
+                  <span className="h-2.5 w-2.5 rounded-sm bg-[var(--accent)]" /> Dalam Negeri
                 </span>
                 <span className="inline-flex items-center gap-1 text-slate-600">
                   <span className="h-2.5 w-2.5 rounded-sm bg-amber-500" /> Luar Negeri
@@ -1239,7 +1327,7 @@ export default function Index({
                           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-700">
                             {idx + 1}
                           </span>
-                          <span className="truncate font-bold text-slate-900 group-hover:text-[#0F2C59]">
+                          <span className="truncate font-bold text-slate-900 group-hover:text-[var(--accent)]">
                             {item.nama}
                           </span>
                           <span className="hidden rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500 sm:inline-block">
@@ -1258,7 +1346,7 @@ export default function Index({
                         {item.jalis_dalam_negeri > 0 && (
                           <div
                             style={{ width: `${Math.max(dnPct, 4)}%` }}
-                            className="h-full bg-[#0F2C59] transition-all duration-500"
+                            className="h-full bg-[var(--accent)] transition-all duration-500"
                             title={`Dalam Negeri: ${item.jalis_dalam_negeri} Jaldis`}
                           />
                         )}
@@ -1386,16 +1474,13 @@ export default function Index({
                       <span className="truncate text-xs font-bold text-slate-900">{u.upt}</span>
                       <div className="flex shrink-0 items-center gap-1.5">
                         <span
-                          className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                          style={{
-                            backgroundColor: `${uptColor}18`,
-                            color: uptColor,
-                          }}
+                          className="upt-color-tag rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ '--upt-accent': uptColor }}
                           title={`${share.toFixed(1)}% dari total Jaldis`}
                         >
                           {share.toFixed(1)}%
                         </span>
-                        <span className="rounded-full bg-[#0F2C59] px-2 py-0.5 text-[10px] font-bold text-white">
+                        <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-bold text-white">
                           {u.total_jalis} Jaldis
                         </span>
                       </div>
@@ -1440,7 +1525,7 @@ export default function Index({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0F2C59] text-xs font-extrabold text-amber-400">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent)] text-xs font-extrabold text-amber-400">
                         {tb.kode}
                       </span>
                       <div>
@@ -1465,29 +1550,104 @@ export default function Index({
           </div>
         </div>
 
+          </div>
+        </details>
+
+        <div className="no-print rekap-card flex flex-wrap items-center gap-2 rounded-2xl border p-3">
+          <div className="flex items-center gap-1.5">
+            <input
+              ref={periodInputRef}
+              type="date"
+              value={form.dari}
+              onChange={(e) => updateFilter('dari', e.target.value)}
+              aria-label="Dari tanggal"
+              className="h-9 w-[132px] rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] text-slate-600"
+            />
+            <span className="text-[11px] text-slate-400">–</span>
+            <input
+              type="date"
+              value={form.sampai}
+              onChange={(e) => updateFilter('sampai', e.target.value)}
+              aria-label="Sampai tanggal"
+              className="h-9 w-[132px] rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] text-slate-600"
+            />
+          </div>
+          <select
+            value={form.status}
+            onChange={(e) => updateFilter('status', e.target.value)}
+            aria-label="Status Surat Tugas"
+            className="h-9 max-w-[190px] rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600"
+          >
+            <option value="">Semua Status</option>
+            {Object.entries(statusOptions).map(([val, label]) => <option key={val} value={val}>{label}</option>)}
+          </select>
+          <select
+            value={form.kategori}
+            onChange={(e) => updateFilter('kategori', e.target.value)}
+            aria-label="Kategori Perjalanan"
+            className="h-9 max-w-[190px] rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600"
+          >
+            <option value="">Semua Kategori</option>
+            <option value="DALAM_NEGERI">Dalam Negeri</option>
+            <option value="LUAR_NEGERI">Luar Negeri</option>
+          </select>
+          <details className="rekap-filter-more relative">
+            <summary className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600" aria-label="Filter lainnya">
+              Filter lainnya <ChevronDown className="h-3.5 w-3.5" />
+            </summary>
+            <div className="absolute left-0 top-full z-30 mt-2 grid w-[min(34rem,calc(100vw-2rem))] grid-cols-1 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl sm:grid-cols-3">
+              <select value={form.unit} onChange={(e) => updateFilter('unit', e.target.value)} aria-label="UPT atau Bidang" className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600">
+                <option value="">Semua UPT / Bidang</option>
+                {unitOptions.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+              </select>
+              <select value={form.tampil} onChange={(e) => updateFilter('tampil', e.target.value)} aria-label="Tampilkan pegawai" className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600">
+                <option value="semua">Semua Pegawai</option>
+                <option value="pernah_jalis">Pernah Jaldis</option>
+                <option value="belum_jalis">Belum Jaldis</option>
+              </select>
+              <select value={form.sort} onChange={(e) => updateFilter('sort', e.target.value)} aria-label="Urutkan berdasarkan" className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600">
+                <option value="jalis_desc">Jaldis terbanyak</option>
+                <option value="biaya_desc">Biaya tertinggi</option>
+                <option value="hari_desc">Hari terbanyak</option>
+                <option value="nama_asc">Nama A–Z</option>
+              </select>
+            </div>
+          </details>
+          <button type="button" onClick={resetFilter} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50" aria-label="Reset semua filter" title="Reset semua filter">
+            <RotateCcw className="h-4 w-4" />
+          </button>
+        </div>
+
         {/* TABEL / LIST REKAPITULASI JALDIS & BIAYA PEGAWAI */}
-        <section className="printable-table overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <section className="printable-table rekap-card overflow-hidden rounded-2xl border shadow-sm">
           <div className="print-only hidden border-b border-slate-200 px-0 py-0 pb-3">
             <h1 className="text-xl font-bold text-slate-900">Rekap Jaldis &amp; Biaya Pegawai</h1>
             <p className="mt-1 text-sm text-slate-600">Jumlah pegawai: {rows.length}</p>
           </div>
-          <div className="no-print flex flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="no-print flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-base font-extrabold text-slate-900">
+              <h2 className="text-base font-semibold text-slate-900">
                 Daftar Jaldis &amp; Biaya Pegawai
               </h2>
-              <p className="text-xs text-slate-500">
-                Pilih pegawai untuk melihat rincian.
-              </p>
             </div>
-            <div className="text-xs font-semibold text-slate-500">
-              Menampilkan <strong className="text-slate-900">{rows.length}</strong> pegawai
+            <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+              <label className="relative block w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="search"
+                  value={form.search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder="Cari pegawai / NIP"
+                  aria-label="Cari Pegawai atau NIP"
+                  className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs text-slate-700 placeholder:text-slate-400"
+                />
+              </label>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-600">
-              <thead className="bg-[#0F2C59] text-white font-bold uppercase tracking-wider text-[11px]">
+              <thead className="bg-transparent text-[12px] font-medium uppercase tracking-[0.05em] text-slate-500">
                 <tr>
                   <th className="py-3.5 px-4 w-12 text-center">No</th>
                   <th className="py-3.5 px-4">Nama Pegawai / NIP</th>
@@ -1507,16 +1667,16 @@ export default function Index({
                     <tr
                       key={item.key}
                       onClick={() => setSelectedPegawaiRekap(item)}
-                      className="group cursor-pointer transition hover:bg-amber-50/40"
+                      className={`group cursor-pointer transition hover:bg-slate-50 ${index < (currentPage - 1) * pageSize || index >= currentPage * pageSize ? 'hidden print:table-row' : ''}`}
                     >
-                      <td className="py-3.5 px-4 text-center font-bold text-slate-400">
+                      <td className="py-3.5 px-4 text-center font-medium tabular-nums text-slate-400">
                         {index + 1}
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-900 group-hover:text-[#0F2C59] group-hover:underline">
+                        <div className="text-sm font-medium text-slate-900 group-hover:text-[var(--accent)]">
                           {item.nama}
                         </div>
-                        <div className="font-mono text-[11px] text-slate-500">
+                        <div className="font-mono text-[11px] text-slate-500 tabular-nums">
                           NIP: {item.nip}
                         </div>
                       </td>
@@ -1533,7 +1693,7 @@ export default function Index({
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         {item.jalis_dalam_negeri > 0 ? (
-                          <span className="inline-flex items-center justify-center rounded-full bg-blue-50 px-2.5 py-0.5 font-bold text-blue-700">
+                          <span className="inline-flex items-center justify-center rounded-full bg-blue-50 px-2.5 py-0.5 font-semibold text-blue-700">
                             {item.jalis_dalam_negeri}x
                           </span>
                         ) : (
@@ -1542,7 +1702,7 @@ export default function Index({
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         {item.jalis_luar_negeri > 0 ? (
-                          <span className="inline-flex items-center justify-center rounded-full bg-amber-100 px-2.5 py-0.5 font-bold text-amber-800">
+                          <span className="inline-flex items-center justify-center rounded-full bg-amber-100 px-2.5 py-0.5 font-semibold text-amber-800">
                             {item.jalis_luar_negeri}x
                           </span>
                         ) : (
@@ -1551,9 +1711,9 @@ export default function Index({
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <span
-                          className={`inline-flex items-center justify-center rounded-xl px-3 py-1 text-xs font-extrabold ${
+                          className={`inline-flex items-center justify-center rounded-xl px-3 py-1 text-xs font-semibold ${
                             item.total_jalis > 0
-                              ? 'bg-[#0F2C59] text-white shadow-sm'
+                              ? 'bg-[var(--accent)] text-white shadow-sm'
                               : 'bg-slate-100 text-slate-400'
                           }`}
                         >
@@ -1565,7 +1725,7 @@ export default function Index({
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div
-                          className={`font-mono text-xs font-extrabold ${
+                          className={`font-mono tabular-nums text-xs font-semibold ${
                             item.total_biaya > 0 ? 'text-emerald-700' : 'text-slate-400'
                           }`}
                         >
@@ -1587,6 +1747,7 @@ export default function Index({
                             onClick={() => setSelectedPegawaiRekap(item)}
                             className="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2.5 py-1.5 text-[11px] font-bold text-amber-900 transition hover:bg-amber-200"
                             title="Lihat Rincian Jaldis & Biaya"
+                            aria-label={`Lihat rincian jaldis dan biaya ${item.nama}`}
                           >
                             <Eye className="h-3.5 w-3.5" />
                             <span>Rincian</span>
@@ -1597,6 +1758,7 @@ export default function Index({
                               onClick={() => setSelectedProfilePegawai(item.pegawai_detail)}
                               className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-blue-100 hover:text-blue-800"
                               title="Lihat Profil Pegawai"
+                              aria-label={`Lihat profil pegawai ${item.nama}`}
                             >
                               <User className="h-3.5 w-3.5" />
                             </button>
@@ -1617,7 +1779,7 @@ export default function Index({
                 <tfoot className="border-t-2 border-slate-200 bg-slate-50 font-extrabold text-slate-900">
                   <tr>
                     <td colSpan="4" className="py-3.5 px-4 text-right uppercase tracking-wider">
-                      Total Keseluruhan ({rows.length} Pegawai)
+                      Total Keseluruhan
                     </td>
                     <td className="py-3.5 px-4 text-center text-blue-700">
                       {rows.reduce((acc, r) => acc + (r.jalis_dalam_negeri || 0), 0)}x
@@ -1625,7 +1787,7 @@ export default function Index({
                     <td className="py-3.5 px-4 text-center text-amber-700">
                       {rows.reduce((acc, r) => acc + (r.jalis_luar_negeri || 0), 0)}x
                     </td>
-                    <td className="py-3.5 px-4 text-center text-[#0F2C59]">
+                    <td className="py-3.5 px-4 text-center text-[var(--accent)]">
                       {rows.reduce((acc, r) => acc + (r.total_jalis || 0), 0)} Jaldis
                     </td>
                     <td className="py-3.5 px-4 text-center">
@@ -1640,6 +1802,34 @@ export default function Index({
               )}
             </table>
           </div>
+          {rows.length > pageSize && (
+            <div className="no-print flex items-center justify-between border-t border-slate-100 px-5 py-3">
+              <span className="text-xs text-slate-500">
+                {Math.min((currentPage - 1) * pageSize + 1, rows.length)}–{Math.min(currentPage * pageSize, rows.length)} dari {rows.length}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={currentPage === 1}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Halaman sebelumnya"
+                >
+                  Sebelumnya
+                </button>
+                <span className="px-2 text-xs tabular-nums text-slate-500">{currentPage} / {pageCount}</span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
+                  disabled={currentPage === pageCount}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Halaman berikutnya"
+                >
+                  Berikutnya
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
 
@@ -1657,7 +1847,7 @@ export default function Index({
             className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-slate-100 bg-white shadow-2xl"
           >
             {/* Header Modal */}
-            <div className="bg-gradient-to-r from-[#0F2C59] to-[#1a4180] px-6 py-5 text-white">
+            <div className="bg-[var(--accent)] px-6 py-5 text-white">
               <button
                 type="button"
                 onClick={() => {
@@ -1665,6 +1855,8 @@ export default function Index({
                   setEditingBiayaId(null);
                 }}
                 className="absolute right-4 top-4 rounded-lg bg-white/10 p-1.5 text-white/80 transition hover:bg-white/20 hover:text-white"
+                aria-label="Tutup rincian pegawai"
+                title="Tutup"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1705,7 +1897,7 @@ export default function Index({
               {selectedPegawaiRekap.riwayat && selectedPegawaiRekap.riwayat.length > 0 ? (
                 <div className="overflow-x-auto rounded-xl border border-slate-200">
                   <table className="w-full text-left text-xs text-slate-600">
-                    <thead className="bg-slate-50 font-bold text-slate-800 uppercase text-[11px]">
+                    <thead className="bg-slate-50 text-[12px] font-semibold uppercase tracking-[0.05em] text-slate-600">
                       <tr>
                         <th className="py-3 px-3 text-center w-10">No</th>
                         <th className="py-3 px-3">Nomor ST / SPD &amp; Perihal</th>
@@ -1746,7 +1938,7 @@ export default function Index({
                               </span>
                             </td>
                             <td className="py-3 px-3 text-center">
-                              <div className="font-medium text-slate-800">
+                              <div className="font-medium text-slate-800 tabular-nums">
                                 {trip.tanggal_berangkat || '-'} s/d {trip.tanggal_kembali || '-'}
                               </div>
                               <div className="text-[11px] font-bold text-amber-600">
@@ -1770,7 +1962,7 @@ export default function Index({
                                     value={biayaInputValue}
                                     onChange={(e) => setBiayaInputValue(e.target.value)}
                                     placeholder={String(trip.biaya_otomatis)}
-                                    className="w-36 rounded-lg border border-amber-400 px-2.5 py-1 text-right font-mono text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                    className="w-36 rounded-lg border border-amber-400 px-2.5 py-1 text-right font-mono tabular-nums text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
                                   />
                                   <div className="flex items-center gap-1">
                                     <button
@@ -1808,7 +2000,7 @@ export default function Index({
                                 </div>
                               ) : (
                                 <div>
-                                  <div className="font-mono font-extrabold text-emerald-700">
+                                  <div className="font-mono font-extrabold text-emerald-700 tabular-nums">
                                     {formatRupiah(trip.biaya_efektif)}
                                   </div>
                                   <div className="text-[10px] text-slate-400">
@@ -1829,6 +2021,7 @@ export default function Index({
                                   }}
                                   className="rounded-lg bg-slate-100 p-1.5 text-slate-700 transition hover:bg-amber-100 hover:text-amber-800"
                                   title="Ubah Nominal Biaya"
+                                  aria-label={`Ubah nominal biaya ${trip.nomor_st}`}
                                 >
                                   <Edit3 className="h-3.5 w-3.5" />
                                 </button>
@@ -1836,6 +2029,7 @@ export default function Index({
                                   href={`/surat-tugas/${trip.surat_tugas_id}`}
                                   className="rounded-lg bg-slate-100 p-1.5 text-slate-700 transition hover:bg-blue-100 hover:text-blue-800"
                                   title="Buka Detail Surat Tugas"
+                                  aria-label={`Buka surat tugas ${trip.nomor_st}`}
                                 >
                                   <Eye className="h-3.5 w-3.5" />
                                 </Link>
@@ -1879,7 +2073,8 @@ export default function Index({
                   setSelectedPegawaiRekap(null);
                   setEditingBiayaId(null);
                 }}
-                className="rounded-xl bg-[#0F2C59] px-5 py-2 text-xs font-bold text-white transition hover:bg-[#0B2247]"
+                className="rounded-xl bg-[var(--accent)] px-5 py-2 text-xs font-bold text-white transition hover:opacity-90"
+                aria-label="Tutup rincian pegawai"
               >
                 Tutup
               </button>
@@ -1915,7 +2110,9 @@ export default function Index({
               <button
                 type="button"
                 onClick={() => setIsTarifModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Tutup pengaturan tarif"
+                title="Tutup"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1971,6 +2168,7 @@ export default function Index({
         onClose={() => setSelectedProfilePegawai(null)}
         showBankInfo={true}
       />
+      </div>
     </AdminLayout>
   );
 }
