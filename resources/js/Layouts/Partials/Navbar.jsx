@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { Menu, X, Bell, Moon, Sun } from 'lucide-react';
+import { Menu, X, Bell } from 'lucide-react';
+import ThemeToggle from '@/Components/ThemeToggle';
 
-export default function Navbar({ sidebarOpen, setSidebarOpen, title, variant, theme, onThemeToggle }) {
+export default function Navbar({
+  sidebarOpen,
+  setSidebarOpen,
+  sidebarCollapsed,
+  setSidebarCollapsed,
+  title,
+  variant,
+}) {
   const { auth, notifications } = usePage().props;
   const isAnalytics = variant === 'analytics';
   const [bellOpen, setBellOpen] = useState(false);
@@ -54,14 +62,27 @@ export default function Navbar({ sidebarOpen, setSidebarOpen, title, variant, th
     <header className={`admin-topbar flex-shrink-0 z-40 bg-[#0F2C59] text-white shadow-md border-b border-slate-700/50 ${isAnalytics ? 'admin-topbar-analytics' : ''}`}>
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Left section: Logo & Mobile Toggle */}
+          {/* Left section: Sidebar Toggle & Logo */}
           <div className="flex items-center space-x-3">
             <button
+              type="button"
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className={`lg:hidden p-2 rounded-lg transition ${isAnalytics ? 'text-slate-500 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
-              aria-label="Toggle Menu"
+              aria-label={sidebarOpen ? 'Tutup sidebar' : 'Buka sidebar'}
+              aria-expanded={sidebarOpen}
+              title={sidebarOpen ? 'Tutup sidebar' : 'Buka sidebar'}
             >
               {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden lg:inline-flex rounded-lg p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white"
+              aria-label={sidebarCollapsed ? 'Buka sidebar' : 'Tutup sidebar'}
+              aria-expanded={!sidebarCollapsed}
+              title={sidebarCollapsed ? 'Buka sidebar' : 'Tutup sidebar'}
+            >
+              {sidebarCollapsed ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
             </button>
 
             <Link href="/dashboard" className="flex items-center space-x-2.5 group">
@@ -81,17 +102,7 @@ export default function Navbar({ sidebarOpen, setSidebarOpen, title, variant, th
 
           {/* Right section: Role Badge & Profile */}
           <div className="admin-topbar-actions flex items-center space-x-4">
-            {isAnalytics && (
-              <button
-                type="button"
-                onClick={onThemeToggle}
-                className="rounded-lg p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white"
-                aria-label={theme === 'dark' ? 'Beralih ke tema terang' : 'Beralih ke tema gelap'}
-                title={theme === 'dark' ? 'Tema terang' : 'Tema gelap'}
-              >
-                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </button>
-            )}
+            <ThemeToggle className="rounded-lg p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white" />
             {/* Notifikasi */}
             <div className="relative">
               <button

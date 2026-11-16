@@ -6,7 +6,6 @@ import {
     Plus,
     Search,
     Eye,
-    Printer,
     CheckCircle2,
     Clock,
     AlertCircle,
@@ -18,10 +17,10 @@ import {
     ChevronDown,
     ChevronLeft,
     ChevronRight,
-    MoreHorizontal,
     User,
     UserCheck,
 } from "lucide-react";
+import { useTheme } from "@/Contexts/ThemeContext";
 
 const formatDisplayValue = (value) => {
     if (value == null) {
@@ -89,46 +88,15 @@ const formatCategoryLabel = (value) => {
 };
 
 export default function Index({ suratTugas, filters, userRole, authUserId }) {
+    const { theme } = useTheme();
     const searchTimeout = useRef(null);
     const [search, setSearch] = useState(filters?.search || "");
     const [selectedStatus, setSelectedStatus] = useState(filters?.status || "");
     const [deletingId, setDeletingId] = useState(null);
     const [expandedRow, setExpandedRow] = useState(null);
-    const [openMenu, setOpenMenu] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [theme, setTheme] = useState(() => {
-        if (typeof window === "undefined") {
-            return "light";
-        }
-
-        const savedTheme = window.localStorage.getItem("rekap-jaldis-theme");
-        const initialTheme =
-            savedTheme ||
-            (window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light");
-        document.documentElement.dataset.theme = initialTheme;
-        return initialTheme;
-    });
 
     useEffect(() => () => clearTimeout(searchTimeout.current), []);
-
-    useEffect(() => {
-        document.documentElement.dataset.theme = theme;
-        window.localStorage.setItem("rekap-jaldis-theme", theme);
-    }, [theme]);
-
-    // Close kebab menu on outside click
-    useEffect(() => {
-        if (!openMenu) return;
-        const handler = (e) => {
-            if (!e.target.closest("[data-kebab-menu]")) {
-                setOpenMenu(null);
-            }
-        };
-        document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
-    }, [openMenu]);
 
     const searchSuratTugas = (value) => {
         setSearch(value);
@@ -295,21 +263,10 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
         }
     };
 
-    const isPrintable = (st) =>
-        st.status === "SELESAI_TERBIT" ||
-        (st.status === "MENUNGGU_PENOMORAN_TU" &&
-            ["tu", "admin", "kapus", "ppk"].includes(userRole));
-
     return (
         <AdminLayout
             title="Daftar Surat Tugas & SPD"
             variant="analytics"
-            theme={theme}
-            onThemeToggle={() => {
-                const nextTheme = theme === "dark" ? "light" : "dark";
-                document.documentElement.dataset.theme = nextTheme;
-                setTheme(nextTheme);
-            }}
         >
             <Head title="Daftar Surat Tugas & SPD - Pusdiklat Kemlu" />
 
@@ -574,43 +531,6 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                         </span>
                                                                     </button>
                                                                 )}
-                                                                {/* Kebab menu for DRAFT */}
-                                                                <div className="relative">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() =>
-                                                                            setOpenMenu(
-                                                                                openMenu ===
-                                                                                    st.id
-                                                                                    ? null
-                                                                                    : st.id,
-                                                                            )
-                                                                        }
-                                                                        className="st-menu-trigger"
-                                                                        aria-label="Opsi lainnya"
-                                                                        title="Opsi lainnya"
-                                                                    >
-                                                                        <MoreHorizontal className="h-4 w-4" />
-                                                                    </button>
-                                                                    {openMenu ===
-                                                                        st.id && (
-                                                                        <div className="st-menu">
-                                                                            <Link
-                                                                                href={`/surat-tugas/${st.id}`}
-                                                                                className="st-menu-item"
-                                                                                aria-label="Buka detail surat tugas"
-                                                                                onClick={() =>
-                                                                                    setOpenMenu(
-                                                                                        null,
-                                                                                    )
-                                                                                }
-                                                                            >
-                                                                                <Eye className="w-3.5 h-3.5" />{" "}
-                                                                                Detail
-                                                                            </Link>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
                                                             </>
                                                         ) : (
                                                             <>
@@ -643,58 +563,6 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                         </span>
                                                                     </button>
                                                                 )}
-                                                                {/* Kebab menu for non-DRAFT */}
-                                                                <div
-                                                                    className="relative"
-                                                                    data-kebab-menu
-                                                                >
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() =>
-                                                                            setOpenMenu(
-                                                                                openMenu ===
-                                                                                    st.id
-                                                                                    ? null
-                                                                                    : st.id,
-                                                                            )
-                                                                        }
-                                                                        className="st-menu-trigger"
-                                                                        aria-label="Opsi lainnya"
-                                                                        title="Opsi lainnya"
-                                                                    >
-                                                                        <MoreHorizontal className="h-4 w-4" />
-                                                                    </button>
-                                                                    {openMenu ===
-                                                                        st.id && (
-                                                                        <div className="st-menu">
-                                                                            {isPrintable(
-                                                                                st,
-                                                                            ) && (
-                                                                                <Link
-                                                                                    href={`/surat-tugas/${st.id}/cetak`}
-                                                                                    className="st-menu-item"
-                                                                                    aria-label={
-                                                                                        st.status ===
-                                                                                        "SELESAI_TERBIT"
-                                                                                            ? "Cetak surat tugas"
-                                                                                            : "Pratinjau surat tugas"
-                                                                                    }
-                                                                                    onClick={() =>
-                                                                                        setOpenMenu(
-                                                                                            null,
-                                                                                        )
-                                                                                    }
-                                                                                >
-                                                                                    <Printer className="w-3.5 h-3.5" />
-                                                                                    {st.status ===
-                                                                                    "SELESAI_TERBIT"
-                                                                                        ? "Cetak Surat"
-                                                                                        : "Pratinjau"}
-                                                                                </Link>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
                                                             </>
                                                         )}
                                                     </div>

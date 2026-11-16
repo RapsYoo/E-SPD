@@ -3,8 +3,9 @@ import Navbar from './Partials/Navbar';
 import Sidebar from './Partials/Sidebar';
 import FlashMessage from './Partials/FlashMessage';
 
-export default function AdminLayout({ children, title, variant, theme, onThemeToggle }) {
+export default function AdminLayout({ children, title, variant }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const isAnalytics = variant === 'analytics';
 
   return (
@@ -13,15 +14,19 @@ export default function AdminLayout({ children, title, variant, theme, onThemeTo
       <Navbar
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
+        sidebarCollapsed={sidebarCollapsed}
+        setSidebarCollapsed={setSidebarCollapsed}
         title={title}
         variant={variant}
-        theme={theme}
-        onThemeToggle={onThemeToggle}
       />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar Menu & User Account Footer */}
-        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+        <Sidebar
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          sidebarCollapsed={sidebarCollapsed}
+        />
 
         {/* Main Content Area + Bottom Footerbar (Scrollable together so footer appears at the bottom of the page) */}
         <div className={`admin-shell-content flex-1 overflow-y-auto bg-slate-100 flex flex-col ${isAnalytics ? 'admin-shell-content-analytics' : ''}`}>

@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PegawaiProfileModal from '@/Components/PegawaiProfileModal';
 import '@/../css/rekapitulasi-pegawai.css';
+import { useTheme } from '@/Contexts/ThemeContext';
 import {
   ArcElement,
   BarElement,
@@ -460,15 +461,9 @@ export default function Index({
   statusOptions = {},
   unitOptions = [],
 }) {
+  const { theme } = useTheme();
   const searchTimeout = useRef(null);
   const periodInputRef = useRef(null);
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') return 'light';
-    const savedTheme = window.localStorage.getItem('rekap-jaldis-theme');
-    const initialTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    document.documentElement.dataset.theme = initialTheme;
-    return initialTheme;
-  });
   const [form, setForm] = useState({
     dari: filters.dari || '',
     sampai: filters.sampai || '',
@@ -495,11 +490,6 @@ export default function Index({
     C: tarifMap.C ?? 750000,
   });
   const [savingTarif, setSavingTarif] = useState(false);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem('rekap-jaldis-theme', theme);
-  }, [theme]);
 
   // State khusus Grafik Kombinasi agar dinamis terhadap metrik & tampilan sumbu X
   const [pieMetric, setPieMetric] = useState('jalis'); // 'jalis' | 'biaya'
@@ -856,12 +846,6 @@ export default function Index({
     <AdminLayout
       title="Rekap Jaldis Pegawai"
       variant="analytics"
-      theme={theme}
-      onThemeToggle={() => {
-        const nextTheme = theme === 'dark' ? 'light' : 'dark';
-        document.documentElement.dataset.theme = nextTheme;
-        setTheme(nextTheme);
-      }}
     >
       <Head title="Rekap Jaldis Pegawai - e-SPD Pusdiklat Kemlu" />
 

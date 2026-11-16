@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import ThemeToggle from '@/Components/ThemeToggle';
 
 // ─── Kemlu Logo Component ──────────────────────────────────────────────────
 function KemluLogo({ className = '' }) {
@@ -133,7 +134,8 @@ export default function Login({ canResetPassword, status }) {
         <>
             <Head title="Masuk" />
 
-            <div className="flex min-h-screen">
+            <div className="relative flex min-h-screen">
+                <ThemeToggle className="absolute right-4 top-4 z-10 rounded-lg border border-white/30 bg-slate-900/80 p-2 text-white shadow-sm transition hover:bg-slate-800" />
                 {/* Left Panel — Form */}
                 <div className="flex w-full flex-col justify-center px-8 py-8 sm:px-12 lg:w-[460px] lg:min-w-[460px] bg-white">
                     {/* Logo + Institution Name */}

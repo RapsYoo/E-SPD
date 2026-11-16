@@ -873,8 +873,7 @@
 }
 
 .st-detail-button,
-.st-delete-button,
-.st-menu-trigger {
+.st-delete-button {
     display: inline-flex;
     height: 32px;
     flex: 0 0 auto;
@@ -901,51 +900,9 @@
 }
 
 .st-detail-button:hover,
-.st-delete-button:hover,
-.st-menu-trigger:hover {
+.st-delete-button:hover {
     border-color: var(--accent);
     background: var(--accent-soft);
-}
-
-.st-menu-trigger {
-    width: 32px;
-    padding: 0;
-    color: var(--muted);
-}
-
-.st-action-group > .relative {
-    position: relative;
-    display: inline-flex;
-}
-
-.st-menu {
-    position: absolute;
-    z-index: 20;
-    top: calc(100% + 5px);
-    right: 0;
-    width: 150px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 4px;
-    background: var(--card);
-    box-shadow: 0 8px 24px color-mix(in srgb, var(--text) 12%, transparent);
-}
-
-.st-menu-item {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    gap: 8px;
-    border-radius: 7px;
-    padding: 8px;
-    color: var(--text);
-    font-size: 12px;
-    text-decoration: none;
-}
-
-.st-menu-item:hover {
-    background: color-mix(in srgb, var(--accent) 7%, var(--card));
 }
 
 .st-expanded-row > td {

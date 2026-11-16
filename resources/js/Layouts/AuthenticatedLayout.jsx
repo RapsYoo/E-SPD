@@ -2,6 +2,7 @@ import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
+import ThemeToggle from '@/Components/ThemeToggle';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -34,6 +35,7 @@ export default function AuthenticatedLayout({ header, children }) {
                         </div>
 
                         <div className="hidden sm:ms-6 sm:flex sm:items-center">
+                            <ThemeToggle className="me-3 rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition hover:bg-gray-100" />
                             <div className="relative ms-3">
                                 <Dropdown>
                                     <Dropdown.Trigger>
@@ -79,6 +81,7 @@ export default function AuthenticatedLayout({ header, children }) {
                         </div>
 
                         <div className="-me-2 flex items-center sm:hidden">
+                            <ThemeToggle className="me-2 rounded-lg p-2 text-gray-500 transition hover:bg-gray-100" />
                             <button
                                 onClick={() =>
                                     setShowingNavigationDropdown(

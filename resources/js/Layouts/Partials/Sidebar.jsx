@@ -18,7 +18,7 @@ import {
   LogOut,
 } from 'lucide-react';
 
-export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
+export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed }) {
   const { auth } = usePage().props;
   const userRole = auth?.user?.role;
   const isAdmin = userRole === 'admin';
@@ -54,8 +54,10 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
       {/* Sidebar Navigation */}
       <aside
-        className={`admin-sidebar fixed lg:static inset-y-0 left-0 z-30 w-64 flex-shrink-0 h-full bg-[#0B2247] text-slate-200 shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0 flex flex-col justify-between border-r border-slate-800 ${
+        className={`admin-sidebar fixed lg:static inset-y-0 left-0 z-30 w-64 flex-shrink-0 h-full bg-[#0B2247] text-slate-200 shadow-xl transform transition-all duration-200 ease-in-out lg:translate-x-0 flex flex-col justify-between border-r border-slate-800 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${
+          sidebarCollapsed ? 'lg:-ml-64 lg:pointer-events-none lg:opacity-0' : 'lg:ml-0 lg:opacity-100'
         }`}
       >
         <div className="sidebar-scroll p-4 space-y-6 overflow-y-auto">
