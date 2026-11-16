@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\Admin\RbacService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,26 @@ class RbacController extends Controller
             'modules' => RbacService::MODULES,
             'rolePermissions' => $this->rbac->resolvedMatrix(),
             'defaultPermissions' => RbacService::DEFAULT_ROLE_MODULES,
+            'users' => User::query()
+                ->where('role', '!=', 'admin')
+                ->orderBy('name')
+                ->get(['id', 'name', 'email', 'role']),
+            'userPermissions' => $this->rbac->allUserExtraPermissions(),
         ]);
+    }
+
+    public function updateUser(Request $request, User $user): RedirectResponse
+    {
+        abort_if($user->role === 'admin', 422, 'Admin Master sudah memiliki akses penuh.');
+
+        $validated = $request->validate([
+            'modules' => ['present', 'array'],
+            'modules.*' => ['string', Rule::in($this->rbac->allModuleKeys())],
+        ]);
+
+        $this->rbac->updateUserPermissions($user, $validated['modules']);
+
+        return redirect()->back()->with('success', "Hak akses khusus untuk akun {$user->name} berhasil diperbarui.");
     }
 
     public function update(Request $request, string $role): RedirectResponse
@@ -56,4 +76,3 @@ class RbacController extends Controller
         return redirect()->back()->with('success', "Hak akses role {$roleLabel} dikembalikan ke pengaturan default.");
     }
 }
-

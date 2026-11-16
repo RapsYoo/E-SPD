@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -24,6 +25,14 @@ class User extends Authenticatable
     public function pegawai(): BelongsTo
     {
         return $this->belongsTo(Pegawai::class);
+    }
+
+    /**
+     * Hak akses modul tambahan khusus akun ini (di luar hak akses role).
+     */
+    public function extraPermissions(): HasMany
+    {
+        return $this->hasMany(UserPermission::class);
     }
 
     /**

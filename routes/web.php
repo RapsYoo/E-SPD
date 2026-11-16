@@ -103,6 +103,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
         // Manajemen Hak Akses Role (RBAC)
         Route::get('rbac', [RbacController::class, 'index'])->name('rbac.index');
+        Route::put('rbac/users/{user}', [RbacController::class, 'updateUser'])->name('rbac.users.update');
         Route::put('rbac/{role}', [RbacController::class, 'update'])->name('rbac.update');
         Route::post('rbac/{role}/reset', [RbacController::class, 'reset'])->name('rbac.reset');
 

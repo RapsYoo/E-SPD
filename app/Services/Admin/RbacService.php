@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Models\RolePermission;
 use App\Models\User;
+use App\Models\UserPermission;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -12,6 +13,8 @@ use Throwable;
 class RbacService
 {
     public const CACHE_KEY = 'rbac.role_permissions.v1';
+
+    public const USER_CACHE_PREFIX = 'rbac.user_permissions.v1.';
 
     /**
      * Daftar role yang dapat diatur hak aksesnya oleh Admin Master.
@@ -237,7 +240,85 @@ class RbacService
             return $this->allModuleKeys();
         }
 
-        return $this->permissionsForRole($user->role);
+        return array_values(array_unique([
+            ...$this->permissionsForRole((string) $user->role),
+            ...$this->extraPermissionsForUser($user),
+        ]));
+    }
+
+    /**
+     * Mengembalikan daftar module_key tambahan yang diberikan khusus ke akun tertentu.
+     *
+     * @return array<int, string>
+     */
+    public function extraPermissionsForUser(User $user): array
+    {
+        try {
+            return Cache::rememberForever($this->userCacheKey($user->getKey()), function () use ($user): array {
+                if (! Schema::hasTable('user_permissions')) {
+                    return [];
+                }
+
+                return UserPermission::query()
+                    ->where('user_id', $user->getKey())
+                    ->whereIn('module_key', $this->allModuleKeys())
+                    ->pluck('module_key')
+                    ->values()
+                    ->all();
+            });
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * Peta seluruh hak akses tambahan per akun (user_id => array of module_keys).
+     *
+     * @return array<int, array<int, string>>
+     */
+    public function allUserExtraPermissions(): array
+    {
+        if (! Schema::hasTable('user_permissions')) {
+            return [];
+        }
+
+        return UserPermission::query()
+            ->whereIn('module_key', $this->allModuleKeys())
+            ->get(['user_id', 'module_key'])
+            ->groupBy('user_id')
+            ->map(fn ($rows) => $rows->pluck('module_key')->values()->all())
+            ->all();
+    }
+
+    /**
+     * Simpan hak akses tambahan khusus untuk satu akun (menggantikan seluruh hak tambahan sebelumnya).
+     *
+     * @param  array<int, string>  $moduleKeys
+     */
+    public function updateUserPermissions(User $user, array $moduleKeys): void
+    {
+        $keys = array_values(array_unique(array_intersect($moduleKeys, $this->allModuleKeys())));
+
+        DB::transaction(function () use ($user, $keys): void {
+            UserPermission::query()
+                ->where('user_id', $user->getKey())
+                ->whereNotIn('module_key', $keys)
+                ->delete();
+
+            foreach ($keys as $moduleKey) {
+                UserPermission::query()->firstOrCreate([
+                    'user_id' => $user->getKey(),
+                    'module_key' => $moduleKey,
+                ]);
+            }
+        });
+
+        Cache::forget($this->userCacheKey($user->getKey()));
+    }
+
+    private function userCacheKey(int|string $userId): string
+    {
+        return self::USER_CACHE_PREFIX.$userId;
     }
 
     /**
@@ -266,7 +347,7 @@ class RbacService
             return true;
         }
 
-        return in_array($moduleKey, $this->permissionsForRole($user->role), true);
+        return in_array($moduleKey, $this->permissionsForUser($user), true);
     }
 
     /**
@@ -282,7 +363,7 @@ class RbacService
             return true;
         }
 
-        $active = $this->permissionsForRole($user->role);
+        $active = $this->permissionsForUser($user);
         foreach ($moduleKeys as $key) {
             if (in_array($key, $active, true)) {
                 return true;

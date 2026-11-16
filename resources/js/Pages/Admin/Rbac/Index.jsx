@@ -12,15 +12,21 @@ import {
   CheckSquare,
   Square,
   Info,
+  Users,
+  UserCog,
 } from 'lucide-react';
+import UserPermissionPanel from './Partials/UserPermissionPanel';
 
 export default function AdminRbacIndex({
   roles = {},
   modules = [],
   rolePermissions = {},
   defaultPermissions = {},
+  users = [],
+  userPermissions = {},
 }) {
   const roleKeys = Object.keys(roles);
+  const [mode, setMode] = useState('role');
   const [selectedRole, setSelectedRole] = useState(roleKeys[0] || 'pemohon');
   const [draftMatrix, setDraftMatrix] = useState(rolePermissions);
   const [saving, setSaving] = useState(false);
@@ -156,6 +162,7 @@ export default function AdminRbacIndex({
           </p>
         </div>
 
+        {mode === 'role' && (
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
@@ -177,6 +184,31 @@ export default function AdminRbacIndex({
             <span>{saving ? 'Menyimpan...' : `Simpan Hak Akses ${activeRoleMeta.label}`}</span>
           </button>
         </div>
+        )}
+      </div>
+
+      {/* Mode Tabs */}
+      <div className="mb-6 inline-flex rounded-2xl border border-slate-200/80 bg-white p-1 shadow-sm">
+        {[
+          { key: 'role', label: 'Hak Akses per Role', icon: Users },
+          { key: 'user', label: 'Hak Akses Khusus per Akun', icon: UserCog },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = mode === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setMode(tab.key)}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-extrabold transition ${
+                isActive ? 'bg-[#0B2247] text-white shadow' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <Icon className={`h-4 w-4 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Info Banner */}
@@ -188,10 +220,22 @@ export default function AdminRbacIndex({
             Saat suatu modul <strong>dinonaktifkan</strong> pada sebuah role, menu terkait akan{' '}
             <strong>otomatis tertutup/disembunyikan dari Sidebar</strong> pengguna role tersebut dan akses langsung melalui URL juga akan ditolak oleh sistem. Role <strong>Admin Master</strong> selalu memiliki akses penuh ke seluruh modul.
           </p>
+          <p className="text-blue-800/90 leading-relaxed">
+            Gunakan tab <strong>Hak Akses Khusus per Akun</strong> untuk memberikan modul tambahan hanya kepada akun tertentu
+            (misal satu pegawai diberi wewenang Kelola Master Data Pegawai) tanpa mengubah hak akses role-nya.
+          </p>
         </div>
       </div>
 
-      {/* Main Layout: Role Selector (Left) & Module Matrix (Right) */}
+      {mode === 'user' ? (
+        <UserPermissionPanel
+          users={users}
+          roles={roles}
+          modules={modules}
+          rolePermissions={rolePermissions}
+          userPermissions={userPermissions}
+        />
+      ) : (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left Column: Role Selector */}
         <div className="space-y-2.5 lg:col-span-4">
@@ -401,6 +445,7 @@ export default function AdminRbacIndex({
           </div>
         </div>
       </div>
+      )}
     </AdminLayout>
   );
 }

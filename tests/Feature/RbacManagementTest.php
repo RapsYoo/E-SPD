@@ -103,5 +103,68 @@ class RbacManagementTest extends TestCase
                 ->where('auth.permissions', fn ($perms) => collect($perms)->contains('rekapitulasi.view'))
             );
     }
-}
 
+    public function test_admin_can_grant_extra_module_to_specific_user_only(): void
+    {
+        $admin = $this->makeUser('admin');
+        $pegawaiA = $this->makeUser('pegawai');
+        $pegawaiB = $this->makeUser('pegawai');
+
+        $this->actingAs($pegawaiA)->get(route('admin.pegawai.index'))
+            ->assertRedirect(route('dashboard'));
+
+        $this->actingAs($admin)->put(route('admin.rbac.users.update', $pegawaiA), [
+            'modules' => ['master_pegawai.manage'],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('user_permissions', [
+            'user_id' => $pegawaiA->id,
+            'module_key' => 'master_pegawai.manage',
+        ]);
+
+        $this->actingAs($pegawaiA)->get(route('admin.pegawai.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.permissions', fn ($perms) => collect($perms)->contains('master_pegawai.manage')
+                    && collect($perms)->contains('surat_tugas.view'))
+            );
+
+        $this->actingAs($pegawaiB)->get(route('admin.pegawai.index'))
+            ->assertRedirect(route('dashboard'));
+    }
+
+    public function test_admin_can_revoke_extra_module_from_user(): void
+    {
+        $admin = $this->makeUser('admin');
+        $pegawai = $this->makeUser('pegawai');
+
+        $this->actingAs($admin)->put(route('admin.rbac.users.update', $pegawai), [
+            'modules' => ['master_pegawai.manage'],
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.rbac.users.update', $pegawai), [
+            'modules' => [],
+        ])->assertRedirect();
+
+        $this->assertDatabaseMissing('user_permissions', ['user_id' => $pegawai->id]);
+
+        $this->actingAs($pegawai)->get(route('admin.pegawai.index'))
+            ->assertRedirect(route('dashboard'));
+    }
+
+    public function test_user_permission_update_rejects_invalid_module_and_non_admin(): void
+    {
+        $admin = $this->makeUser('admin');
+        $pegawai = $this->makeUser('pegawai');
+
+        $this->actingAs($admin)->put(route('admin.rbac.users.update', $pegawai), [
+            'modules' => ['modul.tidak_ada'],
+        ])->assertSessionHasErrors('modules.0');
+
+        $this->actingAs($pegawai)->put(route('admin.rbac.users.update', $pegawai), [
+            'modules' => ['master_pegawai.manage'],
+        ])->assertRedirect();
+
+        $this->assertDatabaseMissing('user_permissions', ['user_id' => $pegawai->id]);
+    }
+}
