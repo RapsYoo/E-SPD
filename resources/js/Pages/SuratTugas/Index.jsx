@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Head, Link, router } from "@inertiajs/react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
 import "@/../css/rekapitulasi-pegawai.css";
 import {
@@ -88,6 +88,9 @@ const formatCategoryLabel = (value) => {
 };
 
 export default function Index({ suratTugas, filters, userRole, authUserId }) {
+    const { auth } = usePage().props;
+    const permissions = Array.isArray(auth?.permissions) ? auth.permissions : [];
+    const canCreate = userRole === "admin" || permissions.includes("surat_tugas.create");
     const { theme } = useTheme();
     const searchTimeout = useRef(null);
     const [search, setSearch] = useState(filters?.search || "");
@@ -135,8 +138,8 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
         if (deletingId) return;
         const identifier =
             surat.status === "DRAFT"
-                ? `Draft #${surat.id}`
-                : surat.nomor_st || `Surat #${surat.id}`;
+                ? surat.draft_data?.perihal_nota || "Draft Surat Tugas"
+                : surat.nomor_st || surat.perihal_nota || "Surat Tugas";
         if (
             !window.confirm(
                 `Hapus ${identifier} beserta histori proses dan lampirannya? Tindakan ini tidak dapat dibatalkan.`,
@@ -342,9 +345,7 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                         <option value="SELESAI_TERBIT">Selesai Terbit</option>
                     </select>
 
-                    {(userRole === "pemohon" ||
-                        userRole === "sespalu" ||
-                        userRole === "admin") && (
+                    {canCreate && (
                         <Link
                             href="/surat-tugas/create"
                             className="st-create-button"
@@ -500,8 +501,9 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                             <>
                                                                 {(userRole ===
                                                                     "admin" ||
-                                                                    st.user_id ===
-                                                                        authUserId) && (
+                                                                    (canCreate &&
+                                                                        st.user_id ===
+                                                                            authUserId)) && (
                                                                     <Link
                                                                         href={`/surat-tugas/${st.id}/draft`}
                                                                         className="st-continue-button"
@@ -586,8 +588,7 @@ export default function Index({ suratTugas, filters, userRole, authUserId }) {
                                                                 {st.status ===
                                                                 "DRAFT" ? (
                                                                     <div className="st-detail-value st-detail-number">
-                                                                        Draft #
-                                                                        {st.id}
+                                                                        Draft (Belum Bernomor)
                                                                     </div>
                                                                 ) : st.nomor_st ? (
                                                                     <div className="st-detail-value st-detail-number">

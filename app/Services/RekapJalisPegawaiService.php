@@ -26,7 +26,23 @@ class RekapJalisPegawaiService
      */
     public function suratQuery(array $filters): Builder
     {
-        $query = SuratTugas::query()->with(['pegawaiList.pegawaiMaster.upt']);
+        $query = SuratTugas::query()
+            ->select([
+                'id',
+                'nomor_st',
+                'nomor_spd',
+                'perihal_nota',
+                'tempat_tujuan',
+                'negara_tujuan',
+                'kategori_perjalanan',
+                'tingkat_biaya_kode',
+                'jenis_angkutan_nama',
+                'tanggal_berangkat',
+                'tanggal_kembali',
+                'durasi_hari',
+                'status',
+            ])
+            ->with(['pegawaiList:id,surat_tugas_id,pegawai_id,nama,nip,pangkat,golongan,jabatan,unit_kerja,biaya,urutan']);
 
         if (! empty($filters['dari'])) {
             $query->whereDate('tanggal_berangkat', '>=', $filters['dari']);
@@ -238,10 +254,14 @@ class RekapJalisPegawaiService
 
         // Filter berdasarkan Unit / UPT
         if (! empty($filters['unit'])) {
+            $normalizeUnit = static fn (string $val): string => preg_replace('/^upt\s+/i', '', strtolower(trim($val))) ?? '';
             $unitFilter = strtolower(trim((string) $filters['unit']));
-            $items = $items->filter(
-                fn (array $r) => strtolower(trim((string) $r['upt_bidang'])) === $unitFilter
-            );
+            $unitFilterNorm = $normalizeUnit($unitFilter);
+            $items = $items->filter(function (array $r) use ($unitFilter, $unitFilterNorm, $normalizeUnit): bool {
+                $rowUnit = strtolower(trim((string) $r['upt_bidang']));
+
+                return $rowUnit === $unitFilter || ($unitFilterNorm !== '' && $normalizeUnit($rowUnit) === $unitFilterNorm);
+            });
         }
 
         // Filter berdasarkan pencarian nama / NIP / jabatan

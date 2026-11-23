@@ -170,26 +170,35 @@ class DashboardService
     /** Surat yang memerlukan aksi pengguna saat ini, menurut perannya. */
     private function needsAction(User $user): Collection|array
     {
-        return $this->needsActionQuery($user)?->orderBy('created_at', 'asc')->limit(10)->get() ?? [];
+        return $this->needsActionQuery($user, true)?->orderBy('created_at', 'asc')->limit(10)->get() ?? [];
     }
 
-    private function needsActionQuery(User $user): ?Builder
+    private function needsActionQuery(User $user, bool $withRelations = true): ?Builder
     {
-        return match (true) {
-            $user->role === 'kapus' => SuratTugas::where('status', S::MENUNGGU_DISPOSISI_KAPUS)->with(['user', 'pegawaiList']),
-            $user->role === 'tu' => SuratTugas::where('status', S::MENUNGGU_PENOMORAN_TU)->with(['user', 'pegawaiList']),
-            $user->role === 'ppk' => SuratTugas::where('status', S::SELESAI_TERBIT)->where('is_ppk_signed', false)->with(['user', 'pegawaiList']),
+        $query = match (true) {
+            $user->role === 'kapus' => SuratTugas::where('status', S::MENUNGGU_DISPOSISI_KAPUS),
+            $user->role === 'tu' => SuratTugas::where('status', S::MENUNGGU_PENOMORAN_TU),
+            $user->role === 'ppk' => SuratTugas::where('status', S::SELESAI_TERBIT)->where('is_ppk_signed', false),
             in_array($user->role, ['pemohon', 'sespalu'], true) => SuratTugas::where('user_id', $user->id)
-                ->whereIn('status', [S::DRAFT, S::DISPOSISI_KAPUS_YA, S::DISPOSISI_KAPUS_REVISI, S::DISPOSISI_KAPUS_STOP])->with(['pegawaiList']),
+                ->whereIn('status', [S::DRAFT, S::DISPOSISI_KAPUS_YA, S::DISPOSISI_KAPUS_REVISI, S::DISPOSISI_KAPUS_STOP]),
             $user->role === 'admin' => SuratTugas::whereIn('status', [
                 S::DRAFT,
                 S::MENUNGGU_DISPOSISI_KAPUS,
                 S::MENUNGGU_PENOMORAN_TU,
                 S::DISPOSISI_KAPUS_YA,
                 S::DISPOSISI_KAPUS_REVISI,
-            ])->with(['user', 'pegawaiList']),
+            ]),
             default => null,
         };
+
+        if ($query !== null && $withRelations) {
+            $relations = in_array($user->role, ['pemohon', 'sespalu'], true)
+                ? ['pegawaiList']
+                : ['user', 'pegawaiList'];
+            $query->with($relations);
+        }
+
+        return $query;
     }
 
     /**
@@ -253,13 +262,13 @@ class DashboardService
             return $this->pegawaiNotifications($user);
         }
 
-        $query = $this->needsActionQuery($user);
+        $query = $this->needsActionQuery($user, false);
         if ($query === null) {
             return ['count' => 0, 'items' => []];
         }
 
         $count = (clone $query)->count();
-        $items = $query->orderBy('created_at', 'asc')->limit(5)->get()->map(fn (SuratTugas $s) => [
+        $items = $query->orderBy('created_at', 'asc')->limit(5)->get(['id', 'status', 'perihal_nota'])->map(fn (SuratTugas $s) => [
             'id' => $s->id,
             'title' => $s->perihal_nota,
             'message' => $this->actionMessage($user, $s),

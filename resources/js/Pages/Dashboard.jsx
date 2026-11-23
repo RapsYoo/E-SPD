@@ -292,27 +292,25 @@ export default function Dashboard({
                     <div className="inline-flex p-1 bg-white rounded-xl border border-slate-200 shadow-xs">
                         <button
                             onClick={() => setStatsScope("personal")}
-                            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                                 statsScope === "personal"
                                     ? "bg-blue-600 text-white shadow-xs"
                                     : "text-slate-600 hover:text-slate-900"
                             }`}
                             title="Tampilkan statistik khusus usulan milik Anda"
                         >
-                            <User className="w-3.5 h-3.5" />
                             <span>Usulan Saya</span>
                         </button>
 
                         <button
                             onClick={() => setStatsScope("global")}
-                            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                                 statsScope === "global"
                                     ? "bg-blue-600 text-white shadow-xs"
                                     : "text-slate-600 hover:text-slate-900"
                             }`}
                             title="Tampilkan statistik seluruh Pusdiklat"
                         >
-                            <Building2 className="w-3.5 h-3.5" />
                             <span>Seluruh Pusdiklat</span>
                         </button>
                     </div>
@@ -341,7 +339,7 @@ export default function Dashboard({
                         <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
                             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
                             <span>
-                                ⚠️ Radar Urgensi: {urgentPending.length} Usulan
+                                Radar Urgensi: {urgentPending.length} Usulan
                                 Dinas Mepet (Berangkat ≤ 3 Hari)
                             </span>
                         </div>
@@ -383,9 +381,11 @@ export default function Dashboard({
                                                         {urgency.text}
                                                     </span>
                                                 )}
-                                                <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                                                    #{surat.id}
-                                                </span>
+                                                {surat.nomor_st && (
+                                                    <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                                        {surat.nomor_st}
+                                                    </span>
+                                                )}
                                             </div>
 
                                             <h4 className="text-sm font-bold text-slate-900 line-clamp-1 mb-1">
@@ -393,7 +393,6 @@ export default function Dashboard({
                                             </h4>
 
                                             <div className="flex items-center space-x-1.5 text-xs text-slate-600 mb-1">
-                                                <MapPin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                                                 <span className="truncate font-medium">
                                                     {tujuan}
                                                 </span>
@@ -437,12 +436,168 @@ export default function Dashboard({
                 </div>
             )}
 
+            {/* Main Grid: Charts & Tables (Ditampilkan Terlebih Dahulu) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                {/* Diagram Persentase Kategori Perjalanan */}
+                <div className="lg:col-span-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-bold text-slate-900">
+                            <span>Kategori Perjalanan</span>
+                        </h2>
+                        <span className="text-[11px] font-semibold text-slate-400">
+                            {statsScope === "personal"
+                                ? "Pribadi"
+                                : "Organisasi"}
+                        </span>
+                    </div>
+
+                    {/* Pie Chart (Pure CSS) */}
+                    <div className="flex items-center justify-center mb-6">
+                        <div className="relative w-48 h-48">
+                            <svg
+                                viewBox="0 0 100 100"
+                                className="transform -rotate-90"
+                            >
+                                {/* Background circle */}
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="40"
+                                    fill="transparent"
+                                    stroke="#e2e8f0"
+                                    strokeWidth="20"
+                                />
+
+                                {/* Dalam Negeri segment */}
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="40"
+                                    fill="transparent"
+                                    stroke="#3b82f6"
+                                    strokeWidth="20"
+                                    strokeDasharray={`${persenDalamNegeri * 2.51} ${251 - persenDalamNegeri * 2.51}`}
+                                    className="transition-all duration-500"
+                                />
+
+                                {/* Luar Negeri segment */}
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="40"
+                                    fill="transparent"
+                                    stroke="#f59e0b"
+                                    strokeWidth="20"
+                                    strokeDasharray={`${persenLuarNegeri * 2.51} ${251 - persenLuarNegeri * 2.51}`}
+                                    strokeDashoffset={`-${persenDalamNegeri * 2.51}`}
+                                    className="transition-all duration-500"
+                                />
+                            </svg>
+                        </div>
+                    </div>
+
+                    {/* Legend */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-200">
+                            <div className="flex items-center space-x-2">
+                                <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+                                <span className="text-sm font-semibold text-slate-900">
+                                    Dalam Negeri
+                                </span>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-lg font-extrabold text-blue-600">
+                                    {persenDalamNegeri}%
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                    {activeKategoriStats.DALAM_NEGERI || 0}{" "}
+                                    surat
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-200">
+                            <div className="flex items-center space-x-2">
+                                <div className="w-4 h-4 rounded-full bg-amber-500"></div>
+                                <span className="text-sm font-semibold text-slate-900">
+                                    Luar Negeri
+                                </span>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-lg font-extrabold text-amber-600">
+                                    {persenLuarNegeri}%
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                    {activeKategoriStats.LUAR_NEGERI || 0} surat
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Statistik Status Workflow */}
+                <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-bold text-slate-900">
+                            <span>Status Workflow</span>
+                        </h2>
+                        <span className="text-[11px] font-semibold text-slate-400">
+                            {statsScope === "personal"
+                                ? "Khusus Usulan Saya"
+                                : "Seluruh Dokumen Pusdiklat"}
+                        </span>
+                    </div>
+
+                    <div className="space-y-3">
+                        {Object.entries(activeStatusStats).map(
+                            ([status, count]) => {
+                                const percentage =
+                                    activeTotalSurat > 0
+                                        ? Math.round(
+                                              (count / activeTotalSurat) * 100,
+                                          )
+                                        : 0;
+                                const colors = {
+                                    DRAFT: "bg-slate-500",
+                                    MENUNGGU_DISPOSISI_KAPUS: "bg-amber-500",
+                                    DISPOSISI_KAPUS_YA: "bg-green-500",
+                                    DISPOSISI_KAPUS_REVISI: "bg-orange-500",
+                                    DISPOSISI_KAPUS_STOP: "bg-red-500",
+                                    MENUNGGU_PENOMORAN_TU: "bg-purple-500",
+                                    SELESAI_TERBIT: "bg-emerald-500",
+                                };
+
+                                return (
+                                    <div key={status} className="space-y-1">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="font-semibold text-slate-700">
+                                                {statusLabels[status] || status}
+                                            </span>
+                                            <span className="font-bold text-slate-900">
+                                                {count} ({percentage}%)
+                                            </span>
+                                        </div>
+                                        <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full ${colors[status] || "bg-slate-400"} transition-all duration-500`}
+                                                style={{
+                                                    width: `${percentage}%`,
+                                                }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                );
+                            },
+                        )}
+                    </div>
+                </div>
+            </div>
+
             {/* Monitoring Penugasan Pegawai (Sedang Dinas Hari Ini & Keberangkatan Mendatang H-7) */}
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-4">
                     <div>
-                        <div className="flex items-center space-x-2 text-blue-600 font-bold text-xs uppercase tracking-wider mb-1">
-                            <Plane className="w-4 h-4" />
+                        <div className="text-blue-600 font-bold text-xs uppercase tracking-wider mb-1">
                             <span>Monitoring Penugasan Dinas</span>
                         </div>
                         <h2 className="text-lg font-bold text-slate-900">
@@ -479,13 +634,12 @@ export default function Dashboard({
 
                         <button
                             onClick={() => setActiveDutyTab("upcoming")}
-                            className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                                 activeDutyTab === "upcoming"
                                     ? "bg-white text-blue-700 shadow-xs"
                                     : "text-slate-600 hover:text-slate-900"
                             }`}
                         >
-                            <CalendarDays className="w-3.5 h-3.5" />
                             <span>
                                 Jadwal H-7 Ke Depan ({upcomingTrips.length})
                             </span>
@@ -510,7 +664,7 @@ export default function Dashboard({
                                 </p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-2">
+                            <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
                                 {onDutyToday.map((surat) => {
                                     const pegawai =
                                         surat.pegawai_list ||
@@ -528,90 +682,74 @@ export default function Dashboard({
                                     return (
                                         <div
                                             key={surat.id}
-                                            className="bg-slate-50/70 hover:bg-slate-50 rounded-xl p-3 border border-slate-200/90 flex flex-col justify-between transition group"
+                                            className="bg-slate-50/70 hover:bg-slate-50 rounded-xl p-3 sm:p-4 border border-slate-200/90 flex flex-col md:flex-row md:items-center justify-between gap-3 transition group"
                                         >
-                                            <div>
-                                                <div className="flex items-center justify-between gap-2 mb-2">
-                                                    <span className="inline-flex items-center space-x-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                            {/* Kiri: Status, Tujuan, Nomor, & Perihal */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                                                    <span className="inline-flex items-center space-x-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-200 flex-shrink-0">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                        <span>
-                                                            Sedang Berjalan
-                                                        </span>
+                                                        <span>Sedang Berjalan</span>
                                                     </span>
 
-                                                    <span className="text-[11px] font-mono text-slate-500">
-                                                        {surat.nomor_st ||
-                                                            `#${surat.id}`}
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex items-start space-x-2 mb-2">
-                                                    {surat.kategori_perjalanan ===
-                                                    "LUAR_NEGERI" ? (
-                                                        <Globe className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                                                    ) : (
-                                                        <MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                                                    )}
-                                                    <h4 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition">
+                                                    <span className="text-xs font-bold text-slate-900 truncate">
                                                         {tujuan}
-                                                    </h4>
+                                                    </span>
+
+                                                    {surat.nomor_st ? (
+                                                        <span className="text-[11px] font-mono text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded font-semibold">
+                                                            {surat.nomor_st}
+                                                        </span>
+                                                    ) : (
+                                                        surat.nomor_nota && (
+                                                            <span className="text-[11px] font-mono text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                                                                Nota: {surat.nomor_nota}
+                                                            </span>
+                                                        )
+                                                    )}
                                                 </div>
 
-                                                <p className="text-xs text-slate-600 line-clamp-2 mb-3">
+                                                <p className="text-xs text-slate-600 line-clamp-1 group-hover:text-blue-600 transition" title={surat.perihal_nota}>
                                                     {surat.perihal_nota}
                                                 </p>
+                                            </div>
 
-                                                <div className="bg-white rounded-lg p-2 border border-slate-200/80 mb-2 text-xs space-y-1.5">
-                                                    <div className="flex items-center justify-between text-slate-500 text-[11px]">
-                                                        <span className="flex items-center gap-1">
-                                                            <Calendar className="w-3 h-3" />{" "}
-                                                            Periode Tugas:
+                                            {/* Tengah: Periode Tugas & Pelaksana */}
+                                            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 md:border-l md:border-r border-slate-200/80 md:px-4 flex-shrink-0">
+                                                <div className="flex items-center gap-2 min-w-[140px]">
+                                                    <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                    <div>
+                                                        <span className="text-[10px] text-slate-400 block font-semibold uppercase">
+                                                            Periode Tugas
                                                         </span>
-                                                        <span className="font-semibold text-slate-800">
+                                                        <span className="font-semibold text-slate-800 text-xs">
                                                             {formatDateRange(
                                                                 surat.tanggal_berangkat,
                                                                 surat.tanggal_kembali,
                                                             )}
                                                         </span>
                                                     </div>
+                                                </div>
 
-                                                    <div className="pt-1.5 border-t border-slate-100">
-                                                        <span className="text-[11px] text-slate-500 block mb-1">
-                                                            Pelaksana (
-                                                            {pegawai.length}{" "}
-                                                            orang):
+                                                <div className="flex items-center gap-2">
+                                                    <Users className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                    <div>
+                                                        <span className="text-[10px] text-slate-400 block font-semibold uppercase">
+                                                            Pelaksana ({pegawai.length} orang)
                                                         </span>
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {pegawai
-                                                                .slice(0, 3)
-                                                                .map(
-                                                                    (
-                                                                        p,
-                                                                        idx,
-                                                                    ) => (
-                                                                        <span
-                                                                            key={
-                                                                                p.id ||
-                                                                                idx
-                                                                            }
-                                                                            className="text-[10px] font-medium bg-slate-100 text-slate-700 px-2 py-0.5 rounded truncate max-w-[140px]"
-                                                                            title={
-                                                                                p.nama
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                p.nama
-                                                                            }
-                                                                        </span>
-                                                                    ),
-                                                                )}
-                                                            {pegawai.length >
-                                                                3 && (
-                                                                <span className="text-[10px] font-semibold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">
-                                                                    +
-                                                                    {pegawai.length -
-                                                                        3}{" "}
-                                                                    lainnya
+                                                        <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                                            {pegawai.slice(0, 2).map((p, idx) => (
+                                                                <span
+                                                                    key={p.id || idx}
+                                                                    className="text-[10px] font-medium bg-white text-slate-700 px-2 py-0.5 rounded border border-slate-200 truncate max-w-[120px]"
+                                                                    title={p.nama}
+                                                                >
+                                                                    {p.nama}
+                                                                </span>
+                                                            ))}
+                                                            {pegawai.length > 2 && (
+                                                                <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/80 px-1.5 py-0.5 rounded">
+                                                                    +{pegawai.length - 2} lainnya
                                                                 </span>
                                                             )}
                                                         </div>
@@ -619,10 +757,11 @@ export default function Dashboard({
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                                            {/* Kanan: Aksi */}
+                                            <div className="flex items-center justify-end gap-2 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-200/60">
                                                 <Link
                                                     href={`/surat-tugas/${surat.id}`}
-                                                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                                                    className="inline-flex items-center space-x-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50/70 hover:bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200 transition"
                                                 >
                                                     <span>Rincian</span>
                                                     <ArrowUpRight className="w-3.5 h-3.5" />
@@ -631,7 +770,7 @@ export default function Dashboard({
                                                 {canPrintSurat(surat) && (
                                                     <Link
                                                         href={`/surat-tugas/${surat.id}/cetak`}
-                                                        className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs transition"
+                                                        className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs transition"
                                                         title="Cetak Lembar Surat Tugas & SPD"
                                                     >
                                                         <Printer className="w-3.5 h-3.5 text-slate-600" />
@@ -664,7 +803,7 @@ export default function Dashboard({
                                 </p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-2">
+                            <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
                                 {upcomingTrips.map((surat) => {
                                     const urgency = getUrgencyBadge(
                                         surat.tanggal_berangkat,
@@ -685,84 +824,76 @@ export default function Dashboard({
                                     return (
                                         <div
                                             key={surat.id}
-                                            className="bg-slate-50/70 hover:bg-slate-50 rounded-xl p-3 border border-slate-200/90 flex flex-col justify-between transition group"
+                                            className="bg-slate-50/70 hover:bg-slate-50 rounded-xl p-3 sm:p-4 border border-slate-200/90 flex flex-col md:flex-row md:items-center justify-between gap-3 transition group"
                                         >
-                                            <div>
-                                                <div className="flex items-center justify-between gap-2 mb-2">
+                                            {/* Kiri: Urgensi, Tujuan, Nomor, & Perihal */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2 mb-1.5">
                                                     {urgency && (
                                                         <span
-                                                            className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border ${urgency.className}`}
+                                                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border flex-shrink-0 ${urgency.className}`}
                                                         >
                                                             {urgency.text}
                                                         </span>
                                                     )}
-                                                    <span className="text-[11px] font-mono text-slate-500">
-                                                        {surat.nomor_st ||
-                                                            `#${surat.id}`}
-                                                    </span>
-                                                </div>
 
-                                                <div className="flex items-start space-x-2 mb-2">
-                                                    <MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                                                    <h4 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition">
+                                                    <span className="text-xs font-bold text-slate-900 truncate">
                                                         {tujuan}
-                                                    </h4>
+                                                    </span>
+
+                                                    {surat.nomor_st ? (
+                                                        <span className="text-[11px] font-mono text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded font-semibold">
+                                                            {surat.nomor_st}
+                                                        </span>
+                                                    ) : (
+                                                        surat.nomor_nota && (
+                                                            <span className="text-[11px] font-mono text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                                                                Nota: {surat.nomor_nota}
+                                                            </span>
+                                                        )
+                                                    )}
                                                 </div>
 
-                                                <p className="text-xs text-slate-600 line-clamp-2 mb-3">
+                                                <p className="text-xs text-slate-600 line-clamp-1 group-hover:text-blue-600 transition" title={surat.perihal_nota}>
                                                     {surat.perihal_nota}
                                                 </p>
+                                            </div>
 
-                                                <div className="bg-white rounded-lg p-2.5 border border-slate-200/80 mb-3 text-xs space-y-1.5">
-                                                    <div className="flex items-center justify-between text-slate-500 text-[11px]">
-                                                        <span className="flex items-center gap-1">
-                                                            <Calendar className="w-3 h-3" />{" "}
-                                                            Berangkat:
+                                            {/* Tengah: Tanggal Keberangkatan & Pelaksana */}
+                                            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 md:border-l md:border-r border-slate-200/80 md:px-4 flex-shrink-0">
+                                                <div className="flex items-center gap-2 min-w-[140px]">
+                                                    <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                    <div>
+                                                        <span className="text-[10px] text-slate-400 block font-semibold uppercase">
+                                                            Tgl Berangkat
                                                         </span>
-                                                        <span className="font-semibold text-slate-800">
+                                                        <span className="font-semibold text-slate-800 text-xs">
                                                             {formatDate(
                                                                 surat.tanggal_berangkat,
                                                             )}
                                                         </span>
                                                     </div>
+                                                </div>
 
-                                                    <div className="pt-1.5 border-t border-slate-100">
-                                                        <span className="text-[11px] text-slate-500 block mb-1">
-                                                            Pelaksana (
-                                                            {pegawai.length}{" "}
-                                                            orang):
+                                                <div className="flex items-center gap-2">
+                                                    <Users className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                    <div>
+                                                        <span className="text-[10px] text-slate-400 block font-semibold uppercase">
+                                                            Pelaksana ({pegawai.length} orang)
                                                         </span>
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {pegawai
-                                                                .slice(0, 3)
-                                                                .map(
-                                                                    (
-                                                                        p,
-                                                                        idx,
-                                                                    ) => (
-                                                                        <span
-                                                                            key={
-                                                                                p.id ||
-                                                                                idx
-                                                                            }
-                                                                            className="text-[10px] font-medium bg-slate-100 text-slate-700 px-2 py-0.5 rounded truncate max-w-[140px]"
-                                                                            title={
-                                                                                p.nama
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                p.nama
-                                                                            }
-                                                                        </span>
-                                                                    ),
-                                                                )}
-                                                            {pegawai.length >
-                                                                3 && (
-                                                                <span className="text-[10px] font-semibold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">
-                                                                    +
-                                                                    {pegawai.length -
-                                                                        3}{" "}
-                                                                    lainnya
+                                                        <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                                            {pegawai.slice(0, 2).map((p, idx) => (
+                                                                <span
+                                                                    key={p.id || idx}
+                                                                    className="text-[10px] font-medium bg-white text-slate-700 px-2 py-0.5 rounded border border-slate-200 truncate max-w-[120px]"
+                                                                    title={p.nama}
+                                                                >
+                                                                    {p.nama}
+                                                                </span>
+                                                            ))}
+                                                            {pegawai.length > 2 && (
+                                                                <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/80 px-1.5 py-0.5 rounded">
+                                                                    +{pegawai.length - 2} lainnya
                                                                 </span>
                                                             )}
                                                         </div>
@@ -770,10 +901,11 @@ export default function Dashboard({
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                                            {/* Kanan: Aksi */}
+                                            <div className="flex items-center justify-end gap-2 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-200/60">
                                                 <Link
                                                     href={`/surat-tugas/${surat.id}`}
-                                                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                                                    className="inline-flex items-center space-x-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50/70 hover:bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200 transition"
                                                 >
                                                     <span>Rincian</span>
                                                     <ArrowUpRight className="w-3.5 h-3.5" />
@@ -782,7 +914,7 @@ export default function Dashboard({
                                                 {canPrintSurat(surat) && (
                                                     <Link
                                                         href={`/surat-tugas/${surat.id}/cetak`}
-                                                        className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs transition"
+                                                        className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs transition"
                                                         title="Cetak Lembar Surat Tugas & SPD"
                                                     >
                                                         <Printer className="w-3.5 h-3.5 text-slate-600" />
@@ -802,8 +934,7 @@ export default function Dashboard({
             {userRole === "ppk" && (
                 <section className="mb-8 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
                     <div className="mb-4 flex items-center justify-between gap-3">
-                        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
-                            <FileCheck2 className="h-5 w-5 text-amber-600" />
+                        <h2 className="text-lg font-bold text-slate-900">
                             DPR Menunggu Persetujuan
                         </h2>
                         <div className="flex items-center gap-2.5">
@@ -909,166 +1040,6 @@ export default function Dashboard({
                 </section>
             )}
 
-            {/* Main Grid: Charts & Tables */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                {/* Diagram Persentase Kategori Perjalanan */}
-                <div className="lg:col-span-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                            <PieChart className="w-5 h-5 text-amber-500" />
-                            <span>Kategori Perjalanan</span>
-                        </h2>
-                        <span className="text-[11px] font-semibold text-slate-400">
-                            {statsScope === "personal"
-                                ? "Pribadi"
-                                : "Organisasi"}
-                        </span>
-                    </div>
-
-                    {/* Pie Chart (Pure CSS) */}
-                    <div className="flex items-center justify-center mb-6">
-                        <div className="relative w-48 h-48">
-                            <svg
-                                viewBox="0 0 100 100"
-                                className="transform -rotate-90"
-                            >
-                                {/* Background circle */}
-                                <circle
-                                    cx="50"
-                                    cy="50"
-                                    r="40"
-                                    fill="transparent"
-                                    stroke="#e2e8f0"
-                                    strokeWidth="20"
-                                />
-
-                                {/* Dalam Negeri segment */}
-                                <circle
-                                    cx="50"
-                                    cy="50"
-                                    r="40"
-                                    fill="transparent"
-                                    stroke="#3b82f6"
-                                    strokeWidth="20"
-                                    strokeDasharray={`${persenDalamNegeri * 2.51} ${251 - persenDalamNegeri * 2.51}`}
-                                    className="transition-all duration-500"
-                                />
-
-                                {/* Luar Negeri segment */}
-                                <circle
-                                    cx="50"
-                                    cy="50"
-                                    r="40"
-                                    fill="transparent"
-                                    stroke="#f59e0b"
-                                    strokeWidth="20"
-                                    strokeDasharray={`${persenLuarNegeri * 2.51} ${251 - persenLuarNegeri * 2.51}`}
-                                    strokeDashoffset={`-${persenDalamNegeri * 2.51}`}
-                                    className="transition-all duration-500"
-                                />
-                            </svg>
-
-                        </div>
-                    </div>
-
-                    {/* Legend */}
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-200">
-                            <div className="flex items-center space-x-2">
-                                <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-                                <span className="text-sm font-semibold text-slate-900">
-                                    Dalam Negeri
-                                </span>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-lg font-extrabold text-blue-600">
-                                    {persenDalamNegeri}%
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                    {activeKategoriStats.DALAM_NEGERI || 0}{" "}
-                                    surat
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-200">
-                            <div className="flex items-center space-x-2">
-                                <div className="w-4 h-4 rounded-full bg-amber-500"></div>
-                                <span className="text-sm font-semibold text-slate-900">
-                                    Luar Negeri
-                                </span>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-lg font-extrabold text-amber-600">
-                                    {persenLuarNegeri}%
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                    {activeKategoriStats.LUAR_NEGERI || 0} surat
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Statistik Status Workflow */}
-                <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                            <BarChart3 className="w-5 h-5 text-amber-500" />
-                            <span>Status Workflow</span>
-                        </h2>
-                        <span className="text-[11px] font-semibold text-slate-400">
-                            {statsScope === "personal"
-                                ? "Khusus Usulan Saya"
-                                : "Seluruh Dokumen Pusdiklat"}
-                        </span>
-                    </div>
-
-                    <div className="space-y-3">
-                        {Object.entries(activeStatusStats).map(
-                            ([status, count]) => {
-                                const percentage =
-                                    activeTotalSurat > 0
-                                        ? Math.round(
-                                              (count / activeTotalSurat) * 100,
-                                          )
-                                        : 0;
-                                const colors = {
-                                    DRAFT: "bg-slate-500",
-                                    MENUNGGU_DISPOSISI_KAPUS: "bg-amber-500",
-                                    DISPOSISI_KAPUS_YA: "bg-green-500",
-                                    DISPOSISI_KAPUS_REVISI: "bg-orange-500",
-                                    DISPOSISI_KAPUS_STOP: "bg-red-500",
-                                    MENUNGGU_PENOMORAN_TU: "bg-purple-500",
-                                    SELESAI_TERBIT: "bg-emerald-500",
-                                };
-
-                                return (
-                                    <div key={status} className="space-y-1">
-                                        <div className="flex items-center justify-between text-xs">
-                                            <span className="font-semibold text-slate-700">
-                                                {statusLabels[status] || status}
-                                            </span>
-                                            <span className="font-bold text-slate-900">
-                                                {count} ({percentage}%)
-                                            </span>
-                                        </div>
-                                        <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full ${colors[status] || "bg-slate-400"} transition-all duration-500`}
-                                                style={{
-                                                    width: `${percentage}%`,
-                                                }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                );
-                            },
-                        )}
-                    </div>
-                </div>
-            </div>
-
             {/* Two Column Section: Action Needed & Recent Letters vs Activity Feed */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Kolom Kiri: Action Needed & Recent Tables */}
@@ -1076,8 +1047,7 @@ export default function Dashboard({
                     {/* Surat yang Perlu Aksi */}
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                                <Activity className="w-5 h-5 text-red-500" />
+                            <h2 className="text-lg font-bold text-slate-900">
                                 <span>
                                     {roleActionLabels[userRole] ||
                                         "Perlu Tindakan"}
@@ -1117,12 +1087,16 @@ export default function Dashboard({
                                             <div className="flex items-center justify-between gap-2">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 mb-0.5">
-                                                        <span className="text-[11px] font-mono text-slate-500">
-                                                            #{surat.id}
-                                                        </span>
-                                                        <span className="text-slate-300">
-                                                            •
-                                                        </span>
+                                                        {surat.nomor_st && (
+                                                            <>
+                                                                <span className="text-[11px] font-mono text-slate-500">
+                                                                    {surat.nomor_st}
+                                                                </span>
+                                                                <span className="text-slate-300">
+                                                                    •
+                                                                </span>
+                                                            </>
+                                                        )}
                                                         <span className="text-[11px] font-semibold text-slate-600 truncate">
                                                             {surat.user?.name ||
                                                                 "Pengusul"}
@@ -1136,8 +1110,7 @@ export default function Dashboard({
                                                         surat.negara_tujuan ||
                                                         surat.tanggal_berangkat) && (
                                                         <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
-                                                            <span className="flex items-center gap-1 font-medium text-slate-600">
-                                                                <MapPin className="w-3 h-3 text-slate-400" />
+                                                            <span className="font-medium text-slate-600">
                                                                 {tujuan}
                                                             </span>
                                                             {surat.tanggal_berangkat && (
@@ -1169,8 +1142,7 @@ export default function Dashboard({
                     {/* Surat Terbaru (dengan Quick Print 1-Click) */}
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                                <FileSignature className="w-5 h-5 text-blue-500" />
+                            <h2 className="text-lg font-bold text-slate-900">
                                 <span>Surat Terbaru</span>
                             </h2>
                             <Link
@@ -1214,12 +1186,16 @@ export default function Dashboard({
                                                 </p>
 
                                                 <div className="flex items-center gap-2 mt-1 text-xs">
-                                                    <span className="text-slate-500">
-                                                        #{surat.id}
-                                                    </span>
-                                                    <span className="text-slate-300">
-                                                        •
-                                                    </span>
+                                                    {surat.nomor_st && (
+                                                        <>
+                                                            <span className="text-slate-500 font-mono">
+                                                                {surat.nomor_st}
+                                                            </span>
+                                                            <span className="text-slate-300">
+                                                                •
+                                                            </span>
+                                                        </>
+                                                    )}
                                                     <span className="font-semibold text-blue-600">
                                                         {statusLabels[
                                                             surat.status
@@ -1270,8 +1246,7 @@ export default function Dashboard({
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between self-start">
                     <div>
                         <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
-                            <h2 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                                <History className="w-5 h-5 text-indigo-500" />
+                            <h2 className="text-base font-bold text-slate-900">
                                 <span>Aktivitas Workflow Terkini</span>
                             </h2>
                             <span className="text-xs text-slate-400 font-medium">
@@ -1326,7 +1301,6 @@ export default function Dashboard({
                                                         href={`/surat-tugas/${log.surat_tugas_id}`}
                                                         className="text-xs font-semibold text-blue-600 hover:text-blue-800 line-clamp-1 group-hover:underline block"
                                                     >
-                                                        #{log.surat_tugas_id} •{" "}
                                                         {log.surat_tugas
                                                             .perihal_nota ||
                                                             "Surat Tugas"}

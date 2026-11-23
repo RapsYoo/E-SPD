@@ -246,30 +246,30 @@ export default function Index({ rows, filters, statusOptions, unitOptions }) {
             <table className="rekap-table w-full min-w-[1450px] table-fixed border-collapse border border-black text-left text-[11px] leading-4 text-slate-700">
               <colgroup>
                 <col className="w-[4%]" />
-                <col className="w-[12%]" />
+                <col className="w-[13%]" />
                 <col className="w-[10%]" />
-                <col className="w-[10%]" />
-                <col className="w-[10%]" />
+                <col className="w-[9%]" />
+                <col className="w-[6%]" />
                 <col className="w-[7%]" />
-                <col className="w-[8%]" />
                 <col className="w-[7%]" />
                 <col className="w-[7%]" />
                 <col className="w-[5%]" />
                 <col className="w-[7%]" />
-                <col className="w-[8%]" />
+                <col className="w-[11%]" />
+                <col className="w-[9%]" />
                 <col className="w-[5%]" />
               </colgroup>
               <thead className="text-center text-[10px] font-bold text-slate-800">
                 <tr>
                   <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">No</th>
-                  <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Nama</th>
+                  <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Judul Kegiatan</th>
                   <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Nomor Dokumen</th>
-                  <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Posisi</th>
                   <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Tujuan</th>
                   <th colSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Transportasi / Angkutan</th>
                   <th colSpan={3} className="border border-black bg-emerald-100 px-2 py-2">Periode Perjalanan</th>
                   <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">PPK</th>
-                  <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Aktivitas Perjalanan</th>
+                  <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Nama Pegawai</th>
+                  <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Posisi</th>
                   <th rowSpan={2} className="border border-black bg-emerald-100 px-2 py-2">Status</th>
                 </tr>
                 <tr>
@@ -294,23 +294,12 @@ export default function Index({ rows, filters, statusOptions, unitOptions }) {
                 ) : rows.data.map((row, index) => (
                   <tr key={row.id} className="align-top odd:bg-white even:bg-slate-50/70">
                     <td className="border border-slate-300 px-2 py-2 text-center font-medium">{(rows.from ?? 1) + index}</td>
-                    <td className="break-words border border-slate-300 px-2 py-2">
-                      {row.personel?.length ? row.personel.map((person, index) => (
-                        <p key={`${person.nama}-${index}`} className={index > 0 ? 'mt-1 border-t border-slate-200 pt-1' : ''}>
-                          {person.nama || '-'}
-                        </p>
-                      )) : row.pelaksana || '-'}
+                    <td className="break-words border border-slate-300 px-2 py-2 font-medium text-slate-900">
+                      {row.perihal || '-'}
                     </td>
                     <td className="break-words border border-slate-300 px-2 py-2">
                       <p><span className="font-semibold">ST:</span> {row.nomor_st || '-'}</p>
                       <p className="mt-1"><span className="font-semibold">SPD:</span> {row.nomor_spd || '-'}</p>
-                    </td>
-                    <td className="break-words border border-slate-300 px-2 py-2">
-                      {row.personel?.length ? row.personel.map((person, index) => (
-                        <p key={`${person.nama}-${index}`} className={index > 0 ? 'mt-1 border-t border-slate-200 pt-1' : ''}>
-                          {person.jabatan || '-'}
-                        </p>
-                      )) : '-'}
                     </td>
                     <td className="break-words border border-slate-300 px-2 py-2">
                       <p>{row.tujuan || '-'}</p>
@@ -324,7 +313,20 @@ export default function Index({ rows, filters, statusOptions, unitOptions }) {
                     <td className="whitespace-nowrap border border-slate-300 px-2 py-2 text-center">{row.tanggal_kembali || '-'}</td>
                     <td className="whitespace-nowrap border border-slate-300 px-2 py-2 text-center">{row.durasi_hari ?? '-'} hari</td>
                     <td className="break-words border border-slate-300 px-2 py-2">{row.ppk || '-'}</td>
-                    <td className="break-words border border-slate-300 px-2 py-2">{row.perihal || '-'}</td>
+                    <td className="break-words border border-slate-300 px-2 py-2">
+                      {row.personel?.length ? row.personel.map((person, index) => (
+                        <p key={`${person.nama}-${index}`} className={index > 0 ? 'mt-1 border-t border-slate-200 pt-1' : ''}>
+                          {person.nama || '-'}
+                        </p>
+                      )) : row.pelaksana || '-'}
+                    </td>
+                    <td className="break-words border border-slate-300 px-2 py-2">
+                      {row.personel?.length ? row.personel.map((person, index) => (
+                        <p key={`${person.nama}-${index}`} className={index > 0 ? 'mt-1 border-t border-slate-200 pt-1' : ''}>
+                          {person.jabatan || '-'}
+                        </p>
+                      )) : '-'}
+                    </td>
                     <td className="break-words border border-slate-300 px-2 py-2 text-center">
                       <span className={`inline-flex max-w-full rounded-full px-2 py-1 text-[9px] font-bold ring-1 ring-inset ${statusClass(row.status)}`}>
                         {row.status || '-'}

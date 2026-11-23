@@ -4,7 +4,6 @@ namespace App\Services\SuratTugas;
 
 use App\Models\SuratTugas;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Pengelolaan file lampiran (undangan & izin Setneg).
@@ -43,27 +42,43 @@ class AttachmentService
     }
 
     /**
-     * Payload lampiran untuk halaman (nama + URL publik), null bila file tidak ada.
+     * Payload lampiran untuk halaman (nama + URL inline & unduh), null bila file tidak ada.
      *
-     * @param  array<string, string>  $names  Nama asli opsional (dari draft_data).
+     * @param  array<string, mixed>  $names  Nama asli opsional (dari draft_data).
      */
     public function payload(SuratTugas $suratTugas, array $names = []): array
     {
+        $sourceNames = ! empty($names) ? $names : ($suratTugas->draft_data ?? []);
+
         return [
-            'invitation' => $this->item($suratTugas->file_undangan, $names['file_undangan_name'] ?? null),
-            'setneg' => $this->item($suratTugas->file_izin_setneg, $names['file_izin_setneg_name'] ?? null),
+            'invitation' => $this->item(
+                $suratTugas,
+                'invitation',
+                $suratTugas->file_undangan,
+                $sourceNames['file_undangan_name'] ?? null
+            ),
+            'setneg' => $this->item(
+                $suratTugas,
+                'setneg',
+                $suratTugas->file_izin_setneg,
+                $sourceNames['file_izin_setneg_name'] ?? null
+            ),
         ];
     }
 
-    private function item(?string $path, ?string $name): ?array
+    /**
+     * @return array{name: string, url: string, download_url: string}|null
+     */
+    private function item(SuratTugas $suratTugas, string $type, ?string $path, ?string $name): ?array
     {
-        if (!$path) {
+        if (! $path) {
             return null;
         }
 
         return [
             'name' => $name ?? basename($path),
-            'url' => Storage::disk('public')->url($path),
+            'url' => route('surat-tugas.lampiran', ['suratTugas' => $suratTugas->id, 'type' => $type], false),
+            'download_url' => route('surat-tugas.lampiran', ['suratTugas' => $suratTugas->id, 'type' => $type, 'download' => 1], false),
         ];
     }
 }

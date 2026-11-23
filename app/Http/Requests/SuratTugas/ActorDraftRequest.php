@@ -3,17 +3,18 @@
 namespace App\Http\Requests\SuratTugas;
 
 use App\Models\SuratTugas;
+use App\Services\Admin\RbacService;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Validasi draft sementara aktor (Kapus/TU/PPK). Peran → 403, status tahap tidak aktif → 409.
+ * Validasi draft sementara aktor (Kapus/TU/PPK). Izin modul → 403, status tahap tidak aktif → 409.
  */
 class ActorDraftRequest extends FormRequest
 {
-    private const ACTOR_ROLES = [
-        'kapus' => ['kapus', 'admin'],
-        'tu' => ['tu', 'admin'],
-        'ppk' => ['ppk', 'admin'],
+    private const ACTOR_MODULES = [
+        'kapus' => 'surat_tugas.disposisi',
+        'tu' => 'surat_tugas.penomoran',
+        'ppk' => 'surat_tugas.sign_ppk',
     ];
 
     private const REQUIRED_STATUSES = [
@@ -31,10 +32,11 @@ class ActorDraftRequest extends FormRequest
     public function authorize(): bool
     {
         $actor = $this->actor();
-        $role = $this->user()?->role;
 
         abort_unless(
-            is_string($actor) && isset(self::ACTOR_ROLES[$actor]) && in_array($role, self::ACTOR_ROLES[$actor], true),
+            is_string($actor)
+                && isset(self::ACTOR_MODULES[$actor])
+                && app(RbacService::class)->hasPermission($this->user(), self::ACTOR_MODULES[$actor]),
             403
         );
 

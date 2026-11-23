@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import React, { useEffect, useState } from 'react';
+import { Head, Link, useForm, usePage, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { formatDate } from './Partials/printHelpers';
+import SuratTugasSheet from './Partials/SuratTugasSheet';
+import SpdSheet from './Partials/SpdSheet';
+import LampiranMatriksSheet from './Partials/LampiranMatriksSheet';
+import VisumRampunganSheet from './Partials/VisumRampunganSheet';
 import { 
   FileSignature, 
   CheckCircle2, 
@@ -23,12 +28,168 @@ import {
   History,
   ScrollText,
   Copy,
-  Check
+  Check,
+  RotateCcw,
+  X,
 } from 'lucide-react';
 
-export default function Show({ suratTugas, userRole, authUserId, attachments = {}, logs = [], runningNumber = { lastSt: null, lastSpd: null } }) {
+function DocxInlinePreview({ url, label }) {
+  const [html, setHtml] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    fetch(url, { credentials: 'same-origin' })
+      .then((res) => {
+        if (!res.ok) throw new Error('Gagal memuat berkas dokumen.');
+        return res.arrayBuffer();
+      })
+      .then((arrayBuffer) =>
+        import('mammoth').then((mammoth) =>
+          (mammoth.default || mammoth).convertToHtml({ arrayBuffer })
+        )
+      )
+      .then((result) => {
+        if (active) {
+          setHtml(result.value || '<p>Dokumen kosong.</p>');
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setError(err.message || 'Gagal menampilkan pratinjau DOCX.');
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [url]);
+
+  if (loading) {
+    return (
+      <div className="p-6 text-center text-xs text-slate-500 bg-slate-50">
+        Memuat pratinjau dokumen {label}...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-xs text-rose-600 bg-rose-50">
+        {error} Silakan gunakan tombol Buka Tab Baru atau Unduh di atas.
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-h-[40rem] overflow-y-auto bg-slate-100 p-4 sm:p-6">
+      <div
+        className="mx-auto max-w-3xl rounded-xl border border-slate-200 bg-white p-6 sm:p-8 text-xs leading-relaxed text-slate-800 shadow-sm prose prose-sm max-w-none"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  );
+}
+
+export default function Show({
+  suratTugas,
+  userRole,
+  authUserId,
+  attachments = {},
+  logs = [],
+  runningNumber = { lastSt: null, lastSpd: null },
+  kapus = {},
+  ppk = {},
+}) {
+  const { auth } = usePage().props;
+  const permissions = Array.isArray(auth?.permissions) ? auth.permissions : [];
+  const can = (moduleKey) => userRole === 'admin' || permissions.includes(moduleKey);
   const actorDrafts = suratTugas.draft_data || {};
   const [copiedKey, setCopiedKey] = useState(null);
+  const [activeDocTab, setActiveDocTab] = useState('st');
+
+  // State modal Tarik Kembali
+  const [showTarikModal, setShowTarikModal] = useState(false);
+  const [alasanTarik, setAlasanTarik] = useState('');
+  const [tarikProcessing, setTarikProcessing] = useState(false);
+
+  const canTarikKembali = suratTugas.status === 'MENUNGGU_PENOMORAN_TU'
+    && (userRole === 'admin' || (can('surat_tugas.tarik_kembali') && suratTugas.user_id === authUserId));
+
+  const handleTarikKembali = () => {
+    if (!alasanTarik.trim()) return;
+    setTarikProcessing(true);
+    router.post(`/surat-tugas/${suratTugas.id}/tarik-kembali`, { alasan: alasanTarik }, {
+      onFinish: () => {
+        setTarikProcessing(false);
+        setShowTarikModal(false);
+        setAlasanTarik('');
+      },
+    });
+  };
+
+  const pegawaiList = Array.isArray(suratTugas.pegawai_list) ? suratTugas.pegawai_list : [];
+  const tujuanPerjalanan = [
+    suratTugas.tempat_tujuan,
+    suratTugas.kategori_perjalanan === 'LUAR_NEGERI' ? suratTugas.negara_tujuan : null,
+  ]
+    .filter(Boolean)
+    .join(', ') || '-';
+
+  const tuDraft = actorDrafts.tu || {};
+  const nomorST = suratTugas.nomor_st || tuDraft.nomor_st || '[Belum Diisi TU]';
+  const nomorSPD = suratTugas.nomor_spd || tuDraft.nomor_spd || '[Belum Diisi TU]';
+  const tanggalSuratRaw = suratTugas.tanggal_surat || tuDraft.tanggal_surat || suratTugas.tanggal_nota;
+  const tanggalSurat = formatDate(tanggalSuratRaw);
+  const tanggalBerangkat = formatDate(suratTugas.tanggal_berangkat);
+  const tanggalKembali = formatDate(suratTugas.tanggal_kembali);
+  const ppkNama =
+    ppk?.nama ||
+    suratTugas.ppk_nama_snapshot ||
+    suratTugas.ppk?.pegawai?.nama ||
+    suratTugas.ppk?.name ||
+    '-';
+  const ppkNip =
+    ppk?.nip ||
+    suratTugas.ppk_nip_snapshot ||
+    suratTugas.ppk?.pegawai?.nip ||
+    '-';
+  const kapusNama = kapus?.nama || suratTugas.kapus_nama_snapshot || null;
+  const kapusNip = kapus?.nip || suratTugas.kapus_nip_snapshot || null;
+  const tahunAnggaran =
+    tanggalSuratRaw?.slice(0, 4) ||
+    suratTugas.tanggal_berangkat?.slice(0, 4) ||
+    new Date().getFullYear().toString();
+
+  const sheetCommonProps = {
+    suratTugas,
+    pegawaiList,
+    nomorST,
+    nomorSPD,
+    tanggalSurat,
+    tanggalSuratRaw,
+    tanggalBerangkat,
+    tanggalKembali,
+    tujuanPerjalanan,
+    tahunAnggaran,
+    ppkNama,
+    ppkNip,
+    kapusNama,
+    kapusNip,
+  };
+
+  const documentTabs = [
+    { id: 'st', label: '1. Surat Tugas (ST)' },
+    { id: 'spd', label: '2. Lembar SPD' },
+    { id: 'lampiran', label: '3. Lampiran SPD' },
+    { id: 'visum', label: '4. Lembar Visum' },
+  ];
 
   const handleCopy = (text, key) => {
     if (!text) return;
@@ -81,40 +242,74 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
     ppkForm.post(`/surat-tugas/${suratTugas.id}/sign-ppk`);
   };
 
-  const workflowStatus = {
-    MENUNGGU_DISPOSISI_KAPUS: {
-      label: 'Menunggu Disposisi Kapus',
-      message: 'Nota/undangan serta draft Surat Tugas dan SPD sudah dikirim dan sedang menunggu disposisi Kapus.',
-    },
-    DISPOSISI_KAPUS_YA: {
-      label: 'Disetujui Kapus',
-      message: 'Kapus menyetujui penugasan. Lengkapi draft Surat Tugas dan SPD sebelum dikirim kembali untuk disposisi.',
-    },
-    DISPOSISI_KAPUS_REVISI: {
-      label: 'Perlu revisi Sesparlu',
-      message: 'Kapus meminta perbaikan. Perbarui draft Surat Tugas dan SPD lalu kirim kembali untuk disposisi.',
-    },
-    DISPOSISI_KAPUS_STOP: {
-      label: 'Dihentikan Kapus',
-      message: 'Kapus menghentikan proses surat ini.',
-    },
-    DRAFT: {
-      label: 'Draft Sesparlu',
-      message: 'Isian masih disimpan sebagai draft dan belum dikirim ke Kapus.',
-    },
-    MENUNGGU_PENOMORAN_TU: {
-      label: 'Menunggu verifikasi dan nomor TU',
-      message: 'Draft Sesparlu sudah dikirim. TU sedang memeriksa dan mengisi nomor resmi Surat Tugas serta SPD.',
-    },
-    SELESAI_TERBIT: {
-      label: 'Selesai diterbitkan TU',
-      message: 'Nomor resmi sudah diterbitkan TU. Dokumen siap digunakan; TTD PPK dipantau terpisah.',
-    },
-  }[suratTugas.status] || { label: suratTugas.status, message: 'Status proses surat.' };
-
   return (
-    <AdminLayout title={`Detail Surat Tugas #${suratTugas.id}`}>
-      <Head title={`Detail ST #${suratTugas.id} - Pusdiklat Kemlu`} />
+    <AdminLayout title="Detail Surat Tugas">
+      <Head title="Detail Surat Tugas - Pusdiklat Kemlu" />
+
+      {/* Modal Tarik Kembali */}
+      {showTarikModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Tarik Kembali Surat</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Surat akan dikembalikan ke Draft. Anda harus mengajukan ulang setelah diperbaiki.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowTarikModal(false); setAlasanTarik(''); }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 space-y-1">
+              <p className="font-bold">⚠ Perhatian</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li>Persetujuan Kapus akan dibatalkan dan harus diproses ulang.</li>
+                <li>Fitur ini hanya berlaku sebelum TU memberikan nomor resmi.</li>
+                <li>Alasan penarikan akan tercatat dalam jejak audit.</li>
+              </ul>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Alasan Penarikan <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows="3"
+                value={alasanTarik}
+                onChange={(e) => setAlasanTarik(e.target.value)}
+                placeholder="Contoh: Terdapat perubahan tanggal keberangkatan, perlu revisi personel, dll."
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400"
+                maxLength={500}
+              />
+              <p className="text-[10px] text-slate-400 mt-0.5 text-right">{alasanTarik.length}/500</p>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowTarikModal(false); setAlasanTarik(''); }}
+                disabled={tarikProcessing}
+                className="flex-1 rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition disabled:opacity-60"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleTarikKembali}
+                disabled={tarikProcessing || !alasanTarik.trim()}
+                className="flex-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 py-2.5 text-xs font-bold transition shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                {tarikProcessing ? 'Memproses...' : 'Ya, Tarik Kembali'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -128,7 +323,6 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
           </Link>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
             <span>Ruang Kerja Surat Tugas</span>
-            <span className="text-amber-600 font-mono text-lg">#{suratTugas.id}</span>
           </h1>
           <p className="text-xs text-slate-500">Monitoring status persetujuan, penomoran resmi, dan TTD digital PPK</p>
         </div>
@@ -140,7 +334,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
               <p className="text-xs text-red-600 mt-1">Catatan: {suratTugas.catatan_kapus}</p>
             )}
             {(userRole === 'admin' || (
-              (userRole === 'pemohon' || userRole === 'sespalu')
+              can('surat_tugas.create')
               && suratTugas.user_id === authUserId
             )) && (
               <button
@@ -160,7 +354,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
 
         <div className="flex flex-wrap items-center gap-2">
           {(userRole === 'admin' || (
-            (userRole === 'pemohon' || userRole === 'sespalu')
+            can('surat_tugas.create')
             && suratTugas.user_id === authUserId
           )) && ['DRAFT', 'DISPOSISI_KAPUS_YA', 'DISPOSISI_KAPUS_REVISI'].includes(suratTugas.status) && (
             <Link
@@ -172,7 +366,19 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
             </Link>
           )}
 
-          {(userRole === 'tu' || userRole === 'admin') && suratTugas.status === 'MENUNGGU_PENOMORAN_TU' && (
+          {/* Tombol Tarik Kembali: hanya saat MENUNGGU_PENOMORAN_TU & pemilik/admin */}
+          {canTarikKembali && (
+            <button
+              type="button"
+              onClick={() => setShowTarikModal(true)}
+              className="inline-flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold px-5 py-2.5 rounded-xl shadow-sm transition text-sm"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              <span>Tarik Kembali untuk Revisi</span>
+            </button>
+          )}
+
+          {can('surat_tugas.print') && (can('surat_tugas.penomoran') || can('surat_tugas.disposisi')) && ['MENUNGGU_DISPOSISI_KAPUS', 'MENUNGGU_PENOMORAN_TU'].includes(suratTugas.status) && (
             <Link
               href={`/surat-tugas/${suratTugas.id}/cetak`}
               className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition text-sm"
@@ -183,7 +389,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
           )}
 
           {/* Semua user yang berkaitan dapat melihat & mencetak dokumen ketika sudah SELESAI_TERBIT */}
-          {suratTugas.status === 'SELESAI_TERBIT' && (
+          {can('surat_tugas.print') && suratTugas.status === 'SELESAI_TERBIT' && (
             <Link
               href={`/surat-tugas/${suratTugas.id}/cetak`}
               className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 transition text-sm"
@@ -233,22 +439,16 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="flex items-start space-x-2">
-                <MapPin className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-slate-500">Tujuan Perjalanan:</span>
-                  <p className="font-bold text-slate-900">{suratTugas.tempat_tujuan}</p>
-                  <p className="text-slate-500 text-[11px]">Dari: {suratTugas.tempat_berangkat}</p>
-                </div>
+              <div>
+                <span className="text-slate-500">Tujuan Perjalanan:</span>
+                <p className="font-bold text-slate-900">{suratTugas.tempat_tujuan}</p>
+                <p className="text-slate-500 text-[11px]">Dari: {suratTugas.tempat_berangkat}</p>
               </div>
 
-              <div className="flex items-start space-x-2">
-                <Calendar className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-slate-500">Waktu & Durasi:</span>
-                  <p className="font-bold text-slate-900">{suratTugas.tanggal_berangkat} s/d {suratTugas.tanggal_kembali}</p>
-                  <p className="text-amber-600 font-bold text-[11px]">{suratTugas.durasi_hari} Hari Dinas</p>
-                </div>
+              <div>
+                <span className="text-slate-500">Waktu & Durasi:</span>
+                <p className="font-bold text-slate-900">{suratTugas.tanggal_berangkat} s/d {suratTugas.tanggal_kembali}</p>
+                <p className="text-amber-600 font-bold text-[11px]">{suratTugas.durasi_hari} Hari Dinas</p>
               </div>
             </div>
 
@@ -288,6 +488,102 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
             </div>
           </div>
 
+          {/* Pratinjau Draft / Naskah Surat Tugas & SPD */}
+          <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900">
+                    {suratTugas.nomor_st ? 'Naskah Resmi Surat Tugas & SPD' : 'Draft Surat Tugas & SPD'}
+                  </h3>
+                  {!suratTugas.nomor_st && (
+                    <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
+                      Draft • Nomor Surat Belum Diisi TU
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Pratinjau langsung naskah Surat Tugas, SPD, Lampiran, dan Visum sesuai data usulan.
+                </p>
+              </div>
+
+              {can('surat_tugas.print') && (
+                suratTugas.status === 'SELESAI_TERBIT' ||
+                can('surat_tugas.disposisi') ||
+                can('surat_tugas.penomoran') ||
+                (suratTugas.status === 'MENUNGGU_PENOMORAN_TU' && suratTugas.user_id === authUserId)
+              ) && (
+                <Link
+                  href={`/surat-tugas/${suratTugas.id}/cetak?doc=${activeDocTab}`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Buka Layar Cetak Penuh</span>
+                </Link>
+              )}
+            </div>
+
+            {/* Tab Dokumen */}
+            <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+              {documentTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveDocTab(tab.id)}
+                  className={`rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+                    activeDocTab === tab.id
+                      ? 'bg-[#0F2C59] text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Lembar Pratinjau */}
+            <div className="overflow-x-auto rounded-xl bg-slate-100 p-3 sm:p-5 border border-slate-200 text-black">
+              <style>{`
+                .print-preview-sheet table td,
+                .print-preview-sheet table th {
+                  padding: 0.5rem !important;
+                }
+                .print-sheet-lampiran {
+                  box-sizing: border-box;
+                  padding: 10mm;
+                }
+                .print-sheet-visum {
+                  box-sizing: border-box;
+                  padding: 15mm 20mm;
+                }
+                .spd-brand img { width: auto; height: 5rem; object-fit: contain; }
+                .spd-brand-name { margin-top: 0.5mm; font-size: 8pt; font-weight: 800; line-height: 1.1; }
+                .spd-brand-country { margin-top: 0.8mm; font-size: 6pt; letter-spacing: 1.5pt; line-height: 1; font-weight: 700; }
+                .spd-annex { margin-left: 5mm; font-size: 5.5pt; line-height: 1.2; }
+                .visum-entry-cell { position: relative; }
+                .visum-signature { position: absolute; right: 0; bottom: 2mm; left: 0; display: flex; flex-direction: column; align-items: center; white-space: nowrap; }
+                .visum-signature-brackets { display: flex; width: 100%; height: 6mm; align-items: flex-end; justify-content: space-between; padding: 0 12mm; line-height: 1; }
+                .visum-signature-nip { margin: 1mm 0 0; line-height: 1; }
+                .visum-ppk-cell { position: relative; }
+                .visum-ppk-signature { position: absolute; right: 2mm; bottom: 2mm; left: 2mm; text-align: center; line-height: 1.15; }
+                .print-sheet-st, .print-sheet-spd, .print-sheet-lampiran, .print-sheet-visum {
+                  box-sizing: border-box;
+                  width: 100%;
+                  max-width: 210mm;
+                  margin: 0.5rem auto;
+                  background: white;
+                  border: 1px solid #cbd5e1;
+                  box-shadow: 0 10px 15px -3px rgb(15 23 42 / 0.08);
+                  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+                }
+              `}</style>
+              <SuratTugasSheet {...sheetCommonProps} isActive={activeDocTab === 'st'} />
+              <SpdSheet {...sheetCommonProps} isActive={activeDocTab === 'spd'} />
+              <LampiranMatriksSheet {...sheetCommonProps} isActive={activeDocTab === 'lampiran'} />
+              <VisumRampunganSheet {...sheetCommonProps} isActive={activeDocTab === 'visum'} />
+            </div>
+          </section>
+
           {(attachments.invitation || attachments.setneg) && (
             <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
               <div>
@@ -298,27 +594,50 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
                 .filter(({ key }) => attachments[key])
                 .map(({ key, label }) => {
                   const file = attachments[key];
-                  const extension = file.name.split('.').pop()?.toLowerCase();
+                  const extension = (file.name || file.url || '').split('?')[0].split('.').pop()?.toLowerCase();
 
                   return (
                     <div key={key} className="overflow-hidden rounded-xl border border-slate-200">
-                      <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-3 border-b border-slate-200">
                         <div>
                           <p className="text-xs font-bold text-slate-800">{label}</p>
                           <p className="mt-0.5 break-all text-xs text-slate-500">{file.name}</p>
                         </div>
-                        <a href={file.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-blue-700 hover:text-blue-900">
-                          Buka / Unduh
-                        </a>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition"
+                          >
+                            Buka Tab Baru
+                          </a>
+                          <a
+                            href={file.download_url || `${file.url}?download=1`}
+                            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
+                          >
+                            Unduh
+                          </a>
+                        </div>
                       </div>
                       {extension === 'pdf' ? (
-                        <iframe title={`Pratinjau ${label}`} src={file.url} className="h-[32rem] w-full bg-slate-100" />
-                      ) : ['jpg', 'jpeg', 'png'].includes(extension) ? (
-                        <div className="flex max-h-[32rem] justify-center overflow-auto bg-slate-100 p-4">
-                          <img src={file.url} alt={`Pratinjau ${label}`} className="h-auto max-w-full object-contain" />
+                        <iframe
+                          title={`Pratinjau ${label}`}
+                          src={`${file.url}#toolbar=1&navpanes=0&view=FitH`}
+                          className="h-[42rem] w-full bg-slate-100 border-0"
+                        />
+                      ) : ['jpg', 'jpeg', 'png', 'webp'].includes(extension) ? (
+                        <div className="flex max-h-[42rem] justify-center overflow-auto bg-slate-100 p-4">
+                          <img src={file.url} alt={`Pratinjau ${label}`} className="h-auto max-w-full object-contain rounded shadow-sm" />
                         </div>
+                      ) : extension === 'docx' ? (
+                        <DocxInlinePreview url={file.url} label={label} />
                       ) : (
-                        <p className="p-4 text-xs text-slate-500">Buka atau unduh dokumen untuk meninjau isinya.</p>
+                        <iframe
+                          title={`Pratinjau ${label}`}
+                          src={file.url}
+                          className="h-[36rem] w-full bg-slate-100 border-0"
+                        />
                       )}
                     </div>
                   );
@@ -329,75 +648,10 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
 
         {/* Workflow Action Cards for Roles */}
         <div className="space-y-6">
-          {/* Status Overview Card */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-            <h3 className="font-bold text-slate-900 text-sm mb-3">Status Workflow</h3>
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Status Proses:</span>
-                <span className="font-bold text-amber-600">{workflowStatus.label}</span>
-              </div>
-              <p className="leading-relaxed text-slate-700">{workflowStatus.message}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Digital TTD PPK:</span>
-                {suratTugas.is_ppk_signed ? (
-                  <span className="text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded">Tersematkan</span>
-                ) : (
-                  <span className="text-amber-700 font-bold bg-amber-100 px-2 py-0.5 rounded">Belum TTD</span>
-                )}
-              </div>
-            </div>
-
-            {suratTugas.status === 'SELESAI_TERBIT' && (
-              <div className="mt-4 pt-4 border-t border-slate-100 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    <span>Dokumen Resmi Terbit</span>
-                  </span>
-                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                    Siap Dilihat / Dicetak
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <Link
-                    href={`/surat-tugas/${suratTugas.id}/cetak?doc=st`}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-800 px-3 py-2 font-semibold text-slate-700 transition"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <span className="truncate">1. Surat Tugas</span>
-                  </Link>
-                  <Link
-                    href={`/surat-tugas/${suratTugas.id}/cetak?doc=spd`}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-800 px-3 py-2 font-semibold text-slate-700 transition"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <span className="truncate">2. Lembar SPD</span>
-                  </Link>
-                  <Link
-                    href={`/surat-tugas/${suratTugas.id}/cetak?doc=lampiran`}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-800 px-3 py-2 font-semibold text-slate-700 transition"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <span className="truncate">3. Lampiran SPD</span>
-                  </Link>
-                  <Link
-                    href={`/surat-tugas/${suratTugas.id}/cetak?doc=visum`}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-800 px-3 py-2 font-semibold text-slate-700 transition"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <span className="truncate">4. Lembar Visum</span>
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Action Box 1: Disposisi Kapus */}
-          {(userRole === 'kapus' || userRole === 'admin') && suratTugas.status === 'MENUNGGU_DISPOSISI_KAPUS' && (
+          {can('surat_tugas.disposisi') && suratTugas.status === 'MENUNGGU_DISPOSISI_KAPUS' && (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
-            <div className="flex items-center space-x-2 text-purple-700 font-bold text-sm">
-              <UserCheck className="w-5 h-5 text-amber-500" />
+            <div className="text-purple-700 font-bold text-sm">
               <span>Aksi Disposisi Kapus</span>
             </div>
 
@@ -452,11 +706,10 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
           )}
 
           {/* Action Box 2: Penomoran TU */}
-          {(userRole === 'tu' || userRole === 'admin') && suratTugas.status === 'MENUNGGU_PENOMORAN_TU' && (
+          {can('surat_tugas.penomoran') && suratTugas.status === 'MENUNGGU_PENOMORAN_TU' && (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center space-x-2 text-purple-700 font-bold text-sm">
-                <Hash className="w-5 h-5 text-purple-600" />
+              <div className="text-purple-700 font-bold text-sm">
                 <span>Aksi Penomoran Resmi TU</span>
               </div>
               <span className="text-[11px] font-semibold bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full border border-purple-200">
@@ -468,8 +721,7 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
             {runningNumber && (runningNumber.lastSt || runningNumber.lastSpd) && (
               <div className="rounded-xl bg-purple-50/70 border border-purple-200/80 p-3.5 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-900">
                     <span>Rujukan Nomor Terakhir Terbit</span>
                   </span>
                   <span className="text-[10px] text-purple-600">Panduan penomoran berurutan</span>
@@ -632,10 +884,9 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
           )}
 
           {/* Action Box 3: PPK Digital Signature */}
-          {(userRole === 'ppk' || userRole === 'admin') && suratTugas.status === 'SELESAI_TERBIT' && (
+          {can('surat_tugas.sign_ppk') && suratTugas.status === 'SELESAI_TERBIT' && (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
-            <div className="flex items-center space-x-2 text-emerald-700 font-bold text-sm">
-              <Stamp className="w-5 h-5 text-emerald-600" />
+            <div className="text-emerald-700 font-bold text-sm">
               <span>Sematkan TTD Digital PPK</span>
             </div>
 
@@ -691,12 +942,11 @@ export default function Show({ suratTugas, userRole, authUserId, attachments = {
       {/* Audit Trail / Riwayat Proses */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
         <div className="flex items-center space-x-2 mb-1">
-          <History className="w-5 h-5 text-slate-700" />
           <h3 className="font-bold text-slate-900 text-sm">Jejak Audit Proses</h3>
           <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">{logs?.length || 0} aktivitas</span>
         </div>
-        <p className="text-xs text-slate-500 mb-4 flex items-center gap-1">
-          <ScrollText className="w-3.5 h-3.5" /> Setiap perubahan status, disposisi, penomoran, TTD, cetak, dan hapus tercatat otomatis.
+        <p className="text-xs text-slate-500 mb-4">
+          Setiap perubahan status, disposisi, penomoran, TTD, cetak, dan hapus tercatat otomatis.
         </p>
         {(!logs || logs.length === 0) ? (
           <div className="text-xs text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-xl p-4 text-center">

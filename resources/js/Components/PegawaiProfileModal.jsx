@@ -79,7 +79,23 @@ export default function PegawaiProfileModal({
           </button>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-2 border-amber-400/80 bg-amber-500 text-xl font-extrabold text-slate-950 shadow-lg">
+            {pegawai.foto_url ? (
+              <img
+                src={pegawai.foto_url}
+                alt={pegawai.nama}
+                className="h-16 w-16 shrink-0 rounded-2xl border-2 border-amber-400/80 object-cover shadow-lg bg-slate-800"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.parentElement?.querySelector('.foto-fallback-initials');
+                  if (fallback) fallback.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <div
+              className={`foto-fallback-initials flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-2 border-amber-400/80 bg-amber-500 text-xl font-extrabold text-slate-950 shadow-lg ${
+                pegawai.foto_url ? 'hidden' : ''
+              }`}
+            >
               {getInitials(pegawai.nama)}
             </div>
 

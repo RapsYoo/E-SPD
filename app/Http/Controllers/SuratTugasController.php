@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\WorkflowException;
 use App\Http\Requests\SuratTugas\ActorDraftRequest;
 use App\Http\Requests\SuratTugas\DisposisiRequest;
 use App\Http\Requests\SuratTugas\PenomoranRequest;
@@ -16,7 +17,9 @@ use App\Services\SuratTugas\SubmissionService;
 use App\Services\SuratTugas\WorkflowService;
 use App\Support\SuratTugasStatus;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Controller tipis: validasi di FormRequest, logika bisnis di App\Services\SuratTugas\*.
@@ -119,9 +122,17 @@ class SuratTugasController extends Controller
             'authUserId' => $user?->id,
             'logs' => $isPegawai ? [] : $suratTugas->logs,
             'attachments' => $isPegawai ? [] : $this->attachments->payload($suratTugas),
-            'runningNumber' => in_array($user?->role, ['tu', 'admin'], true)
+            'runningNumber' => app(RbacService::class)->hasPermission($user, 'surat_tugas.penomoran')
                 ? $this->queries->lastNumbered()
                 : null,
+            'kapus' => [
+                'nama' => $suratTugas->kapus_nama_snapshot,
+                'nip' => $suratTugas->kapus_nip_snapshot,
+            ],
+            'ppk' => [
+                'nama' => $suratTugas->ppk_nama_snapshot ?: ($suratTugas->ppk?->pegawai?->nama ?? $suratTugas->ppk?->name),
+                'nip' => $suratTugas->ppk_nip_snapshot ?: $suratTugas->ppk?->pegawai?->nip,
+            ],
         ]);
     }
 
@@ -163,6 +174,26 @@ class SuratTugasController extends Controller
             ->with('success', 'Usulan dibuka kembali sebagai draft. Perbaiki sesuai catatan Kapus lalu kirim ulang.');
     }
 
+    /**
+     * Sesparlu/Admin menarik kembali surat yang sudah disetujui Kapus (MENUNGGU_PENOMORAN_TU)
+     * sebelum TU memberikan nomor resmi, untuk direvisi dan diajukan ulang.
+     */
+    public function tarikKembali(Request $request, SuratTugas $suratTugas)
+    {
+        $validated = $request->validate([
+            'alasan' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $this->workflow->tarikKembali($suratTugas, $request->user(), $validated['alasan']);
+        } catch (WorkflowException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('surat-tugas.draft.edit', $suratTugas->id)
+            ->with('success', 'Surat berhasil ditarik kembali ke Draft untuk direvisi. Ajukan ulang setelah diperbaiki.');
+    }
+
     // Print Document View Generator — P1: akses luas (TU/admin/kapus/ppk + pemilik), status minimal disetujui Kapus.
     public function cetak(SuratTugas $suratTugas)
     {
@@ -196,6 +227,25 @@ class SuratTugasController extends Controller
         $this->workflow->archive($suratTugas, auth()->user());
 
         return redirect()->route('surat-tugas.index')->with('success', 'Surat Tugas dipindahkan ke arsip (soft-delete). Dapat dipulihkan bila diperlukan.');
+    }
+
+    /**
+     * Stream berkas lampiran Nota/Undangan atau Izin Setneg secara inline (tanpa perlu symlink public/storage).
+     */
+    public function lampiran(Request $request, SuratTugas $suratTugas, string $type): StreamedResponse
+    {
+        abort_unless($this->workflow->canView($suratTugas, $request->user()), 403, 'Anda tidak memiliki akses ke lampiran surat ini.');
+
+        $path = $type === 'setneg' ? $suratTugas->file_izin_setneg : $suratTugas->file_undangan;
+        abort_unless(is_string($path) && $path !== '' && Storage::disk('public')->exists($path), 404, 'Berkas lampiran tidak ditemukan.');
+
+        $nameKey = $type === 'setneg' ? 'file_izin_setneg_name' : 'file_undangan_name';
+        $filename = $suratTugas->draft_data[$nameKey] ?? basename($path);
+        $disposition = $request->boolean('download') ? 'attachment' : 'inline';
+
+        return Storage::disk('public')->response($path, $filename, [
+            'Content-Disposition' => $disposition.'; filename="'.addslashes($filename).'"',
+        ]);
     }
 
     private function saveDraft(SaveDraftRequest $request, ?SuratTugas $suratTugas = null)

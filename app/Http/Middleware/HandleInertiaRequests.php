@@ -34,7 +34,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user() ? $request->user()->loadMissing('pegawai') : null,
                 'permissions' => fn () => $request->user()
                     ? app(RbacService::class)->permissionsForUser($request->user())
                     : [],

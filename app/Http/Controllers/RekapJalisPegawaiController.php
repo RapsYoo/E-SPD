@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Pegawai;
 use App\Models\SuratTugasPegawai;
 use App\Models\TingkatBiaya;
 use App\Models\UptBidang;
+use App\Models\User;
 use App\Services\RekapJalisPegawaiService;
 use App\Support\SuratTugasStatus;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +22,37 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class RekapJalisPegawaiController extends Controller
 {
     public function __construct(private RekapJalisPegawaiService $rekapJalis) {}
+
+    /**
+     * Tentukan UPT/Bidang yang dikunci untuk pengguna non-admin.
+     * Admin Master mengembalikan null (bebas melihat & memfilter seluruh UPT).
+     */
+    private function resolveLockedUnit(?User $user): ?string
+    {
+        if (! $user || $user->role === 'admin') {
+            return null;
+        }
+
+        $user->loadMissing('pegawai.upt');
+        $unit = $user->pegawai?->upt?->nama ?: $user->pegawai?->upt_bidang;
+
+        if (! $unit && $user->name) {
+            $pegawai = Pegawai::with('upt')->where('nama', $user->name)->first();
+            $unit = $pegawai?->upt?->nama ?: $pegawai?->upt_bidang;
+        }
+
+        if (! $unit || trim((string) $unit) === '' || trim((string) $unit) === '-') {
+            if (in_array($user->role, ['sespalu', 'pemohon'], true) || str_contains(strtolower((string) $user->name), 'sesparlu')) {
+                $unit = 'UPT Sesparlu';
+            } elseif ($user->role === 'tu') {
+                $unit = 'TU';
+            }
+        }
+
+        $cleaned = trim((string) $unit);
+
+        return ($cleaned !== '' && $cleaned !== '-') ? $cleaned : '__TANPA_UPT__';
+    }
 
     /**
      * Validasi dan ambil parameter filter untuk rekapitulasi jalis pegawai.
@@ -39,12 +72,16 @@ class RekapJalisPegawaiController extends Controller
             'sort' => ['nullable', 'in:jalis_desc,biaya_desc,hari_desc,nama_asc'],
         ]);
 
+        $user = $request->user();
+        $isAdmin = $user?->role === 'admin';
+        $lockedUnit = $this->resolveLockedUnit($user);
+
         return [
             'dari' => $validated['dari'] ?? null,
             'sampai' => $validated['sampai'] ?? null,
             'status' => $validated['status'] ?? null,
             'kategori' => $validated['kategori'] ?? null,
-            'unit' => $validated['unit'] ?? null,
+            'unit' => $isAdmin ? ($validated['unit'] ?? null) : $lockedUnit,
             'search' => $validated['search'] ?? null,
             'tampil' => $validated['tampil'] ?? 'semua',
             'sort' => $validated['sort'] ?? 'jalis_desc',
@@ -53,14 +90,18 @@ class RekapJalisPegawaiController extends Controller
 
     public function index(Request $request): Response
     {
+        $user = $request->user();
+        $isAdmin = $user?->role === 'admin';
         $filters = $this->extractFilters($request);
         $report = $this->rekapJalis->buildReport($filters);
 
-        $unitOptions = UptBidang::query()
-            ->where('is_active', true)
-            ->orderBy('nama')
-            ->pluck('nama')
-            ->all();
+        $unitOptions = $isAdmin
+            ? UptBidang::query()
+                ->where('is_active', true)
+                ->orderBy('nama')
+                ->pluck('nama')
+                ->all()
+            : [];
 
         return Inertia::render('RekapitulasiPegawai/Index', [
             'rows' => $report['rows'],
@@ -70,6 +111,8 @@ class RekapJalisPegawaiController extends Controller
             'filters' => $filters,
             'statusOptions' => SuratTugasStatus::LABELS,
             'unitOptions' => $unitOptions,
+            'canFilterUnit' => $isAdmin,
+            'lockedUnit' => $isAdmin ? null : ($filters['unit'] !== '__TANPA_UPT__' ? $filters['unit'] : null),
         ]);
     }
 

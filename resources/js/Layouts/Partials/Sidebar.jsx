@@ -19,7 +19,8 @@ import {
 } from 'lucide-react';
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed }) {
-  const { auth } = usePage().props;
+  const { props, url } = usePage();
+  const auth = props?.auth;
   const userRole = auth?.user?.role;
   const isAdmin = userRole === 'admin';
   const permissions = Array.isArray(auth?.permissions) ? auth.permissions : [];
@@ -34,10 +35,13 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed 
     can('master_upt.manage') ||
     can('master_referensi.manage');
 
+  const currentRoute = (url || window.location.pathname).split('?')[0];
+
   const [suratMenuOpen, setSuratMenuOpen] = useState(true);
   const [rekapMenuOpen, setRekapMenuOpen] = useState(true);
-  const [masterMenuOpen, setMasterMenuOpen] = useState(false);
-  const currentRoute = window.location.pathname;
+  const [masterMenuOpen, setMasterMenuOpen] = useState(
+    () => currentRoute === '/admin' || (currentRoute.startsWith('/admin/') && !currentRoute.startsWith('/admin/rbac'))
+  );
 
   const isActive = (path) =>
     currentRoute === path || (path !== '/' && currentRoute.startsWith(`${path}/`));
@@ -137,7 +141,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed 
             )}
 
             {/* Menu Manajemen DPR (Dikontrol RBAC dpr.manage_ppk) */}
-            {can('dpr.manage_ppk') && !isAdmin && (
+            {can('dpr.manage_ppk') && (
               <Link
                 href="/ppk/dpr"
                 className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition ${
@@ -346,19 +350,38 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed 
         {/* Sidebar Footer: User Profile & Logout */}
         <div className="p-3.5 border-t border-slate-800/90 bg-[#081935]">
           <div className="flex items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-full bg-slate-800 border-2 border-amber-500/80 flex items-center justify-center text-amber-400 font-bold text-sm shadow-inner shrink-0">
+            <Link
+              href={route('profile.edit')}
+              className="flex items-center gap-2.5 min-w-0 flex-1 hover:opacity-90 transition group"
+              title="Profil Pengguna"
+            >
+              {auth?.user?.pegawai?.foto_url ? (
+                <img
+                  src={auth.user.pegawai.foto_url}
+                  alt={auth?.user?.name}
+                  className="w-9 h-9 rounded-full object-cover border-2 border-amber-500/80 shadow-inner shrink-0"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              <div
+                className={`w-9 h-9 rounded-full bg-slate-800 border-2 border-amber-500/80 flex items-center justify-center text-amber-400 font-bold text-sm shadow-inner shrink-0 ${
+                  auth?.user?.pegawai?.foto_url ? 'hidden' : ''
+                }`}
+              >
                 {(auth?.user?.name || 'U').charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-white truncate leading-tight">
+                <p className="text-xs font-bold text-white truncate leading-tight group-hover:text-amber-300 transition">
                   {auth?.user?.name || 'User'}
                 </p>
                 <p className="text-[11px] text-slate-400 truncate mt-0.5">
                   {auth?.user?.email || 'user@kemlu.go.id'}
                 </p>
               </div>
-            </div>
+            </Link>
 
             <Link
               href={route('logout')}

@@ -20,6 +20,7 @@ class Pegawai extends Model
     protected $fillable = [
         'nama',
         'nip',
+        'foto',
         'masuk_kemlu',
         'tanggal_lahir',
         'zodiac',
@@ -73,15 +74,28 @@ class Pegawai extends Model
     }
 
     /**
-     * Alias `unit_kerja` agar UI & snapshot surat lama tetap kompatibel (sumber: kolom `upt_bidang`).
+     * Alias `unit_kerja` agar UI & snapshot surat lama tetap kompatibel (sumber: kolom `upt_bidang`),
+     * dan `foto_url` untuk avatar/foto profil pegawai.
      *
      * @var array<int, string>
      */
-    protected $appends = ['unit_kerja'];
+    protected $appends = ['unit_kerja', 'foto_url'];
 
     public function getUnitKerjaAttribute(): ?string
     {
         return $this->attributes['upt_bidang'] ?? null;
+    }
+
+    public function getFotoUrlAttribute(): ?string
+    {
+        if (empty($this->attributes['foto'])) {
+            return null;
+        }
+
+        return route('pegawai.foto', [
+            'pegawai' => $this->id,
+            'v' => $this->updated_at ? $this->updated_at->timestamp : time(),
+        ]);
     }
 
     public function upt(): BelongsTo

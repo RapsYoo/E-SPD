@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { Menu, X, Bell } from 'lucide-react';
 import ThemeToggle from '@/Components/ThemeToggle';
@@ -14,8 +14,29 @@ export default function Navbar({
   const { auth, notifications } = usePage().props;
   const isAnalytics = variant === 'analytics';
   const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef(null);
   const notifCount = notifications?.count ?? 0;
   const notifItems = notifications?.items ?? [];
+
+  useEffect(() => {
+    if (!bellOpen) return;
+    const handleOutsideClick = (event) => {
+      if (bellRef.current && !bellRef.current.contains(event.target)) {
+        setBellOpen(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setBellOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [bellOpen]);
 
   const getRoleBadge = (role) => {
     switch (role) {
@@ -104,7 +125,7 @@ export default function Navbar({
           <div className="admin-topbar-actions flex items-center space-x-4">
             <ThemeToggle className="rounded-lg p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white" />
             {/* Notifikasi */}
-            <div className="relative">
+            <div ref={bellRef} className="relative">
               <button
                 onClick={() => setBellOpen(!bellOpen)}
                 className={`relative p-2 rounded-lg transition ${isAnalytics ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-800' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}

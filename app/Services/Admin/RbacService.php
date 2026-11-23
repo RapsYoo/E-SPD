@@ -103,6 +103,13 @@ class RbacService
             'route_hint' => '/surat-tugas/{id}/cetak',
         ],
         [
+            'key' => 'surat_tugas.tarik_kembali',
+            'category' => 'Dokumen Jaldis',
+            'label' => 'Tarik Kembali Surat untuk Revisi',
+            'description' => 'Mengizinkan penarikan kembali surat yang sudah disetujui Kapus (menunggu penomoran TU) ke Draft untuk direvisi sebelum diajukan ulang.',
+            'route_hint' => 'POST /surat-tugas/{id}/tarik-kembali',
+        ],
+        [
             'key' => 'rekapitulasi.view',
             'category' => 'Laporan & Rekapitulasi',
             'label' => 'Menu Rekapitulasi & Ekspor',
@@ -176,12 +183,16 @@ class RbacService
         'pemohon' => [
             'surat_tugas.view',
             'surat_tugas.create',
+            'surat_tugas.tarik_kembali',
             'surat_tugas.print',
+            'rekap_pegawai.view',
         ],
         'sespalu' => [
             'surat_tugas.view',
             'surat_tugas.create',
+            'surat_tugas.tarik_kembali',
             'surat_tugas.print',
+            'rekap_pegawai.view',
         ],
         'kapus' => [
             'surat_tugas.view',
@@ -210,6 +221,7 @@ class RbacService
         'pegawai' => [
             'surat_tugas.view',
             'surat_tugas.print',
+            'rekap_pegawai.view',
             'dpr.upload_tiket',
             'pegawai_directory.view',
         ],

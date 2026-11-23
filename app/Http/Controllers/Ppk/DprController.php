@@ -8,6 +8,7 @@ use App\Models\SuratTugasLog;
 use App\Models\SuratTugasPegawai;
 use App\Models\TiketPerjalanan;
 use App\Models\User;
+use App\Services\Admin\RbacService;
 use App\Support\SuratTugasStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -23,14 +24,17 @@ class DprController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        abort_unless($user instanceof User && $user->role === 'ppk', 403);
+        abort_unless(
+            $user instanceof User && app(RbacService::class)->hasPermission($user, 'dpr.manage_ppk'),
+            403
+        );
 
         $statusFilter = (string) $request->query('status', 'ALL');
         $search = trim((string) $request->query('search', ''));
 
         $baseQuery = SuratTugasPegawai::query()
             ->whereHas('suratTugas', fn (Builder $query) => $query
-                ->where('ppk_id', $user->id)
+                ->when($user->role === 'ppk', fn (Builder $q) => $q->where('ppk_id', $user->id))
                 ->where('status', SuratTugasStatus::SELESAI_TERBIT)
                 ->where('tanggal_kembali', '<', today()));
 
@@ -229,9 +233,12 @@ class DprController extends Controller
 
     private function authorizeAssignedPpk(SuratTugas $suratTugas, User $user): void
     {
+        $isAllowedActor = $user->role === 'admin'
+            || ($user->role === 'ppk' && (int) $suratTugas->ppk_id === (int) $user->id)
+            || ($user->role !== 'ppk' && app(RbacService::class)->hasPermission($user, 'dpr.manage_ppk'));
+
         abort_unless(
-            $user->role === 'ppk'
-                && (int) $suratTugas->ppk_id === (int) $user->id
+            $isAllowedActor
                 && $suratTugas->status === SuratTugasStatus::SELESAI_TERBIT
                 && $suratTugas->tanggal_kembali?->lt(today()) === true,
             403,

@@ -6,29 +6,48 @@ import {
   Users, 
   Plus, 
   Search, 
-  Eye,
+  Eye, 
   Edit3, 
   Trash2, 
   X, 
   Check, 
   ChevronLeft, 
   ChevronRight,
+  ChevronDown,
   UserPlus,
   Building,
-  ShieldAlert
+  ShieldAlert,
+  Camera,
+  Upload
 } from 'lucide-react';
+
+function getInitials(name = '') {
+  const parts = String(name)
+    .replace(/[^a-zA-Z\s]/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return 'P';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
 
 export default function Index({ pegawai, uptBidangList = [], filters }) {
   const searchTimeout = useRef(null);
   const [search, setSearch] = useState(filters?.search || '');
+  const [selectedUpt, setSelectedUpt] = useState(filters?.upt_id || '');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPegawai, setEditingPegawai] = useState(null);
   const [deleteConfirmPegawai, setDeleteConfirmPegawai] = useState(null);
   const [selectedProfilePegawai, setSelectedProfilePegawai] = useState(null);
 
+  const [fotoPreview, setFotoPreview] = useState(null);
+
   const emptyForm = {
     nama: '',
     nip: '',
+    foto: null,
+    hapus_foto: false,
     status_kepegawaian: '',
     upt_bidang_id: '',
     upt_bidang: '',
@@ -59,28 +78,49 @@ export default function Index({ pegawai, uptBidangList = [], filters }) {
 
   useEffect(() => () => clearTimeout(searchTimeout.current), []);
 
+  const applyFilters = (newSearch, newUpt) => {
+    const query = {};
+    if (newSearch) query.search = newSearch;
+    if (newUpt) query.upt_id = newUpt;
+    router.get('/admin/pegawai', query, {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    });
+  };
+
   const searchPegawai = (value) => {
     setSearch(value);
     clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
-      router.get('/admin/pegawai', { search: value }, {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-      });
+      applyFilters(value, selectedUpt);
     }, 350);
+  };
+
+  const handleUptChange = (uptId) => {
+    setSelectedUpt(uptId);
+    clearTimeout(searchTimeout.current);
+    applyFilters(search, uptId);
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
     clearTimeout(searchTimeout.current);
-    router.get('/admin/pegawai', { search }, { preserveState: true, preserveScroll: true });
+    applyFilters(search, selectedUpt);
+  };
+
+  const handleReset = () => {
+    clearTimeout(searchTimeout.current);
+    setSearch('');
+    setSelectedUpt('');
+    router.get('/admin/pegawai', {}, { preserveState: true, preserveScroll: true, replace: true });
   };
 
   const openCreateModal = () => {
     setEditingPegawai(null);
     clearErrors();
     reset();
+    setFotoPreview(null);
     setIsModalOpen(true);
   };
 
@@ -92,7 +132,10 @@ export default function Index({ pegawai, uptBidangList = [], filters }) {
       ...Object.fromEntries(Object.keys(emptyForm).map((key) => [key, item[key] ?? ''])),
       upt_bidang_id: matchedUptId,
       is_active: Boolean(item.is_active ?? true),
+      foto: null,
+      hapus_foto: false,
     });
+    setFotoPreview(item.foto_url || null);
     setIsModalOpen(true);
   };
 
@@ -100,17 +143,24 @@ export default function Index({ pegawai, uptBidangList = [], filters }) {
     e.preventDefault();
     if (processing) return;
     if (editingPegawai) {
-      put(`/admin/pegawai/${editingPegawai.id}`, {
+      router.post(`/admin/pegawai/${editingPegawai.id}`, {
+        ...data,
+        _method: 'put',
+      }, {
+        forceFormData: true,
         onSuccess: () => {
           setIsModalOpen(false);
           reset();
+          setFotoPreview(null);
         },
       });
     } else {
       post('/admin/pegawai', {
+        forceFormData: true,
         onSuccess: () => {
           setIsModalOpen(false);
           reset();
+          setFotoPreview(null);
         },
       });
     }
@@ -160,20 +210,35 @@ export default function Index({ pegawai, uptBidangList = [], filters }) {
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
             />
           </div>
+
+          {/* Filter UPT / Bidang */}
+          <div className="relative w-full sm:w-64">
+            <Building className="w-4 h-4 absolute left-3.5 top-3 text-slate-400 pointer-events-none" />
+            <select
+              value={selectedUpt}
+              onChange={(e) => handleUptChange(e.target.value)}
+              className="w-full pl-10 pr-8 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white cursor-pointer appearance-none text-slate-700"
+            >
+              <option value="">Semua UPT / Bidang</option>
+              {uptBidangList.map((upt) => (
+                <option key={upt.id} value={upt.id}>
+                  {upt.nama}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-3 top-3 text-slate-400 pointer-events-none" />
+          </div>
+
           <button
             type="submit"
             className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-5 py-2 rounded-xl text-sm transition"
           >
             Cari
           </button>
-          {search && (
+          {(search || selectedUpt) && (
             <button
               type="button"
-              onClick={() => {
-                clearTimeout(searchTimeout.current);
-                setSearch('');
-                router.get('/admin/pegawai', {}, { preserveState: true, preserveScroll: true, replace: true });
-              }}
+              onClick={handleReset}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-xl text-sm transition"
             >
               Reset
@@ -206,10 +271,32 @@ export default function Index({ pegawai, uptBidangList = [], filters }) {
                     title={`Klik untuk melihat profil ${item.nama}`}
                   >
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900 group-hover:text-[#0F2C59] group-hover:underline">
-                        {item.nama}
+                      <div className="flex items-center gap-3">
+                        {item.foto_url ? (
+                          <img
+                            src={item.foto_url}
+                            alt={item.nama}
+                            className="w-10 h-10 rounded-full object-cover border border-amber-400/80 shadow-xs shrink-0"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={`w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-800 font-extrabold flex items-center justify-center text-xs shrink-0 ${
+                            item.foto_url ? 'hidden' : ''
+                          }`}
+                        >
+                          {getInitials(item.nama)}
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900 group-hover:text-[#0F2C59] group-hover:underline">
+                            {item.nama}
+                          </div>
+                          <div className="text-xs text-slate-500 font-mono">NIP: {item.nip || '-'}</div>
+                        </div>
                       </div>
-                      <div className="text-xs text-slate-500 font-mono">NIP: {item.nip || '-'}</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="font-medium text-slate-800">{item.pangkat}</div>
@@ -346,6 +433,67 @@ export default function Index({ pegawai, uptBidangList = [], filters }) {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Foto Profil Pegawai */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center gap-4">
+                <div className="relative shrink-0">
+                  {fotoPreview ? (
+                    <img
+                      src={fotoPreview}
+                      alt="Preview Foto"
+                      className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400 shadow-sm"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-2xl bg-amber-100 border-2 border-amber-300 text-amber-800 font-bold text-lg flex items-center justify-center">
+                      <Camera className="w-7 h-7 text-amber-600" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Foto Profil Pegawai
+                  </label>
+                  <p className="text-[11px] text-slate-500 mb-2">
+                    Format JPG, PNG, atau WEBP (maksimal 2MB).
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 hover:border-amber-500 text-slate-700 text-xs font-semibold rounded-lg cursor-pointer transition shadow-xs">
+                      <Upload className="w-3.5 h-3.5 text-amber-600" />
+                      <span>{fotoPreview ? 'Ganti Foto' : 'Pilih Foto'}</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setData('foto', file);
+                            setData('hapus_foto', false);
+                            setFotoPreview(URL.createObjectURL(file));
+                          }
+                        }}
+                      />
+                    </label>
+
+                    {fotoPreview && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setData('foto', null);
+                          setData('hapus_foto', true);
+                          setFotoPreview(null);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus Foto</span>
+                      </button>
+                    )}
+                  </div>
+                  {errors.foto && <span className="text-xs text-red-500 mt-1 block">{errors.foto}</span>}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap & Gelar *</label>
                 <input

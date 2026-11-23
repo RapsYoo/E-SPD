@@ -460,6 +460,8 @@ export default function Index({
   filters = {},
   statusOptions = {},
   unitOptions = [],
+  canFilterUnit = false,
+  lockedUnit = null,
 }) {
   const { theme } = useTheme();
   const searchTimeout = useRef(null);
@@ -469,7 +471,7 @@ export default function Index({
     sampai: filters.sampai || '',
     status: filters.status || '',
     kategori: filters.kategori || '',
-    unit: filters.unit || '',
+    unit: canFilterUnit ? (filters.unit || '') : '',
     search: filters.search || '',
     tampil: filters.tampil || 'semua',
     sort: filters.sort || 'jalis_desc',
@@ -513,10 +515,14 @@ export default function Index({
 
   const cleanParams = (values = form) =>
     Object.fromEntries(
-      Object.entries(values).filter(([, value]) => value !== '' && value !== null)
+      Object.entries(values).filter(([key, value]) => {
+        if (key === 'unit' && !canFilterUnit) return false;
+        return value !== '' && value !== null;
+      })
     );
 
   const updateFilter = (key, value) => {
+    if (key === 'unit' && !canFilterUnit) return;
     clearTimeout(searchTimeout.current);
     const updatedForm = { ...form, [key]: value };
     setForm(updatedForm);
@@ -691,7 +697,7 @@ export default function Index({
 
   const chartViews = [
     { id: 'bulanan', label: 'Per Bulan (Jan – Des)' },
-    { id: 'upt', label: 'Per UPT / Bidang' },
+    ...(canFilterUnit ? [{ id: 'upt', label: 'Per UPT / Bidang' }] : []),
     { id: 'pegawai', label: 'Per Pegawai' },
     { id: 'tingkat', label: 'Tingkat Biaya (A/B/C)' },
   ];
@@ -713,13 +719,15 @@ export default function Index({
       title: `${
         isBiayaMetric ? 'Rekapitulasi Biaya Jaldis' : 'Rekapitulasi Jaldis'
       } per UPT / Bidang`,
-      subtitle: 'Klik baris atau batang UPT/Bidang untuk memfilter data',
+      subtitle: canFilterUnit
+        ? 'Klik baris atau batang UPT/Bidang untuk memfilter data'
+        : 'Rekapitulasi pada UPT / Bidang Anda',
       categoryHeader: 'UPT / Bidang',
       items: comboUptItems,
-      activeItemKey: form.unit || null,
-      resetLabel: form.unit ? 'Tampilkan Semua UPT' : null,
-      onReset: () => updateFilter('unit', ''),
-      onItemClick: (it) => updateFilter('unit', form.unit === it.key ? '' : it.key),
+      activeItemKey: canFilterUnit ? (form.unit || null) : null,
+      resetLabel: canFilterUnit && form.unit ? 'Tampilkan Semua UPT' : null,
+      onReset: canFilterUnit ? () => updateFilter('unit', '') : null,
+      onItemClick: canFilterUnit ? (it) => updateFilter('unit', form.unit === it.key ? '' : it.key) : null,
     },
     pegawai: {
       title: `${
@@ -986,6 +994,11 @@ export default function Index({
         <header className="no-print flex flex-col gap-3 py-1 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-[23px] font-bold leading-tight tracking-tight text-slate-900">Rekap Jaldis Pegawai</h1>
+            {!canFilterUnit && lockedUnit && (
+              <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">
+                UPT / Bidang: {lockedUnit}
+              </span>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -1443,12 +1456,14 @@ export default function Index({
               {distribusiUpt.map((u) => {
                 const share = totalJalisUpt > 0 ? (u.total_jalis / totalJalisUpt) * 100 : 0;
                 const uptColor = getUptColor(u.upt);
-                const isSelected = form.unit === u.upt;
+                const isSelected = canFilterUnit && form.unit === u.upt;
                 return (
                   <div
                     key={u.upt}
-                    onClick={() => updateFilter('unit', isSelected ? '' : u.upt)}
-                    className={`cursor-pointer rounded-xl border p-3 transition ${
+                    onClick={() => canFilterUnit && updateFilter('unit', isSelected ? '' : u.upt)}
+                    className={`rounded-xl border p-3 transition ${
+                      canFilterUnit ? 'cursor-pointer ' : ''
+                    }${
                       isSelected
                         ? 'border-amber-500 bg-amber-50/60 ring-2 ring-amber-500/20'
                         : 'border-slate-100 bg-slate-50/60 hover:border-slate-300 hover:bg-white'
@@ -1579,11 +1594,13 @@ export default function Index({
             <summary className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600" aria-label="Filter lainnya">
               Filter lainnya <ChevronDown className="h-3.5 w-3.5" />
             </summary>
-            <div className="absolute left-0 top-full z-30 mt-2 grid w-[min(34rem,calc(100vw-2rem))] grid-cols-1 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl sm:grid-cols-3">
-              <select value={form.unit} onChange={(e) => updateFilter('unit', e.target.value)} aria-label="UPT atau Bidang" className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600">
-                <option value="">Semua UPT / Bidang</option>
-                {unitOptions.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
-              </select>
+            <div className={`absolute left-0 top-full z-30 mt-2 grid w-[min(34rem,calc(100vw-2rem))] grid-cols-1 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl ${canFilterUnit ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              {canFilterUnit && (
+                <select value={form.unit} onChange={(e) => updateFilter('unit', e.target.value)} aria-label="UPT atau Bidang" className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600">
+                  <option value="">Semua UPT / Bidang</option>
+                  {unitOptions.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+                </select>
+              )}
               <select value={form.tampil} onChange={(e) => updateFilter('tampil', e.target.value)} aria-label="Tampilkan pegawai" className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600">
                 <option value="semua">Semua Pegawai</option>
                 <option value="pernah_jalis">Pernah Jaldis</option>

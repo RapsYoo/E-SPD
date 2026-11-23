@@ -153,7 +153,8 @@ class WorkflowService
      */
     public function ajukanUlang(SuratTugas $suratTugas, User $user): void
     {
-        $isOwner = in_array($user->role, ['pemohon', 'sespalu'], true) && $suratTugas->user_id === $user->id;
+        $isOwner = app(RbacService::class)->hasPermission($user, 'surat_tugas.create')
+            && $suratTugas->user_id === $user->id;
         if ($user->role !== 'admin' && ! $isOwner) {
             throw new WorkflowException('Hanya pengusul surat ini atau Admin yang dapat mengajukan ulang.');
         }
@@ -167,6 +168,39 @@ class WorkflowService
             'draft_step' => 1,
         ]);
         $this->audit->log($suratTugas->fresh(), 'AJUKAN_ULANG', S::DISPOSISI_KAPUS_STOP, S::DRAFT, 'Usulan dibuka kembali sebagai draft setelah dihentikan Kapus');
+    }
+
+    /**
+     * Sesparlu atau Admin dapat menarik kembali surat yang sudah disetujui Kapus (MENUNGGU_PENOMORAN_TU)
+     * selama TU belum memberikan nomor resmi, agar surat dapat direvisi dan diajukan ulang.
+     *
+     * @throws WorkflowException
+     */
+    public function tarikKembali(SuratTugas $suratTugas, User $user, string $alasan): void
+    {
+        $isOwner = app(RbacService::class)->hasPermission($user, 'surat_tugas.create')
+            && $suratTugas->user_id === $user->id;
+
+        if ($user->role !== 'admin' && ! $isOwner) {
+            throw new WorkflowException('Hanya pengusul surat ini atau Admin yang dapat menarik kembali surat.');
+        }
+
+        $this->assertStatus(
+            $suratTugas,
+            S::MENUNGGU_PENOMORAN_TU,
+            'Penarikan kembali hanya dapat dilakukan saat surat sedang menunggu penomoran oleh TU.'
+        );
+
+        $dari = $suratTugas->status;
+        $suratTugas->update([
+            'status' => S::DRAFT,
+            'kapus_decision' => null,
+            'kapus_nama_snapshot' => null,
+            'kapus_nip_snapshot' => null,
+            'draft_step' => 1,
+        ]);
+
+        $this->audit->log($suratTugas->fresh(), 'TARIK_KEMBALI', $dari, S::DRAFT, $alasan);
     }
 
     /**
@@ -244,7 +278,7 @@ class WorkflowService
      */
     public function ensureSnapshotsLocked(SuratTugas $suratTugas): void
     {
-        if (! in_array($suratTugas->status, [S::DISPOSISI_KAPUS_YA, S::MENUNGGU_PENOMORAN_TU, S::SELESAI_TERBIT], true)) {
+        if (! in_array($suratTugas->status, [S::MENUNGGU_DISPOSISI_KAPUS, S::DISPOSISI_KAPUS_YA, S::MENUNGGU_PENOMORAN_TU, S::SELESAI_TERBIT], true)) {
             return;
         }
 
@@ -290,8 +324,21 @@ class WorkflowService
             return $this->canView($suratTugas, $user);
         }
 
+        if (
+            $suratTugas->status === S::MENUNGGU_DISPOSISI_KAPUS
+            && app(RbacService::class)->hasPermission($user, 'surat_tugas.disposisi')
+        ) {
+            return true;
+        }
+
         $isOwner = $suratTugas->user_id === $user->id;
-        $allowedRole = in_array($user->role, S::PRINT_ROLES, true) || $isOwner;
+        $allowedRole = in_array($user->role, S::PRINT_ROLES, true)
+            || $isOwner
+            || app(RbacService::class)->hasAnyPermission($user, [
+                'surat_tugas.disposisi',
+                'surat_tugas.penomoran',
+                'surat_tugas.sign_ppk',
+            ]);
         $allowedStatus = in_array($suratTugas->status, S::PRINTABLE, true);
 
         return $allowedRole && $allowedStatus;

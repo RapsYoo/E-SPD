@@ -162,20 +162,20 @@ class RekapitulasiService
             echo '<div class="letterhead"><div>KEMENTERIAN LUAR NEGERI</div><div class="country">REPUBLIK INDONESIA</div></div>';
             echo '<div class="report-title">REKAPITULASI PERJALANAN DINAS</div>';
             echo '<table><colgroup>';
-            foreach ([4, 12, 10, 10, 10, 6, 8, 7, 7, 5, 8, 8, 5] as $width) {
+            foreach ([4, 13, 10, 9, 6, 7, 7, 7, 5, 7, 11, 9, 5] as $width) {
                 echo '<col style="width:'.$width.'%">';
             }
             echo '</colgroup><thead>
                 <tr>
                     <th rowspan="2">No</th>
-                    <th rowspan="2">Nama</th>
+                    <th rowspan="2">Judul Kegiatan</th>
                     <th rowspan="2">Nomor Dokumen</th>
-                    <th rowspan="2">Posisi</th>
                     <th rowspan="2">Tujuan</th>
                     <th colspan="2">Transportasi / Angkutan</th>
                     <th colspan="3">Periode Perjalanan</th>
                     <th rowspan="2">PPK</th>
-                    <th rowspan="2">Aktivitas Perjalanan</th>
+                    <th rowspan="2">Nama Pegawai</th>
+                    <th rowspan="2">Posisi</th>
                     <th rowspan="2">Status</th>
                 </tr>
                 <tr>
@@ -204,9 +204,8 @@ class RekapitulasiService
                     .'<br><strong>SPD:</strong> '.e($this->neutralizeFormula($row['nomor_spd'] ?: '-'));
                 $values = [
                     ++$number,
-                    $names ?: '-',
+                    $row['perihal'] ?: '-',
                     $documentNumbers,
-                    $positions ?: '-',
                     $destination,
                     $row['tingkat_biaya'] ?: '-',
                     $row['angkutan'] ?: '-',
@@ -214,14 +213,15 @@ class RekapitulasiService
                     $row['tanggal_kembali'] ?: '-',
                     ($row['durasi_hari'] ?? '-').' hari',
                     $row['ppk'] ?: '-',
-                    $row['perihal'] ?: '-',
+                    $names ?: '-',
+                    $positions ?: '-',
                     $row['status'] ?: '-',
                 ];
 
                 echo '<tr>';
                 foreach ($values as $index => $value) {
-                    $class = in_array($index, [0, 5, 7, 8, 9, 12], true) ? ' class="center"' : '';
-                    $content = in_array($index, [1, 2, 3, 4], true)
+                    $class = in_array($index, [0, 4, 6, 7, 8, 12], true) ? ' class="center"' : '';
+                    $content = in_array($index, [2, 3, 10, 11], true)
                         ? $value
                         : e($this->neutralizeFormula($value));
 

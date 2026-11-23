@@ -28,8 +28,9 @@ Route::get('/', function () {
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::match(['patch', 'post'], '/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/pegawai/{pegawai}/foto', [PegawaiDirectoryController::class, 'foto'])->name('pegawai.foto');
 
     // P0: proteksi lapis route berbasis modul RBAC dinamis.
     // PENTING: route statis /create harus di atas wildcard {suratTugas} agar tidak dikira id.
@@ -45,6 +46,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('module:surat_tugas.view')->group(function () {
         Route::get('/surat-tugas', [SuratTugasController::class, 'index'])->name('surat-tugas.index');
         Route::get('/surat-tugas/{suratTugas}', [SuratTugasController::class, 'show'])->name('surat-tugas.show');
+        Route::get('/surat-tugas/{suratTugas}/lampiran/{type}', [SuratTugasController::class, 'lampiran'])
+            ->whereIn('type', ['invitation', 'setneg'])
+            ->name('surat-tugas.lampiran');
     });
 
     // Aksi per tahapan kerja.
@@ -54,6 +58,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/surat-tugas/{suratTugas}/sign-ppk', [SuratTugasController::class, 'signPpk'])->middleware('module:surat_tugas.sign_ppk')->name('surat-tugas.sign-ppk');
     // Usulan yang dihentikan Kapus dapat diajukan ulang.
     Route::post('/surat-tugas/{suratTugas}/ajukan-ulang', [SuratTugasController::class, 'ajukanUlang'])->middleware('module:surat_tugas.create')->name('surat-tugas.ajukan-ulang');
+    // Penarikan kembali surat yang sudah disetujui Kapus (menunggu penomoran TU) untuk direvisi.
+    Route::post('/surat-tugas/{suratTugas}/tarik-kembali', [SuratTugasController::class, 'tarikKembali'])->middleware('module:surat_tugas.tarik_kembali')->name('surat-tugas.tarik-kembali');
 
     // Rekapitulasi & ekspor laporan perjalanan dinas.
     Route::middleware('module:rekapitulasi.view')->group(function () {

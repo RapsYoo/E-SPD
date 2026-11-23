@@ -2,31 +2,52 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PegawaiProfileModal from '@/Components/PegawaiProfileModal';
-import { Users, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Search, ChevronLeft, ChevronRight, Building, ChevronDown } from 'lucide-react';
 
-export default function Index({ pegawai, filters }) {
+export default function Index({ pegawai, uptBidangList = [], filters }) {
   const searchTimeout = useRef(null);
   const [search, setSearch] = useState(filters?.search || '');
+  const [selectedUpt, setSelectedUpt] = useState(filters?.upt_id || '');
   const [selectedProfilePegawai, setSelectedProfilePegawai] = useState(null);
 
   useEffect(() => () => clearTimeout(searchTimeout.current), []);
+
+  const applyFilters = (newSearch, newUpt) => {
+    const query = {};
+    if (newSearch) query.search = newSearch;
+    if (newUpt) query.upt_id = newUpt;
+    router.get('/pegawai', query, {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    });
+  };
 
   const searchPegawai = (value) => {
     setSearch(value);
     clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
-      router.get('/pegawai', { search: value }, {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-      });
+      applyFilters(value, selectedUpt);
     }, 350);
+  };
+
+  const handleUptChange = (uptId) => {
+    setSelectedUpt(uptId);
+    clearTimeout(searchTimeout.current);
+    applyFilters(search, uptId);
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
     clearTimeout(searchTimeout.current);
-    router.get('/pegawai', { search }, { preserveState: true, preserveScroll: true });
+    applyFilters(search, selectedUpt);
+  };
+
+  const handleReset = () => {
+    clearTimeout(searchTimeout.current);
+    setSearch('');
+    setSelectedUpt('');
+    router.get('/pegawai', {}, { preserveState: true, preserveScroll: true, replace: true });
   };
 
   return (
@@ -54,17 +75,32 @@ export default function Index({ pegawai, filters }) {
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
             />
           </div>
+
+          {/* Filter UPT / Bidang */}
+          <div className="relative w-full sm:w-64">
+            <Building className="w-4 h-4 absolute left-3.5 top-3 text-slate-400 pointer-events-none" />
+            <select
+              value={selectedUpt}
+              onChange={(e) => handleUptChange(e.target.value)}
+              className="w-full pl-10 pr-8 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white cursor-pointer appearance-none text-slate-700"
+            >
+              <option value="">Semua UPT / Bidang</option>
+              {uptBidangList.map((upt) => (
+                <option key={upt.id} value={upt.id}>
+                  {upt.nama}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-3 top-3 text-slate-400 pointer-events-none" />
+          </div>
+
           <button type="submit" className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-5 py-2 rounded-xl text-sm transition">
             Cari
           </button>
-          {search && (
+          {(search || selectedUpt) && (
             <button
               type="button"
-              onClick={() => {
-                clearTimeout(searchTimeout.current);
-                setSearch('');
-                router.get('/pegawai', {}, { preserveState: true, preserveScroll: true, replace: true });
-              }}
+              onClick={handleReset}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-xl text-sm transition"
             >
               Reset

@@ -116,6 +116,12 @@ class SubmissionService
         $kapusSnapshot = $this->workflow->kapusAktif();
         $files = $this->attachments->store($undangan, $setneg, $draft);
 
+        $preservedNames = collect($draft?->draft_data ?? [])
+            ->only(['file_undangan_name', 'file_izin_setneg_name'])
+            ->merge($files->names)
+            ->filter()
+            ->all();
+
         $values = [
             'user_id' => $draft?->user_id ?? $user->id,
             'kategori_perjalanan' => $validated['kategori_perjalanan'],
@@ -144,7 +150,7 @@ class SubmissionService
             'tanggal_kembali' => $validated['tanggal_kembali'],
             'tanggal_surat' => $validated['tanggal_surat'] ?? $draft?->tanggal_surat ?? null,
             'durasi_hari' => $validated['durasi_hari'],
-            'draft_data' => null,
+            'draft_data' => $preservedNames ?: null,
             'draft_step' => null,
         ];
 

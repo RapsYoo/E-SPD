@@ -299,8 +299,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
       {/* Title */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center space-x-2 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
-            <FileSignature className="w-4 h-4" />
+          <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
             <span>Formulir 5-Tahap Terintegrasi</span>
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{draft ? 'Lanjutkan Draft Surat Tugas' : 'Generate Surat Tugas & SPD Online'}</h1>
@@ -312,7 +311,6 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
           disabled={savingDraft || processing}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-amber-400 hover:bg-amber-50 disabled:cursor-wait disabled:opacity-60"
         >
-          <Save className="h-4 w-4" />
           <span>{savingDraft ? 'Menyimpan Draft...' : 'Simpan Draft & Keluar'}</span>
         </button>
       </div>
@@ -334,7 +332,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             }`}>
               1
             </span>
-            <span>1. Upload Nota / Undangan</span>
+            <span>Upload Nota / Undangan</span>
           </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -353,7 +351,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             }`}>
               2
             </span>
-            <span>2. Draft Personel & SPD</span>
+            <span>Draft Personel & SPD</span>
           </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -372,7 +370,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             }`}>
               3
             </span>
-            <span>3. Disposisi Kapus</span>
+            <span>Disposisi Kapus</span>
           </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -391,7 +389,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             }`}>
               4
             </span>
-            <span>4. Penomoran TU</span>
+            <span>Penomoran TU</span>
           </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -410,7 +408,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             }`}>
               5
             </span>
-            <span>5. Output & Cetak PDF</span>
+            <span>Output & Cetak PDF</span>
           </div>
         </div>
       </div>
@@ -436,8 +434,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                  <Upload className="w-5 h-5 text-amber-500" />
+                <h2 className="text-lg font-bold text-slate-900">
                   <span>Tahap 1: Registrasi Nota / Undangan Masuk</span>
                 </h2>
                 <p className="text-xs text-slate-500">Pemicu awal usulan penugasan dinas (Input oleh Pemohon / Sesparlu)</p>
@@ -449,8 +446,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
             {/* Kategori Perjalanan Dinas */}
             <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4">
-              <label className="block text-xs font-bold text-blue-900 mb-2 flex items-center space-x-1.5">
-                <Globe className="w-4 h-4 text-blue-600" />
+              <label className="block text-xs font-bold text-blue-900 mb-2">
                 <span>Kategori Perjalanan Dinas *</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -611,8 +607,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                  <PenTool className="w-5 h-5 text-amber-500" />
+                <h2 className="text-lg font-bold text-slate-900">
                   <span>Tahap 2: Draft Personel Ditugaskan & Rincian SPD</span>
                 </h2>
                 <p className="text-xs text-slate-500">Pilih Pejabat Komitmen (PPK) & Personel Pegawai yang ditugaskan</p>
@@ -624,8 +619,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
             {/* Select PPK */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
-                <ShieldCheck className="w-4 h-4 text-amber-500" />
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700">
                 <span>Penetapan Pejabat Pembuat Komitmen (PPK)</span>
               </h3>
               <select
@@ -647,8 +641,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
-                    <Users className="w-4 h-4 text-indigo-600" />
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700">
                     <span>Pegawai Ditugaskan (Snapshot Data Protection)</span>
                   </h3>
                   <p className="text-[11px] text-slate-500">Profil pangkat & golongan pegawai dikunci saat dokumen dibuat</p>
@@ -844,8 +837,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             {/* Travel Parameters */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
-                  <MapPin className="w-4 h-4 text-amber-500" />
+                <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700">
                   <span>Lokasi &amp; Waktu Perjalanan Dinas</span>
                 </h3>
 
@@ -1078,7 +1070,6 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
                 disabled={processing || savingDraft || selectedPegawaiIds.length === 0}
                 className="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Sparkles className="w-4 h-4" />
                 <span>{processing ? 'Mengirim ke Kapus...' : 'Kirim Nota, ST & SPD ke Disposisi Kapus'}</span>
               </button>
             </div>

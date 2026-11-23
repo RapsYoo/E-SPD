@@ -53,6 +53,8 @@ class PegawaiRequest extends FormRequest
             'keterangan' => 'nullable|string',
             'upt_bidang_id' => 'nullable|integer|exists:upt_bidang,id',
             'is_active' => 'sometimes|boolean',
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'hapus_foto' => 'nullable|boolean',
         ];
 
         foreach (self::OPTIONAL_TEXT_COLUMNS as $column) {
