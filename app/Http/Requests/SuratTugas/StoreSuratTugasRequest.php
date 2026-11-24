@@ -67,6 +67,7 @@ class StoreSuratTugasRequest extends ProposerRequest
         return $noteRules + [
             // PPK & Travel details
             'ppk_id' => ['required', Rule::exists('users', 'id')->where('role', 'ppk')],
+            'bendahara_id' => ['nullable', Rule::exists('users', 'id')->where('role', 'bendahara')],
             'tingkat_biaya_kode' => 'required|exists:tingkat_biaya,kode',
             'jenis_angkutan_nama' => 'required|exists:jenis_angkutan,nama',
             'tempat_berangkat' => 'required|string',
@@ -76,11 +77,28 @@ class StoreSuratTugasRequest extends ProposerRequest
             'tanggal_berangkat' => 'required|date',
             'tanggal_kembali' => 'required|date|after_or_equal:tanggal_berangkat',
             'tanggal_surat' => 'nullable|date',
+            'tanggal_rpd' => 'nullable|date',
             'durasi_hari' => 'required|integer|min:1',
 
             // Officers array
             'pegawai_ids' => 'required|array|min:1',
             'pegawai_ids.*' => 'exists:pegawai,id',
+
+            // RPD & Daftar Nominatif per pegawai
+            'rpd_data' => 'nullable|array',
+            'rpd_data.*.nama_rekening' => 'nullable|string|max:255',
+            'rpd_data.*.no_rekening' => 'nullable|string|max:100',
+            'rpd_data.*.kode_bank' => 'nullable|string|max:100',
+            'rpd_data.*.telah_dibayar' => 'nullable|numeric|min:0',
+            'rpd_data.*.items' => 'nullable|array',
+            'rpd_data.*.items.*.jenis' => 'nullable|string|max:255',
+            'rpd_data.*.items.*.uraian' => 'nullable|string|max:255',
+            'rpd_data.*.items.*.jumlah_satuan' => 'nullable|numeric|min:0',
+            'rpd_data.*.items.*.satuan' => 'nullable|string|max:50',
+            'rpd_data.*.items.*.persentase' => 'nullable|numeric|min:0|max:1000',
+            'rpd_data.*.items.*.mata_uang' => 'nullable|in:IDR,USD',
+            'rpd_data.*.items.*.besaran' => 'nullable|numeric|min:0',
+            'rpd_data.*.items.*.kurs' => 'nullable|numeric|min:0',
         ];
     }
 }

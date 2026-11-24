@@ -6,6 +6,8 @@ import SuratTugasSheet from './Partials/SuratTugasSheet';
 import SpdSheet from './Partials/SpdSheet';
 import LampiranMatriksSheet from './Partials/LampiranMatriksSheet';
 import VisumRampunganSheet from './Partials/VisumRampunganSheet';
+import RpdSheet from './Partials/RpdSheet';
+import DaftarNominatifSheet from './Partials/DaftarNominatifSheet';
 import { 
   FileSignature, 
   CheckCircle2, 
@@ -106,6 +108,7 @@ export default function Show({
   runningNumber = { lastSt: null, lastSpd: null },
   kapus = {},
   ppk = {},
+  bendahara = {},
 }) {
   const { auth } = usePage().props;
   const permissions = Array.isArray(auth?.permissions) ? auth.permissions : [];
@@ -119,8 +122,16 @@ export default function Show({
   const [alasanTarik, setAlasanTarik] = useState('');
   const [tarikProcessing, setTarikProcessing] = useState(false);
 
+  // State modal Tarik Nomor Surat (TU)
+  const [showTarikNomorModal, setShowTarikNomorModal] = useState(false);
+  const [alasanTarikNomor, setAlasanTarikNomor] = useState('');
+  const [tarikNomorProcessing, setTarikNomorProcessing] = useState(false);
+
   const canTarikKembali = suratTugas.status === 'MENUNGGU_PENOMORAN_TU'
     && (userRole === 'admin' || (can('surat_tugas.tarik_kembali') && suratTugas.user_id === authUserId));
+
+  const canTarikNomor = suratTugas.status === 'SELESAI_TERBIT'
+    && (userRole === 'admin' || can('surat_tugas.tarik_nomor'));
 
   const handleTarikKembali = () => {
     if (!alasanTarik.trim()) return;
@@ -130,6 +141,18 @@ export default function Show({
         setTarikProcessing(false);
         setShowTarikModal(false);
         setAlasanTarik('');
+      },
+    });
+  };
+
+  const handleTarikNomor = () => {
+    if (!alasanTarikNomor.trim()) return;
+    setTarikNomorProcessing(true);
+    router.post(`/surat-tugas/${suratTugas.id}/tarik-nomor`, { alasan: alasanTarikNomor }, {
+      onFinish: () => {
+        setTarikNomorProcessing(false);
+        setShowTarikNomorModal(false);
+        setAlasanTarikNomor('');
       },
     });
   };
@@ -182,13 +205,21 @@ export default function Show({
     ppkNip,
     kapusNama,
     kapusNip,
+    bendaharaNama: bendahara?.nama || suratTugas.bendahara_nama_snapshot || null,
+    bendaharaNip: bendahara?.nip || suratTugas.bendahara_nip_snapshot || null,
   };
+
+  const canViewRpd = can('pembiayaan.cetak_rpd_nominatif') || can('pembiayaan.manage_bendahara');
 
   const documentTabs = [
     { id: 'st', label: '1. Surat Tugas (ST)' },
     { id: 'spd', label: '2. Lembar SPD' },
     { id: 'lampiran', label: '3. Lampiran SPD' },
     { id: 'visum', label: '4. Lembar Visum' },
+    ...(canViewRpd ? [
+      { id: 'rpd', label: '5. RPD (Rincian Biaya)' },
+      { id: 'nominatif', label: '6. Daftar Nominatif' },
+    ] : []),
   ];
 
   const handleCopy = (text, key) => {
@@ -311,6 +342,72 @@ export default function Show({
         </div>
       )}
 
+      {/* Modal Tarik Nomor Surat (TU) */}
+      {showTarikNomorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Tarik Nomor Surat (ST &amp; SPD)</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Nomor resmi akan dibatalkan dan surat dikembalikan ke Draft agar dapat direvisi menyeluruh.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowTarikNomorModal(false); setAlasanTarikNomor(''); }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 space-y-1">
+              <p className="font-bold">⚠ Perhatian Penarikan Nomor Surat</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li>Nomor ST (<strong>{suratTugas.nomor_st || '-'}</strong>) dan Nomor SPD (<strong>{suratTugas.nomor_spd || '-'}</strong>) akan dihapus.</li>
+                <li>Status surat kembali ke <strong>Draft</strong> sehingga Sesparlu/pengusul dapat merevisi seluruh persuratan termasuk <strong>RPD &amp; Daftar Nominatif</strong>.</li>
+                <li>TTD digital PPK dan status persetujuan pembiayaan Bendahara akan di-reset untuk peninjauan ulang.</li>
+                <li>Riwayat penarikan nomor akan tercatat pada jejak audit.</li>
+              </ul>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Alasan Penarikan Nomor Surat <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows="3"
+                value={alasanTarikNomor}
+                onChange={(e) => setAlasanTarikNomor(e.target.value)}
+                placeholder="Contoh: Perubahan tanggal keberangkatan, perubahan personel, atau revisi rincian biaya RPD/Nominatif."
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-rose-400"
+                maxLength={500}
+              />
+              <p className="text-[10px] text-slate-400 mt-0.5 text-right">{alasanTarikNomor.length}/500</p>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowTarikNomorModal(false); setAlasanTarikNomor(''); }}
+                disabled={tarikNomorProcessing}
+                className="flex-1 rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition disabled:opacity-60"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleTarikNomor}
+                disabled={tarikNomorProcessing || !alasanTarikNomor.trim()}
+                className="flex-1 rounded-xl bg-rose-600 hover:bg-rose-500 text-white py-2.5 text-xs font-bold transition shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                {tarikNomorProcessing ? 'Memproses...' : 'Ya, Tarik Nomor Surat'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
@@ -375,6 +472,18 @@ export default function Show({
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
               <span>Tarik Kembali untuk Revisi</span>
+            </button>
+          )}
+
+          {/* Tombol Tarik Nomor Surat: saat SELESAI_TERBIT & role memiliki RBAC surat_tugas.tarik_nomor (default TU) */}
+          {canTarikNomor && (
+            <button
+              type="button"
+              onClick={() => setShowTarikNomorModal(true)}
+              className="inline-flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold px-5 py-2.5 rounded-xl shadow-sm transition text-sm"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              <span>Tarik Nomor Surat</span>
             </button>
           )}
 
@@ -503,7 +612,7 @@ export default function Show({
                   )}
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
-                  Pratinjau langsung naskah Surat Tugas, SPD, Lampiran, dan Visum sesuai data usulan.
+                  Pratinjau langsung naskah Surat Tugas, SPD, Lampiran, Visum, RPD, dan Daftar Nominatif sesuai data usulan.
                 </p>
               </div>
 
@@ -514,7 +623,13 @@ export default function Show({
                 (suratTugas.status === 'MENUNGGU_PENOMORAN_TU' && suratTugas.user_id === authUserId)
               ) && (
                 <Link
-                  href={`/surat-tugas/${suratTugas.id}/cetak?doc=${activeDocTab}`}
+                  href={
+                    activeDocTab === 'rpd'
+                      ? route('surat-tugas.cetak-rpd', suratTugas.id)
+                      : activeDocTab === 'nominatif'
+                        ? route('surat-tugas.cetak-nominatif', suratTugas.id)
+                        : `/surat-tugas/${suratTugas.id}/cetak?doc=${activeDocTab}`
+                  }
                   className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition"
                 >
                   <Printer className="w-3.5 h-3.5" />
@@ -566,10 +681,20 @@ export default function Show({
                 .visum-signature-nip { margin: 1mm 0 0; line-height: 1; }
                 .visum-ppk-cell { position: relative; }
                 .visum-ppk-signature { position: absolute; right: 2mm; bottom: 2mm; left: 2mm; text-align: center; line-height: 1.15; }
-                .print-sheet-st, .print-sheet-spd, .print-sheet-lampiran, .print-sheet-visum {
+                .print-sheet-st, .print-sheet-spd, .print-sheet-visum, .print-sheet-rpd {
                   box-sizing: border-box;
                   width: 100%;
                   max-width: 210mm;
+                  margin: 0.5rem auto;
+                  background: white;
+                  border: 1px solid #cbd5e1;
+                  box-shadow: 0 10px 15px -3px rgb(15 23 42 / 0.08);
+                  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+                }
+                .print-sheet-lampiran {
+                  box-sizing: border-box;
+                  width: 100%;
+                  max-width: 297mm;
                   margin: 0.5rem auto;
                   background: white;
                   border: 1px solid #cbd5e1;
@@ -581,6 +706,12 @@ export default function Show({
               <SpdSheet {...sheetCommonProps} isActive={activeDocTab === 'spd'} />
               <LampiranMatriksSheet {...sheetCommonProps} isActive={activeDocTab === 'lampiran'} />
               <VisumRampunganSheet {...sheetCommonProps} isActive={activeDocTab === 'visum'} />
+              {canViewRpd && (
+                <>
+                  <RpdSheet {...sheetCommonProps} isActive={activeDocTab === 'rpd'} />
+                  <DaftarNominatifSheet {...sheetCommonProps} isActive={activeDocTab === 'nominatif'} />
+                </>
+              )}
             </div>
           </section>
 

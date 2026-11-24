@@ -30,10 +30,19 @@ class SuratTugasPegawai extends Model
         'unit_kerja',
         'urutan',
         'biaya',
+        'rpd_items',
+        'rpd_total',
+        'rpd_telah_dibayar',
+        'nama_rekening',
+        'no_rekening',
+        'kode_bank',
     ];
 
     protected $casts = [
         'biaya' => 'integer',
+        'rpd_items' => 'array',
+        'rpd_total' => 'integer',
+        'rpd_telah_dibayar' => 'integer',
         'dpr_submitted_at' => 'datetime',
         'dpr_approved_at' => 'datetime',
     ];

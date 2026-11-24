@@ -1035,15 +1035,6 @@ export default function Index({
                 </button>
               </div>
             </details>
-            <button
-              type="button"
-              onClick={() => setIsTarifModalOpen(true)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-              aria-label="Atur Standar Tarif Biaya"
-              title="Standar Tarif Biaya"
-            >
-              <Settings className="h-4 w-4 text-[var(--warning)]" />
-            </button>
           </div>
         </header>
 
@@ -1507,13 +1498,9 @@ export default function Index({
                   Komposisi Tingkat Biaya
                 </h3>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsTarifModalOpen(true)}
-                className="text-[11px] font-bold text-amber-600 hover:underline"
-              >
-                Ubah Tarif
-              </button>
+              <span className="text-[10px] font-semibold text-slate-400">
+                RPD Disetujui Bendahara
+              </span>
             </div>
 
             <div className="space-y-3">
@@ -1530,7 +1517,7 @@ export default function Index({
                       <div>
                         <div className="text-xs font-bold text-slate-900">{tb.nama}</div>
                         <div className="text-[10px] text-slate-500">
-                          Standar: {formatRupiah(tb.tarif_harian)} / hari
+                          Total dari RPD disetujui Bendahara
                         </div>
                       </div>
                     </div>
@@ -2005,9 +1992,9 @@ export default function Index({
                                     {formatRupiah(trip.biaya_efektif)}
                                   </div>
                                   <div className="text-[10px] text-slate-400">
-                                    {trip.biaya_manual !== null
-                                      ? 'Nominal Aktual (Manual)'
-                                      : 'Estimasi Standar'}
+                                    {trip.pembiayaan_disetujui
+                                      ? 'RPD Disetujui Bendahara'
+                                      : 'Menunggu Approval Bendahara'}
                                   </div>
                                 </div>
                               )}
@@ -2080,85 +2067,6 @@ export default function Index({
                 Tutup
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL PENGATURAN TARIF STANDAR HARIAN */}
-      {isTarifModalOpen && (
-        <div
-          onClick={() => setIsTarifModalOpen(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl"
-          >
-            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="rounded-xl bg-amber-100 p-2 text-amber-700">
-                  <Coins className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900">
-                    Standar Tarif Harian Tingkat Biaya
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Digunakan untuk estimasi otomatis biaya per hari perjalanan dinas
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTarifModalOpen(false)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                aria-label="Tutup pengaturan tarif"
-                title="Tutup"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveTarif} className="space-y-4">
-              {['A', 'B', 'C'].map((kode) => (
-                <div key={kode}>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Tarif Harian Tingkat {kode} (Rp / Hari)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={tarifForm[kode] ?? 0}
-                    onChange={(e) =>
-                      setTarifForm((prev) => ({ ...prev, [kode]: Number(e.target.value) }))
-                    }
-                    className="w-full rounded-xl border border-slate-300 px-3.5 py-2 font-mono text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                  />
-                </div>
-              ))}
-
-              <p className="rounded-xl bg-amber-50 p-3 text-[11px] text-amber-800 border border-amber-200">
-                Catatan: Untuk perjalanan dinas <strong>Luar Negeri</strong>, kalkulasi otomatis dikalikan 2x tarif harian standar (kecuali jika diisi nominal aktual secara manual pada rincian pegawai).
-              </p>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsTarifModalOpen(false)}
-                  className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingTarif}
-                  className="rounded-xl bg-amber-500 px-5 py-2 text-xs font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-60"
-                >
-                  {savingTarif ? 'Menyimpan...' : 'Simpan Standar Tarif'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

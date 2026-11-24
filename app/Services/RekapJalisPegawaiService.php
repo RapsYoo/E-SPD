@@ -41,8 +41,9 @@ class RekapJalisPegawaiService
                 'tanggal_kembali',
                 'durasi_hari',
                 'status',
+                'pembiayaan_status',
             ])
-            ->with(['pegawaiList:id,surat_tugas_id,pegawai_id,nama,nip,pangkat,golongan,jabatan,unit_kerja,biaya,urutan']);
+            ->with(['pegawaiList:id,surat_tugas_id,pegawai_id,nama,nip,pangkat,golongan,jabatan,unit_kerja,biaya,rpd_total,urutan']);
 
         if (! empty($filters['dari'])) {
             $query->whereDate('tanggal_berangkat', '>=', $filters['dari']);
@@ -155,7 +156,7 @@ class RekapJalisPegawaiService
         }
 
         foreach ($suratList as $surat) {
-            $biayaOtomatis = $this->hitungBiayaOtomatis($surat, $tarifMap);
+            $isApprovedRpd = $surat->pembiayaan_status === SuratTugas::PEMBIAYAAN_DISETUJUI;
             $kodeBiaya = strtoupper((string) ($surat->tingkat_biaya_kode ?: 'C'));
             $durasi = max(1, (int) ($surat->durasi_hari ?: 1));
             $isLN = $surat->kategori_perjalanan === 'LUAR_NEGERI';
@@ -192,8 +193,11 @@ class RekapJalisPegawaiService
                     ];
                 }
 
+                $rpdTotal = (int) ($sp->rpd_total ?? 0);
                 $biayaManual = $sp->biaya !== null ? (int) $sp->biaya : null;
-                $biayaEfektif = $biayaManual ?? $biayaOtomatis;
+                $biayaEfektif = $isApprovedRpd
+                    ? ($rpdTotal > 0 ? $rpdTotal : ($biayaManual ?? 0))
+                    : 0;
 
                 $rekapMap[$key]['total_jalis'] += 1;
                 if ($isLN) {
@@ -222,8 +226,11 @@ class RekapJalisPegawaiService
                     'durasi_hari' => $durasi,
                     'status' => S::LABELS[$surat->status] ?? $surat->status,
                     'status_kode' => $surat->status,
+                    'pembiayaan_status' => $surat->pembiayaan_status ?: SuratTugas::PEMBIAYAAN_BELUM_DIISI,
+                    'pembiayaan_disetujui' => $isApprovedRpd,
+                    'rpd_total' => $rpdTotal,
                     'biaya_manual' => $biayaManual,
-                    'biaya_otomatis' => $biayaOtomatis,
+                    'biaya_otomatis' => $rpdTotal,
                     'biaya_efektif' => $biayaEfektif,
                 ];
 

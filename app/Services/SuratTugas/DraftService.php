@@ -38,6 +38,17 @@ class DraftService
                     'jabatan' => $u->pegawai?->jabatan ?: 'Pejabat Pembuat Komitmen (PPK)',
                     'email' => $u->email,
                 ]),
+            'bendaharaList' => User::where('role', 'bendahara')
+                ->with('pegawai')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (User $u) => [
+                    'id' => $u->id,
+                    'nama' => $u->pegawai?->nama ?? $u->name,
+                    'nip' => $u->pegawai?->nip ?? '-',
+                    'jabatan' => $u->pegawai?->jabatan ?: 'Bendahara Pengeluaran',
+                    'email' => $u->email,
+                ]),
             'unitKerjaList' => UnitKerja::where('is_active', true)->orderBy('nama')->get(),
             'tingkatBiayaList' => TingkatBiaya::where('is_active', true)->orderBy('kode')->get(),
             'jenisAngkutanList' => JenisAngkutan::where('is_active', true)->orderBy('nama')->get(),
@@ -52,8 +63,21 @@ class DraftService
         $draftStep = match ($suratTugas->status) {
             SuratTugasStatus::DISPOSISI_KAPUS_YA,
             SuratTugasStatus::DISPOSISI_KAPUS_REVISI => 2,
-            default => max(1, min($suratTugas->draft_step ?? 1, 2)),
+            default => max(1, min($suratTugas->draft_step ?? 1, 3)),
         };
+
+        $existingRpdData = [];
+        foreach ($suratTugas->pegawaiList as $peserta) {
+            if ($peserta->pegawai_id) {
+                $existingRpdData[(string) $peserta->pegawai_id] = [
+                    'items' => $peserta->rpd_items ?? [],
+                    'telah_dibayar' => $peserta->rpd_telah_dibayar,
+                    'nama_rekening' => $peserta->nama_rekening,
+                    'no_rekening' => $peserta->no_rekening,
+                    'kode_bank' => $peserta->kode_bank,
+                ];
+            }
+        }
 
         $draftData = array_merge([
             'kategori_perjalanan' => $suratTugas->kategori_perjalanan,
@@ -63,6 +87,7 @@ class DraftService
             'tanggal_nota' => $suratTugas->tanggal_nota?->format('Y-m-d'),
             'perihal_nota' => $suratTugas->perihal_nota,
             'ppk_id' => $suratTugas->ppk_id ?? '',
+            'bendahara_id' => $suratTugas->bendahara_id ?? '',
             'tingkat_biaya_kode' => $suratTugas->tingkat_biaya_kode,
             'jenis_angkutan_nama' => $suratTugas->jenis_angkutan_nama,
             'tempat_berangkat' => $suratTugas->tempat_berangkat,
@@ -72,10 +97,12 @@ class DraftService
             'tanggal_berangkat' => $suratTugas->tanggal_berangkat?->format('Y-m-d'),
             'tanggal_kembali' => $suratTugas->tanggal_kembali?->format('Y-m-d'),
             'tanggal_surat' => $suratTugas->tanggal_surat?->format('Y-m-d'),
+            'tanggal_rpd' => $suratTugas->tanggal_rpd?->format('Y-m-d'),
             'durasi_hari' => $suratTugas->durasi_hari,
+            'rpd_data' => $existingRpdData,
         ], $suratTugas->draft_data ?? []);
 
-        foreach (['tanggal_nota', 'tanggal_berangkat', 'tanggal_kembali', 'tanggal_surat'] as $dateField) {
+        foreach (['tanggal_nota', 'tanggal_berangkat', 'tanggal_kembali', 'tanggal_surat', 'tanggal_rpd'] as $dateField) {
             if (! empty($draftData[$dateField]) && is_string($draftData[$dateField]) && str_contains($draftData[$dateField], 'T')) {
                 $draftData[$dateField] = substr($draftData[$dateField], 0, 10);
             }
@@ -124,6 +151,12 @@ class DraftService
         $ppkNama = $ppk ? ($ppk->pegawai?->nama ?? $ppk->name) : null;
         $ppkNip = $ppk ? ($ppk->pegawai?->nip ?? '') : null;
 
+        $bendahara = ! empty($validated['bendahara_id'])
+            ? User::with('pegawai')->where('role', 'bendahara')->find($validated['bendahara_id'])
+            : null;
+        $bendaharaNama = $bendahara ? ($bendahara->pegawai?->nama ?? $bendahara->name) : null;
+        $bendaharaNip = $bendahara ? ($bendahara->pegawai?->nip ?? '') : null;
+
         $values = [
             'user_id' => $suratTugas?->user_id ?? $user->id,
             'kategori_perjalanan' => $validated['kategori_perjalanan'] ?? 'DALAM_NEGERI',
@@ -138,6 +171,9 @@ class DraftService
             'ppk_id' => $ppk?->id,
             'ppk_nama_snapshot' => $ppkNama,
             'ppk_nip_snapshot' => $ppkNip,
+            'bendahara_id' => $bendahara?->id,
+            'bendahara_nama_snapshot' => $bendaharaNama,
+            'bendahara_nip_snapshot' => $bendaharaNip,
             'tingkat_biaya_kode' => $validated['tingkat_biaya_kode'] ?? 'C',
             'jenis_angkutan_nama' => $validated['jenis_angkutan_nama'] ?? 'Perjalanan Darat',
             'tempat_berangkat' => $validated['tempat_berangkat'] ?? 'Jakarta',
@@ -147,16 +183,20 @@ class DraftService
             'tanggal_berangkat' => $validated['tanggal_berangkat'] ?? null,
             'tanggal_kembali' => $validated['tanggal_kembali'] ?? null,
             'tanggal_surat' => $validated['tanggal_surat'] ?? null,
+            'tanggal_rpd' => $validated['tanggal_rpd'] ?? null,
             'durasi_hari' => $validated['durasi_hari'] ?? 1,
             'draft_data' => $draftData,
             'draft_step' => $validated['draft_step'],
         ];
 
         $pegawaiIds = $validated['pegawai_ids'] ?? $draftData['pegawai_ids'] ?? [];
+        $rpdData = is_array($validated['rpd_data'] ?? null)
+            ? $validated['rpd_data']
+            : (is_array($draftData['rpd_data'] ?? null) ? $draftData['rpd_data'] : []);
 
         $alreadyCreated = false;
         try {
-            DB::transaction(function () use ($values, $pegawaiIds, &$suratTugas, &$alreadyCreated) {
+            DB::transaction(function () use ($values, $pegawaiIds, $rpdData, &$suratTugas, &$alreadyCreated) {
                 if ($suratTugas) {
                     $suratTugas->update($values);
                 } else {
@@ -179,7 +219,7 @@ class DraftService
                     $suratTugas = SuratTugas::create($values);
                 }
 
-                $this->snapshots->sync($suratTugas, $pegawaiIds);
+                $this->snapshots->sync($suratTugas, $pegawaiIds, $rpdData);
             });
         } catch (\Throwable $e) {
             // Rollback file baru agar tidak yatim saat DB gagal.

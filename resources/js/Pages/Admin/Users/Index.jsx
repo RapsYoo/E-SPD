@@ -25,6 +25,7 @@ const ROLE_STYLES = {
   kapus: 'bg-purple-100 text-purple-800 border-purple-300',
   tu: 'bg-blue-100 text-blue-800 border-blue-300',
   ppk: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  bendahara: 'bg-cyan-100 text-cyan-800 border-cyan-300',
   pegawai: 'bg-teal-100 text-teal-800 border-teal-300',
 };
 

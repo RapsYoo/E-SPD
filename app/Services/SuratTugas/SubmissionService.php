@@ -114,6 +114,16 @@ class SubmissionService
         $ppk = User::with('pegawai')->where('role', 'ppk')->findOrFail($validated['ppk_id']);
         $ppkSnapshot = $this->workflow->ppkSnapshot($ppk->id);
         $kapusSnapshot = $this->workflow->kapusAktif();
+
+        $bendahara = ! empty($validated['bendahara_id'])
+            ? User::with('pegawai')->where('role', 'bendahara')->find($validated['bendahara_id'])
+            : User::with('pegawai')->where('role', 'bendahara')->orderBy('id')->first();
+        $bendaharaNama = $bendahara ? ($bendahara->pegawai?->nama ?? $bendahara->name) : ($draft?->bendahara_nama_snapshot ?: null);
+        $bendaharaNip = $bendahara ? ($bendahara->pegawai?->nip ?? '') : ($draft?->bendahara_nip_snapshot ?: null);
+
+        $rpdData = is_array($validated['rpd_data'] ?? null) ? $validated['rpd_data'] : [];
+        $hasRpdData = collect($rpdData)->contains(fn ($entry) => is_array($entry) && ! empty($entry['items']));
+
         $files = $this->attachments->store($undangan, $setneg, $draft);
 
         $preservedNames = collect($draft?->draft_data ?? [])
@@ -138,6 +148,9 @@ class SubmissionService
             'ppk_id' => $ppk->id,
             'ppk_nama_snapshot' => $ppkSnapshot['nama'],
             'ppk_nip_snapshot' => $ppkSnapshot['nip'],
+            'bendahara_id' => $bendahara?->id,
+            'bendahara_nama_snapshot' => $bendaharaNama,
+            'bendahara_nip_snapshot' => $bendaharaNip,
             'kapus_nama_snapshot' => $draft?->kapus_nama_snapshot ?: $kapusSnapshot['nama'],
             'kapus_nip_snapshot' => $draft?->kapus_nip_snapshot ?: $kapusSnapshot['nip'],
             'tingkat_biaya_kode' => $validated['tingkat_biaya_kode'],
@@ -149,7 +162,9 @@ class SubmissionService
             'tanggal_berangkat' => $validated['tanggal_berangkat'],
             'tanggal_kembali' => $validated['tanggal_kembali'],
             'tanggal_surat' => $validated['tanggal_surat'] ?? $draft?->tanggal_surat ?? null,
+            'tanggal_rpd' => $validated['tanggal_rpd'] ?? $draft?->tanggal_rpd ?? $validated['tanggal_surat'] ?? now()->toDateString(),
             'durasi_hari' => $validated['durasi_hari'],
+            'pembiayaan_status' => $hasRpdData ? SuratTugas::PEMBIAYAAN_MENUNGGU : ($draft?->pembiayaan_status ?: SuratTugas::PEMBIAYAAN_BELUM_DIISI),
             'draft_data' => $preservedNames ?: null,
             'draft_step' => null,
         ];
@@ -157,7 +172,7 @@ class SubmissionService
         $suratTugas = null;
         $alreadyCreated = false;
         try {
-            DB::transaction(function () use ($draft, $values, $validated, &$suratTugas, &$alreadyCreated) {
+            DB::transaction(function () use ($draft, $values, $validated, $rpdData, &$suratTugas, &$alreadyCreated) {
                 if ($draft === null) {
                     $recentDuplicate = SuratTugas::where('user_id', $values['user_id'])
                         ->where('nomor_nota', $values['nomor_nota'])
@@ -180,7 +195,7 @@ class SubmissionService
                 $suratTugas->fill($values);
                 $suratTugas->save();
 
-                $this->snapshots->sync($suratTugas, $validated['pegawai_ids']);
+                $this->snapshots->sync($suratTugas, $validated['pegawai_ids'], $rpdData);
             });
         } catch (\Throwable $e) {
             $files->rollback();

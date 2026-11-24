@@ -18,7 +18,7 @@ class SaveDraftRequest extends ProposerRequest
 
     public function authorize(): bool
     {
-        if (!parent::authorize()) {
+        if (! parent::authorize()) {
             return false;
         }
 
@@ -44,6 +44,7 @@ class SaveDraftRequest extends ProposerRequest
             'file_undangan' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'file_izin_setneg' => 'nullable|file|mimes:pdf,docx|max:10240',
             'ppk_id' => ['nullable', Rule::exists('users', 'id')->where('role', 'ppk')],
+            'bendahara_id' => ['nullable', Rule::exists('users', 'id')->where('role', 'bendahara')],
             'tingkat_biaya_kode' => 'nullable|exists:tingkat_biaya,kode',
             'jenis_angkutan_nama' => 'nullable|exists:jenis_angkutan,nama',
             'tempat_berangkat' => 'nullable|string|max:255',
@@ -53,9 +54,11 @@ class SaveDraftRequest extends ProposerRequest
             'tanggal_berangkat' => 'nullable|date',
             'tanggal_kembali' => 'nullable|date',
             'tanggal_surat' => 'nullable|date',
+            'tanggal_rpd' => 'nullable|date',
             'durasi_hari' => 'nullable|integer|min:1',
             'pegawai_ids' => 'nullable|array',
             'pegawai_ids.*' => 'exists:pegawai,id',
+            'rpd_data' => 'nullable|array',
         ];
     }
 }

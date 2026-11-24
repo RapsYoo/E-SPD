@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SearchableSelect from '@/Components/SearchableSelect';
+import RpdStepForm from './Partials/RpdStepForm';
 import {
   DEPARTURE_OPTIONS,
   WORLD_COUNTRIES,
@@ -34,7 +35,7 @@ import {
   Truck
 } from 'lucide-react';
 
-export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBiayaList, jenisAngkutanList, userRole, draft = null, draftData = {}, draftStep = 1, draftAttachments = {} }) {
+export default function Create({ pegawaiList, ppkList, bendaharaList = [], unitKerjaList, tingkatBiayaList, jenisAngkutanList, userRole, draft = null, draftData = {}, draftStep = 1, draftAttachments = {} }) {
   const [activeStep, setActiveStep] = useState(draftStep || 1);
   const [selectedPegawaiIds, setSelectedPegawaiIds] = useState((draftData.pegawai_ids || []).map(Number));
   const [selectedMasterId, setSelectedMasterId] = useState('');
@@ -77,6 +78,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
     
     // Tahap 2
     ppk_id: draftData.ppk_id || '',
+    bendahara_id: draftData.bendahara_id || '',
     tingkat_biaya_kode: draftData.tingkat_biaya_kode || '',
     jenis_angkutan_nama: draftData.jenis_angkutan_nama || '',
     tempat_berangkat: draftData.tempat_berangkat || 'Jakarta',
@@ -86,8 +88,12 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
     tanggal_berangkat: toDateInput(draftData.tanggal_berangkat),
     tanggal_kembali: toDateInput(draftData.tanggal_kembali),
     tanggal_surat: toDateInput(draftData.tanggal_surat),
+    tanggal_rpd: toDateInput(draftData.tanggal_rpd),
     durasi_hari: draftData.durasi_hari || 1,
     pegawai_ids: draftData.pegawai_ids || [],
+
+    // Tahap 3 (RPD & Daftar Nominatif)
+    rpd_data: draftData.rpd_data || {},
     
     // Files always null on init
     file_undangan: null,
@@ -356,7 +362,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
 
-          {/* Step 3 */}
+          {/* Step 3: RPD & Daftar Nominatif */}
           <div
             aria-current={activeStep === 3 ? 'step' : undefined}
             className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
@@ -370,7 +376,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             }`}>
               3
             </span>
-            <span>Disposisi Kapus</span>
+            <span>RPD &amp; Daftar Nominatif</span>
           </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -389,7 +395,7 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             }`}>
               4
             </span>
-            <span>Penomoran TU</span>
+            <span>Disposisi Kapus</span>
           </div>
 
           <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -408,7 +414,26 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
             }`}>
               5
             </span>
-            <span>Output & Cetak PDF</span>
+            <span>Penomoran TU</span>
+          </div>
+
+          <ChevronRight className="w-4 h-4 text-slate-300" />
+
+          {/* Step 6 */}
+          <div
+            aria-current={activeStep === 6 ? 'step' : undefined}
+            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
+              activeStep === 6
+                ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
+                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
+            }`}
+          >
+            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
+              activeStep === 6 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700'
+            }`}>
+              6
+            </span>
+            <span>Output &amp; Cetak PDF</span>
           </div>
         </div>
       </div>
@@ -1066,17 +1091,52 @@ export default function Create({ pegawaiList, ppkList, unitKerjaList, tingkatBia
               </button>
 
               <button
-                type="submit"
+                type="button"
+                onClick={() => {
+                  setSubmitNotice('');
+                  if (selectedPegawaiIds.length === 0) {
+                    setSubmitNotice('Pilih setidaknya 1 pegawai pelaksana terlebih dahulu.');
+                    return;
+                  }
+                  if (!data.ppk_id || !data.tingkat_biaya_kode || !data.jenis_angkutan_nama || !data.tempat_tujuan) {
+                    setSubmitNotice('Lengkapi PPK, Tingkat Biaya, Jenis Angkutan, dan Tujuan Perjalanan terlebih dahulu.');
+                    return;
+                  }
+                  if (jadwalMode === 'sama' && (!data.tanggal_berangkat || !data.tanggal_kembali)) {
+                    setSubmitNotice('Lengkapi Tanggal Berangkat dan Tanggal Kembali terlebih dahulu.');
+                    return;
+                  }
+                  setActiveStep(3);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
                 disabled={processing || savingDraft || selectedPegawaiIds.length === 0}
-                className="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex items-center space-x-2 bg-[#0F2C59] hover:bg-[#1a3e7a] text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span>{processing ? 'Mengirim ke Kapus...' : 'Kirim Nota, ST & SPD ke Disposisi Kapus'}</span>
+                <span>Lanjut ke RPD &amp; Daftar Nominatif</span>
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* Tahap 4 dihapus - Penomoran TU dilakukan di halaman Show.jsx */}
+        {/* ================= STEP 3: RPD & DAFTAR NOMINATIF ================= */}
+        {activeStep === 3 && (
+          <RpdStepForm
+            data={data}
+            setData={setData}
+            selectedPegawaiIds={selectedPegawaiIds}
+            pegawaiList={pegawaiList}
+            bendaharaList={bendaharaList}
+            onBack={() => {
+              setActiveStep(2);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            processing={processing}
+            savingDraft={savingDraft}
+          />
+        )}
+
+        {/* Tahap berikutnya (Disposisi Kapus & Penomoran TU) dilakukan di halaman Show.jsx */}
       </form>
     </AdminLayout>
   );

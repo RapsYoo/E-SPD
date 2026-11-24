@@ -52,7 +52,7 @@ final class SuratTugasStatus
     public const PROPOSER_ROLES = ['pemohon', 'sespalu', 'admin'];
 
     /** Peran yang boleh mencetak dokumen terlepas dari kepemilikan. */
-    public const PRINT_ROLES = ['tu', 'admin', 'kapus', 'ppk'];
+    public const PRINT_ROLES = ['tu', 'admin', 'kapus', 'ppk', 'bendahara'];
 
     /** Peran pegawai biasa: hanya melihat surat perjalanannya sendiri. */
     public const PEGAWAI_ROLE = 'pegawai';

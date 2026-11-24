@@ -16,6 +16,7 @@ import {
   BarChart3,
   PieChart,
   LogOut,
+  Wallet,
 } from 'lucide-react';
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed }) {
@@ -156,6 +157,25 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed 
                   }`}
                 />
                 <span className="flex-1">Kelola DPR</span>
+              </Link>
+            )}
+
+            {/* Menu Kelola RPD & Nominatif (Dikontrol RBAC pembiayaan.manage_bendahara) */}
+            {can('pembiayaan.manage_bendahara') && (
+              <Link
+                href="/bendahara/pembiayaan"
+                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition ${
+                  isActive('/bendahara/pembiayaan')
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                }`}
+              >
+                <Wallet
+                  className={`w-5 h-5 ${
+                    isActive('/bendahara/pembiayaan') ? 'text-slate-950' : 'text-amber-400'
+                  }`}
+                />
+                <span className="flex-1">Kelola RPD & Nominatif</span>
               </Link>
             )}
 

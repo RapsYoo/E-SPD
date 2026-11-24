@@ -113,8 +113,10 @@ class SuratTugasController extends Controller
         $this->workflow->ensureSnapshotsLocked($suratTugas);
         $isPegawai = $user?->role === SuratTugasStatus::PEGAWAI_ROLE;
         $suratTugas->load($isPegawai
-            ? ['pegawaiList', 'ppk.pegawai']
-            : ['pegawaiList', 'ppk.pegawai', 'user', 'logs.user']);
+            ? ['pegawaiList', 'ppk.pegawai', 'bendahara.pegawai', 'pembiayaanApprover.pegawai']
+            : ['pegawaiList', 'ppk.pegawai', 'bendahara.pegawai', 'pembiayaanApprover.pegawai', 'user', 'logs.user']);
+
+        $bendaharaUser = $suratTugas->bendahara ?? $suratTugas->pembiayaanApprover;
 
         return Inertia::render('SuratTugas/Show', [
             'suratTugas' => $suratTugas,
@@ -132,6 +134,10 @@ class SuratTugasController extends Controller
             'ppk' => [
                 'nama' => $suratTugas->ppk_nama_snapshot ?: ($suratTugas->ppk?->pegawai?->nama ?? $suratTugas->ppk?->name),
                 'nip' => $suratTugas->ppk_nip_snapshot ?: $suratTugas->ppk?->pegawai?->nip,
+            ],
+            'bendahara' => [
+                'nama' => $suratTugas->bendahara_nama_snapshot ?: ($bendaharaUser?->pegawai?->nama ?? $bendaharaUser?->name),
+                'nip' => $suratTugas->bendahara_nip_snapshot ?: $bendaharaUser?->pegawai?->nip,
             ],
         ]);
     }
@@ -194,6 +200,26 @@ class SuratTugasController extends Controller
             ->with('success', 'Surat berhasil ditarik kembali ke Draft untuk direvisi. Ajukan ulang setelah diperbaiki.');
     }
 
+    /**
+     * TU/pihak berwenang menarik nomor surat ST & SPD yang sudah terbit agar surat kembali ke Draft
+     * dan Sesparlu/pengusul dapat merevisi seluruh persuratan termasuk RPD & Daftar Nominatif.
+     */
+    public function tarikNomor(Request $request, SuratTugas $suratTugas)
+    {
+        $validated = $request->validate([
+            'alasan' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $this->workflow->tarikNomor($suratTugas, $request->user(), $validated['alasan']);
+        } catch (WorkflowException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('surat-tugas.show', $suratTugas->id)
+            ->with('success', 'Nomor surat ST & SPD berhasil ditarik. Surat dikembalikan ke Draft agar Sesparlu/pengusul dapat merevisi seluruh dokumen termasuk RPD & Daftar Nominatif.');
+    }
+
     // Print Document View Generator — P1: akses luas (TU/admin/kapus/ppk + pemilik), status minimal disetujui Kapus.
     public function cetak(SuratTugas $suratTugas)
     {
@@ -205,8 +231,10 @@ class SuratTugasController extends Controller
         }
 
         $this->workflow->ensureSnapshotsLocked($suratTugas);
-        $suratTugas->load(['pegawaiList', 'user']);
+        $suratTugas->load(['pegawaiList', 'user', 'bendahara.pegawai', 'pembiayaanApprover.pegawai']);
         $this->workflow->logPrint($suratTugas, $user);
+
+        $bendaharaUser = $suratTugas->bendahara ?? $suratTugas->pembiayaanApprover;
 
         return Inertia::render('SuratTugas/Print', [
             'suratTugas' => $suratTugas,
@@ -218,6 +246,10 @@ class SuratTugasController extends Controller
             'ppk' => [
                 'nama' => $suratTugas->ppk_nama_snapshot,
                 'nip' => $suratTugas->ppk_nip_snapshot,
+            ],
+            'bendahara' => [
+                'nama' => $suratTugas->bendahara_nama_snapshot ?: ($bendaharaUser?->pegawai?->nama ?? $bendaharaUser?->name),
+                'nip' => $suratTugas->bendahara_nip_snapshot ?: $bendaharaUser?->pegawai?->nip,
             ],
         ]);
     }

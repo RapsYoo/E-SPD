@@ -64,6 +64,12 @@ export default function Navbar({
             PPK
           </span>
         );
+      case 'bendahara':
+        return (
+          <span className="bg-cyan-600 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+            Bendahara
+          </span>
+        );
       case 'pegawai':
         return (
           <span className="bg-teal-600 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ReferensiController;
 use App\Http\Controllers\Admin\UnitKerjaController;
 use App\Http\Controllers\Admin\UptBidangController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Bendahara\PembiayaanController as BendaharaPembiayaanController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Pegawai\TiketPerjalananController;
 use App\Http\Controllers\PegawaiDirectoryController;
@@ -60,6 +61,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/surat-tugas/{suratTugas}/ajukan-ulang', [SuratTugasController::class, 'ajukanUlang'])->middleware('module:surat_tugas.create')->name('surat-tugas.ajukan-ulang');
     // Penarikan kembali surat yang sudah disetujui Kapus (menunggu penomoran TU) untuk direvisi.
     Route::post('/surat-tugas/{suratTugas}/tarik-kembali', [SuratTugasController::class, 'tarikKembali'])->middleware('module:surat_tugas.tarik_kembali')->name('surat-tugas.tarik-kembali');
+    // Penarikan nomor surat yang sudah terbit oleh TU/pihak berwenang agar surat kembali ke Draft untuk direvisi (termasuk RPD & Nominatif).
+    Route::post('/surat-tugas/{suratTugas}/tarik-nomor', [SuratTugasController::class, 'tarikNomor'])->middleware('module:surat_tugas.tarik_nomor')->name('surat-tugas.tarik-nomor');
 
     // Rekapitulasi & ekspor laporan perjalanan dinas.
     Route::middleware('module:rekapitulasi.view')->group(function () {
@@ -94,6 +97,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/dpr/{suratTugas}/{peserta}/cetak', [DprController::class, 'cetak'])->name('dpr.cetak');
         Route::get('/dpr/{suratTugas}/{peserta}/tiket/{ticket}', [DprController::class, 'downloadTicket'])->name('dpr.ticket.download');
         Route::post('/dpr/{suratTugas}/{peserta}/approve', [DprController::class, 'approve'])->name('dpr.approve');
+    });
+
+    // Modul Bendahara Pengeluaran: monitoring & persetujuan pembiayaan (RPD & Daftar Nominatif) — non-blocking workflow.
+    Route::middleware('module:pembiayaan.manage_bendahara')->prefix('bendahara')->name('bendahara.')->group(function () {
+        Route::get('/pembiayaan', [BendaharaPembiayaanController::class, 'index'])->name('pembiayaan.index');
+        Route::post('/pembiayaan/{suratTugas}/approve', [BendaharaPembiayaanController::class, 'approve'])->name('pembiayaan.approve');
+        Route::post('/pembiayaan/{suratTugas}/revisi', [BendaharaPembiayaanController::class, 'revisi'])->name('pembiayaan.revisi');
+    });
+
+    // Cetak RPD (per pegawai) & Daftar Nominatif Biaya Perjalanan Dinas (dikontrol RBAC).
+    Route::middleware('module:pembiayaan.cetak_rpd_nominatif,pembiayaan.manage_bendahara')->group(function () {
+        Route::get('/surat-tugas/{suratTugas}/cetak-rpd/{peserta?}', [BendaharaPembiayaanController::class, 'cetakRpd'])
+            ->name('surat-tugas.cetak-rpd');
+        Route::get('/surat-tugas/{suratTugas}/cetak-nominatif', [BendaharaPembiayaanController::class, 'cetakNominatif'])
+            ->name('surat-tugas.cetak-nominatif');
     });
 
     // Hapus histori — admin saja.

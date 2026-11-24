@@ -6,12 +6,14 @@ import SuratTugasSheet from './Partials/SuratTugasSheet';
 import SpdSheet from './Partials/SpdSheet';
 import LampiranMatriksSheet from './Partials/LampiranMatriksSheet';
 import VisumRampunganSheet from './Partials/VisumRampunganSheet';
+import RpdSheet from './Partials/RpdSheet';
+import DaftarNominatifSheet from './Partials/DaftarNominatifSheet';
 
-export default function Print({ suratTugas, kapus = {}, ppk = {} }) {
+export default function Print({ suratTugas, kapus = {}, ppk = {}, bendahara = {} }) {
   const initialDoc = (() => {
     if (typeof window === 'undefined') return 'st';
     const param = new URLSearchParams(window.location.search).get('doc');
-    return ['st', 'spd', 'lampiran', 'visum'].includes(param) ? param : 'st';
+    return ['st', 'spd', 'lampiran', 'visum', 'rpd', 'nominatif'].includes(param) ? param : 'st';
   })();
   const [activeDocument, setActiveDocument] = useState(initialDoc);
   const pegawaiList = Array.isArray(suratTugas.pegawai_list) ? suratTugas.pegawai_list : [];
@@ -38,6 +40,8 @@ export default function Print({ suratTugas, kapus = {}, ppk = {} }) {
     { id: 'spd', label: '2. SPD Lembar 1' },
     { id: 'lampiran', label: '3. Lampiran Matriks SPD' },
     { id: 'visum', label: '4. Lembar Visum Rampungan' },
+    { id: 'rpd', label: '5. RPD (Rincian Biaya)' },
+    { id: 'nominatif', label: '6. Daftar Nominatif' },
   ];
 
   const commonProps = {
@@ -55,7 +59,11 @@ export default function Print({ suratTugas, kapus = {}, ppk = {} }) {
     ppkNip,
     kapusNama: kapus?.nama,
     kapusNip: kapus?.nip,
+    bendaharaNama: bendahara?.nama || suratTugas.bendahara_nama_snapshot || null,
+    bendaharaNip: bendahara?.nip || suratTugas.bendahara_nip_snapshot || null,
   };
+
+  const isLandscapeDoc = activeDocument === 'lampiran' || activeDocument === 'nominatif';
 
   return (
     <div className="print-document-flow min-h-screen bg-slate-200 font-sans text-black">
@@ -89,7 +97,7 @@ export default function Print({ suratTugas, kapus = {}, ppk = {} }) {
         .visum-signature-nip { margin: 1mm 0 0; line-height: 1; }
         .visum-ppk-cell { position: relative; }
         .visum-ppk-signature { position: absolute; right: 2mm; bottom: 2mm; left: 2mm; text-align: center; line-height: 1.15; }
-        .print-sheet-st, .print-sheet-spd, .print-sheet-lampiran, .print-sheet-visum {
+        .print-sheet-st, .print-sheet-spd, .print-sheet-visum, .print-sheet-rpd {
           box-sizing: border-box;
           width: 100%;
           max-width: 210mm;
@@ -99,42 +107,62 @@ export default function Print({ suratTugas, kapus = {}, ppk = {} }) {
           box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.12);
           font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
         }
+        .print-sheet-lampiran {
+          box-sizing: border-box;
+          width: 100%;
+          max-width: 297mm;
+          margin: 1.5rem auto;
+          background: white;
+          border: 1px solid #cbd5e1;
+          box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.12);
+          font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        }
         @media print {
-          @page { size: A4 portrait; margin: 15mm 20mm 15mm 20mm; }
+          @page { size: ${isLandscapeDoc ? 'A4 landscape' : 'A4 portrait'}; margin: ${isLandscapeDoc ? '10mm' : '15mm 20mm 15mm 20mm'}; }
           @page surat-tugas { size: A4 portrait; margin: 0; }
           @page spd { size: A4 portrait; margin: 0; }
-          @page lampiran { size: A4 portrait; margin: 0; }
+          @page lampiran { size: A4 landscape; margin: 0; }
           @page visum { size: A4 portrait; margin: 0; }
+          @page rpd { size: A4 portrait; margin: 12mm 14mm; }
           .no-print { display: none !important; }
           .hidden,
           .print-sheet-st.hidden,
           .print-sheet-spd.hidden,
           .print-sheet-lampiran.hidden,
           .print-sheet-visum.hidden,
+          .print-sheet-rpd.hidden,
           .spd-document.hidden,
           div.hidden,
           section.hidden {
             display: none !important;
           }
           .print-document-flow { display: block !important; background: white !important; }
-          .print-sheet-st, .print-sheet-spd, .print-sheet-lampiran, .print-sheet-visum {
+          .print-sheet-st, .print-sheet-spd, .print-sheet-lampiran, .print-sheet-visum, .print-sheet-rpd {
             max-width: none !important;
             margin: 0 !important;
             padding: 0 !important;
             box-shadow: none !important;
             border: 0 !important;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+          }
+          .print-sheet-st, .print-sheet-spd, .print-sheet-visum {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
-            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
           }
           .print-sheet-st { page: surat-tugas; }
           .print-sheet-spd { page: spd; }
+          .print-sheet-rpd {
+            page: rpd;
+            width: 100% !important;
+            page-break-after: always;
+          }
+          .print-sheet-rpd:last-child { page-break-after: auto; }
           .print-sheet-lampiran {
             page: lampiran;
             box-sizing: border-box;
-            width: 210mm !important;
-            max-width: 210mm !important;
-            padding: 10mm !important;
+            width: 297mm !important;
+            max-width: 297mm !important;
+            padding: 10mm 12mm !important;
           }
           .print-sheet-visum {
             page: visum;
@@ -242,6 +270,18 @@ export default function Print({ suratTugas, kapus = {}, ppk = {} }) {
       <VisumRampunganSheet
         {...commonProps}
         isActive={activeDocument === 'visum'}
+      />
+
+      {/* 5. RPD (RINCIAN BIAYA PERJALANAN DINAS) */}
+      <RpdSheet
+        {...commonProps}
+        isActive={activeDocument === 'rpd'}
+      />
+
+      {/* 6. DAFTAR NOMINATIF BIAYA PERJALANAN DINAS */}
+      <DaftarNominatifSheet
+        {...commonProps}
+        isActive={activeDocument === 'nominatif'}
       />
     </div>
   );

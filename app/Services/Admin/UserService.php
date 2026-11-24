@@ -22,6 +22,7 @@ class UserService
         'kapus' => 'Kepala Pusat (Kapus)',
         'tu' => 'Tata Usaha (TU)',
         'ppk' => 'PPK',
+        'bendahara' => 'Bendahara Pengeluaran',
         'pegawai' => 'Pegawai',
     ];
 

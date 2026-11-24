@@ -204,6 +204,60 @@ class WorkflowService
     }
 
     /**
+     * TU atau pihak berwenang (RBAC surat_tugas.tarik_nomor) menarik nomor surat ST & SPD yang sudah terbit,
+     * sehingga status kembali ke DRAFT agar Sesparlu/pengusul dapat merevisi seluruh persuratan termasuk RPD & Nominatif.
+     *
+     * @throws WorkflowException
+     */
+    public function tarikNomor(SuratTugas $suratTugas, User $user, string $alasan): void
+    {
+        $this->assertModule(
+            $user,
+            'surat_tugas.tarik_nomor',
+            'Anda tidak memiliki hak akses untuk menarik nomor surat.'
+        );
+
+        $this->assertStatus(
+            $suratTugas,
+            S::SELESAI_TERBIT,
+            'Penarikan nomor surat hanya dapat dilakukan pada surat yang sudah selesai terbit (bernomor ST & SPD).'
+        );
+
+        $dari = $suratTugas->status;
+        $oldNomorSt = $suratTugas->nomor_st ?: '-';
+        $oldNomorSpd = $suratTugas->nomor_spd ?: '-';
+
+        $draftData = $suratTugas->draft_data ?? [];
+        unset($draftData['tu'], $draftData['ppk'], $draftData['kapus']);
+
+        $suratTugas->update([
+            'status' => S::DRAFT,
+            'nomor_st' => null,
+            'nomor_spd' => null,
+            'is_ppk_signed' => false,
+            'signed_at' => null,
+            'kapus_decision' => null,
+            'kapus_nama_snapshot' => null,
+            'kapus_nip_snapshot' => null,
+            'pembiayaan_status' => $suratTugas->pembiayaan_status === SuratTugas::PEMBIAYAAN_BELUM_DIISI
+                ? SuratTugas::PEMBIAYAAN_BELUM_DIISI
+                : SuratTugas::PEMBIAYAAN_MENUNGGU,
+            'pembiayaan_approved_at' => null,
+            'pembiayaan_approved_by' => null,
+            'draft_data' => $draftData ?: null,
+            'draft_step' => 1,
+        ]);
+
+        $this->audit->log(
+            $suratTugas->fresh(),
+            'TARIK_NOMOR',
+            $dari,
+            S::DRAFT,
+            "Nomor surat ditarik (ST: {$oldNomorSt} | SPD: {$oldNomorSpd}). Alasan: {$alasan}"
+        );
+    }
+
+    /**
      * Pejabat Kapus aktif (akun role kapus atau pegawai berjabatan Kepala Pusat) untuk penandatangan Surat Tugas.
      *
      * @return array{nama: ?string, nip: ?string}
