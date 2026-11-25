@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import InfoTooltip from '@/Components/InfoTooltip';
 import {
-  Network,
   Users,
   UserPlus,
   Trash2,
@@ -11,9 +11,6 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Maximize2,
-  Minimize2,
-  Move,
   X,
   CheckCircle2,
   AlertCircle,
@@ -61,9 +58,8 @@ function LeaderCard({
     <div
       onClick={() => canManage && onSelect(position)}
       style={{ border: '1.5px solid #0f172a', backgroundColor: '#ffffff' }}
-      className={`overflow-hidden transition ${
-        canManage ? 'cursor-pointer hover:ring-2 hover:ring-amber-400' : ''
-      } ${highlight ? 'ring-2 ring-amber-500' : ''}`}
+      className={`overflow-hidden transition ${canManage ? 'cursor-pointer hover:ring-2 hover:ring-amber-400' : ''
+        } ${highlight ? 'ring-2 ring-amber-500' : ''}`}
     >
       <div
         style={{ backgroundColor: headerBg, color: headerColor, borderBottom: '1px solid #0f172a' }}
@@ -139,9 +135,8 @@ function DirekturUptCard({ positions = [], canManage, onSelect, searchLower }) {
               key={pos.id}
               onClick={() => canManage && onSelect(pos)}
               style={{ borderBottom: idx < positions.length - 1 ? '1px solid #0f172a' : 'none' }}
-              className={`px-2.5 py-1.5 flex items-center justify-between gap-2 transition ${
-                canManage ? 'cursor-pointer hover:bg-amber-50' : ''
-              } ${isMatch ? 'bg-amber-100' : 'bg-white'}`}
+              className={`px-2.5 py-1.5 flex items-center justify-between gap-2 transition ${canManage ? 'cursor-pointer hover:bg-amber-50' : ''
+                } ${isMatch ? 'bg-amber-100' : 'bg-white'}`}
             >
               <div className="min-w-0 flex-1">
                 <p className="text-[8.5px] font-bold text-slate-500 uppercase leading-none">
@@ -200,9 +195,8 @@ function JabatanTable({ positions = [], canManage, onSelect, searchLower }) {
               <tr
                 key={pos.id}
                 onClick={() => canManage && onSelect(pos)}
-                className={`align-middle transition ${
-                  canManage ? 'cursor-pointer hover:bg-amber-50' : ''
-                } ${isMatch ? 'bg-amber-100' : 'bg-white'}`}
+                className={`align-middle transition ${canManage ? 'cursor-pointer hover:bg-amber-50' : ''
+                  } ${isMatch ? 'bg-amber-100' : 'bg-white'}`}
               >
                 <td style={{ border: '1px solid #0f172a' }} className="px-1.5 py-1.5 text-center font-semibold text-slate-900">
                   {pos.nama_jabatan}
@@ -244,9 +238,8 @@ function JabatanTable({ positions = [], canManage, onSelect, searchLower }) {
                     border: '1px solid #0f172a',
                     backgroundColor: selisih < 0 ? '#fecdd3' : selisih > 0 ? '#dbeafe' : '#ffffff',
                   }}
-                  className={`px-1 py-1.5 text-center font-mono font-bold ${
-                    selisih < 0 ? 'text-rose-700' : selisih > 0 ? 'text-blue-700' : 'text-slate-800'
-                  }`}
+                  className={`px-1 py-1.5 text-center font-mono font-bold ${selisih < 0 ? 'text-rose-700' : selisih > 0 ? 'text-blue-700' : 'text-slate-800'
+                    }`}
                 >
                   {selisih > 0 ? `+${selisih}` : selisih}
                 </td>
@@ -271,9 +264,8 @@ function AlihDayaCard({ position, canManage, onSelect, searchLower }) {
     <div
       onClick={() => canManage && onSelect(position)}
       style={{ border: '1.5px solid #0f172a', backgroundColor: '#ffffff' }}
-      className={`overflow-hidden transition ${
-        canManage ? 'cursor-pointer hover:ring-2 hover:ring-amber-400' : ''
-      } ${isMatch ? 'ring-2 ring-amber-500' : ''}`}
+      className={`overflow-hidden transition ${canManage ? 'cursor-pointer hover:ring-2 hover:ring-amber-400' : ''
+        } ${isMatch ? 'ring-2 ring-amber-500' : ''}`}
     >
       <div
         style={{ backgroundColor: '#67e8f9', color: '#0f172a', borderBottom: '1px solid #0f172a' }}
@@ -313,7 +305,6 @@ export default function PetaJabatanIndex({
   summary = { total_jabatan: 0, total_kebutuhan: 0, total_bezetting: 0, selisih: 0 },
 }) {
   const [zoom, setZoom] = useState(65);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
   const viewportRef = useRef(null);
   const panStateRef = useRef({ active: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 });
@@ -487,159 +478,117 @@ export default function PetaJabatanIndex({
       `}</style>
 
       {/* Top Page Header */}
-      <div className="no-print mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="no-print mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-700">
-            <Network className="h-4 w-4" />
-            <span>Visualisasi Struktur Organisasi • Kepmenlu No 7 Tahun 2025</span>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
+              Peta Jabatan Pusat Pendidikan dan Pelatihan
+            </h1>
+            <InfoTooltip
+              label="Petunjuk"
+              title="Panduan Peta Jabatan"
+              text={
+                canManage
+                  ? 'Sesuai Kepmenlu No 7 Tahun 2025. Klik pada kotak jabatan atau baris tabel mana saja untuk menetapkan atau mengubah pegawai. Klik tahan kanan mouse untuk menggeser bagan, dan gunakan Ctrl + Scroll atau tombol -/+ untuk zoom.'
+                  : 'Sesuai Kepmenlu No 7 Tahun 2025. Klik tahan kanan mouse untuk menggeser bagan, dan gunakan Ctrl + Scroll atau tombol -/+ untuk mengatur ukuran tampilan.'
+              }
+            />
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-            Peta Jabatan Pusat Pendidikan dan Pelatihan
-          </h1>
-          <p className="text-xs text-slate-500">
-            {canManage
-              ? 'Klik pada kotak jabatan atau baris tabel mana saja untuk menetapkan atau mengubah pegawai yang mengisi posisi tersebut.'
-              : 'Bagan visualisasi peta jabatan dan sebaran pegawai di lingkungan Pusdiklat Kemlu.'}
-          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-56">
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-2 text-xs font-bold text-slate-950 transition hover:bg-amber-400"
+        >
+          <Printer className="h-3.5 w-3.5" />
+          <span>Cetak / PDF</span>
+        </button>
+      </div>
+
+      {/* Compact KPI Summary */}
+      <div className="no-print mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white px-4 py-2.5">
+          <div>
+            <p className="text-[11px] font-medium text-slate-500">Total Posisi Jabatan</p>
+            <p className="text-lg font-extrabold text-slate-900">{summary.total_jabatan}</p>
+          </div>
+          <Briefcase className="h-4 w-4 text-indigo-500" />
+        </div>
+        <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white px-4 py-2.5">
+          <div>
+            <p className="text-[11px] font-medium text-slate-500">Total Kebutuhan (K)</p>
+            <p className="text-lg font-extrabold text-slate-900">{summary.total_kebutuhan}</p>
+          </div>
+          <Users className="h-4 w-4 text-amber-500" />
+        </div>
+        <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white px-4 py-2.5">
+          <div>
+            <p className="text-[11px] font-medium text-slate-500">Terisi / Bezetting (B)</p>
+            <p className="text-lg font-extrabold text-emerald-700">{summary.total_bezetting}</p>
+          </div>
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+        </div>
+        <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white px-4 py-2.5">
+          <div>
+            <p className="text-[11px] font-medium text-slate-500">Selisih (-/+)</p>
+            <p className={`text-lg font-extrabold ${summary.selisih < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+              {summary.selisih > 0 ? `+${summary.selisih}` : summary.selisih}
+            </p>
+          </div>
+          <AlertCircle className="h-4 w-4 text-rose-500" />
+        </div>
+      </div>
+
+      {/* Org Chart Canvas Container */}
+      <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100/90">
+        {/* Single Unified Canvas Toolbar */}
+        <div className="no-print flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3.5 py-2">
+          <div className="relative w-full sm:w-64">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Sorot jabatan / pegawai..."
-              className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs focus:border-amber-500 focus:ring-amber-500"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50/70 py-1.5 pl-8 pr-3 text-xs transition focus:border-amber-500 focus:bg-white focus:ring-amber-500"
             />
           </div>
 
-          <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1 text-xs font-bold shadow-sm">
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.max(40, z - 10))}
-              className="rounded-lg p-1.5 text-slate-700 hover:bg-slate-100"
-              title="Perkecil Ukuran Bagan (-)"
-            >
-              <ZoomOut className="h-4 w-4" />
-            </button>
-            <span className="w-12 text-center font-mono text-xs text-slate-800">{zoom}%</span>
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.min(150, z + 10))}
-              className="rounded-lg p-1.5 text-slate-700 hover:bg-slate-100"
-              title="Perbesar Ukuran Bagan (+)"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setZoom(80)}
-              className="ml-0.5 rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-              title="Reset Ukuran (80%)"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsFullscreen((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition"
-            title={isFullscreen ? 'Keluar Layar Penuh' : 'Perbesar Kanvas Layar Penuh'}
-          >
-            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-            <span>{isFullscreen ? 'Normal' : 'Layar Penuh'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-slate-950 shadow-sm hover:bg-amber-400 transition"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            <span>Cetak / PDF</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Compact KPI Summary */}
-      <div className="no-print mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-500">Total Posisi Jabatan</p>
-            <p className="text-xl font-extrabold text-slate-900">{summary.total_jabatan}</p>
-          </div>
-          <Briefcase className="h-5 w-5 text-indigo-500" />
-        </div>
-        <div className="rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-500">Total Kebutuhan (K)</p>
-            <p className="text-xl font-extrabold text-slate-900">{summary.total_kebutuhan}</p>
-          </div>
-          <Users className="h-5 w-5 text-amber-500" />
-        </div>
-        <div className="rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-500">Terisi / Bezetting (B)</p>
-            <p className="text-xl font-extrabold text-emerald-700">{summary.total_bezetting}</p>
-          </div>
-          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-        </div>
-        <div className="rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold text-slate-500">Selisih (-/+)</p>
-            <p className={`text-xl font-extrabold ${summary.selisih < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
-              {summary.selisih > 0 ? `+${summary.selisih}` : summary.selisih}
-            </p>
-          </div>
-          <AlertCircle className="h-5 w-5 text-rose-500" />
-        </div>
-      </div>
-
-      {/* Org Chart Canvas Container (Right-Click Drag to Pan + Up/Down Zoom) */}
-      <div
-        className={`relative rounded-2xl border border-slate-300 bg-slate-100/90 shadow-sm overflow-hidden ${
-          isFullscreen ? 'fixed inset-3 z-40 flex flex-col bg-slate-100 shadow-2xl' : ''
-        }`}
-      >
-        {/* Floating Canvas Bar (Hint + Quick Up/Down Size) */}
-        <div className="no-print flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white/95 px-4 py-2 text-xs">
-          <div className="flex items-center gap-2 text-slate-600">
-            <Move className="h-3.5 w-3.5 text-emerald-700" />
-            <span>
-              <strong>Klik tahan kanan mouse</strong> untuk menggeser bagan &bull; <strong>Ctrl + Scroll</strong> atau tombol <strong>-/+</strong> untuk ubah ukuran.
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.max(40, z - 10))}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-200"
-            >
-              <ZoomOut className="h-3.5 w-3.5" />
-              <span>Perkecil</span>
-            </button>
-            <span className="w-11 text-center font-mono text-[11px] font-extrabold text-slate-800">{zoom}%</span>
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.min(150, z + 10))}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-200"
-            >
-              <ZoomIn className="h-3.5 w-3.5" />
-              <span>Perbesar</span>
-            </button>
-            {isFullscreen && (
+          <div className="flex items-center gap-2">
+            <InfoTooltip
+              align="right"
+              label="Navigasi"
+              title="Navigasi Kanvas"
+              text="Klik tahan kanan mouse untuk menggeser bagan ke segala arah. Gunakan Ctrl + Scroll atau tombol -/+ untuk memperkecil/memperbesar ukuran bagan."
+            />
+            <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50/70 p-0.5 text-xs font-bold">
               <button
                 type="button"
-                onClick={() => setIsFullscreen(false)}
-                className="ml-2 inline-flex items-center gap-1 rounded-lg bg-slate-800 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-slate-700"
+                onClick={() => setZoom((z) => Math.max(40, z - 10))}
+                className="rounded-md p-1.5 text-slate-600 transition hover:bg-white hover:text-slate-900"
+                title="Perkecil (-)"
               >
-                <Minimize2 className="h-3 w-3" />
-                <span>Tutup Layar Penuh</span>
+                <ZoomOut className="h-3.5 w-3.5" />
               </button>
-            )}
+              <span className="w-11 text-center font-mono text-[11px] font-bold text-slate-700">{zoom}%</span>
+              <button
+                type="button"
+                onClick={() => setZoom((z) => Math.min(150, z + 10))}
+                className="rounded-md p-1.5 text-slate-600 transition hover:bg-white hover:text-slate-900"
+                title="Perbesar (+)"
+              >
+                <ZoomIn className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoom(65)}
+                className="ml-0.5 rounded-md border-l border-slate-200 p-1.5 text-slate-500 transition hover:bg-white hover:text-slate-800"
+                title="Reset Ukuran (65%)"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -648,9 +597,8 @@ export default function PetaJabatanIndex({
           onContextMenu={(e) => e.preventDefault()}
           onMouseDown={handleCanvasMouseDown}
           onWheel={handleCanvasWheel}
-          className={`peta-canvas-outer overflow-auto bg-white p-6 select-none ${
-            isFullscreen ? 'flex-1' : 'h-[76vh]'
-          } ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
+          className={`peta-canvas-outer overflow-auto bg-white p-6 select-none h-[76vh] ${isPanning ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
         >
           <div
             className="peta-canvas-zoom mx-auto"

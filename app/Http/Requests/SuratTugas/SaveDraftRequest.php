@@ -49,6 +49,8 @@ class SaveDraftRequest extends ProposerRequest
             'jenis_angkutan_nama' => 'nullable|exists:jenis_angkutan,nama',
             'tempat_berangkat' => 'nullable|string|max:255',
             'tempat_tujuan' => 'nullable|string|max:255',
+            'is_multi_trip' => 'nullable|boolean',
+            'rute_perjalanan' => 'nullable|array|max:4',
             'negara_tujuan' => 'nullable|string|max:255',
             'no_setneg' => 'nullable|string|max:255',
             'tanggal_berangkat' => 'nullable|date',

@@ -11,6 +11,7 @@ import {
   Calculator,
 } from 'lucide-react';
 import { calcRpdItemTotal, formatRupiah, terbilangRupiah } from '@/Utils/terbilang';
+import InfoTooltip from '@/Components/InfoTooltip';
 
 const JENIS_PRESETS = [
   'Uang harian',
@@ -259,14 +260,16 @@ export default function RpdStepForm({
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-6">
       <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div>
+        <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-slate-800 flex items-center space-x-2">
             <Wallet className="w-5 h-5 text-amber-500" />
-            <span>Tahap 3: Rincian Biaya Perjalanan Dinas (RPD) &amp; Daftar Nominatif</span>
+            <span>Tahap 3: RPD &amp; Daftar Nominatif</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Isi komponen pembiayaan per pegawai sebelum dikirim ke Kapus. Data ini otomatis menghasilkan dokumen <strong>RPD (per pegawai)</strong> &amp; <strong>Daftar Nominatif</strong> untuk dipantau Bendahara Pengeluaran.
-          </p>
+          <InfoTooltip
+            label="Petunjuk"
+            title="Pengisian RPD & Daftar Nominatif"
+            text="Isi komponen pembiayaan per pegawai sebelum dikirim ke Kapus. Data ini otomatis menghasilkan dokumen RPD (per pegawai) dan Daftar Nominatif gabungan untuk dipantau serta disetujui Bendahara Pengeluaran."
+          />
         </div>
         <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2 text-right shrink-0">
           <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Total Daftar Nominatif</p>

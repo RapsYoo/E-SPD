@@ -16,6 +16,7 @@ import {
   UserCog,
 } from 'lucide-react';
 import UserPermissionPanel from './Partials/UserPermissionPanel';
+import InfoTooltip from '@/Components/InfoTooltip';
 
 export default function AdminRbacIndex({
   roles = {},
@@ -154,12 +155,22 @@ export default function AdminRbacIndex({
             <ShieldCheck className="h-4 w-4" />
             <span>Master Database • Otorisasi Dinamis</span>
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-            Manajemen Hak Akses Modul (RBAC)
-          </h1>
-          <p className="text-xs text-slate-500">
-            Atur visibilitas menu sidebar dan izin akses modul untuk setiap role pengguna secara real-time.
-          </p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+              Manajemen Hak Akses Modul (RBAC)
+            </h1>
+            <InfoTooltip
+              label="Cara Kerja"
+              title="Cara Kerja Pengaturan Modul RBAC"
+            >
+              <p className="mb-1.5">
+                Saat suatu modul <strong>dinonaktifkan</strong> pada sebuah role, menu terkait otomatis disembunyikan dari Sidebar dan akses langsung via URL ditolak sistem. Role <strong>Admin Master</strong> selalu memiliki akses penuh.
+              </p>
+              <p>
+                Gunakan tab <strong>Hak Akses Khusus per Akun</strong> untuk memberi modul tambahan hanya kepada akun tertentu tanpa mengubah hak akses role-nya.
+              </p>
+            </InfoTooltip>
+          </div>
         </div>
 
         {mode === 'role' && (
@@ -209,22 +220,6 @@ export default function AdminRbacIndex({
             </button>
           );
         })}
-      </div>
-
-      {/* Info Banner */}
-      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50/80 p-4 text-xs text-blue-900">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
-        <div className="space-y-1">
-          <p className="font-bold">Cara Kerja Pengaturan Modul RBAC:</p>
-          <p className="text-blue-800/90 leading-relaxed">
-            Saat suatu modul <strong>dinonaktifkan</strong> pada sebuah role, menu terkait akan{' '}
-            <strong>otomatis tertutup/disembunyikan dari Sidebar</strong> pengguna role tersebut dan akses langsung melalui URL juga akan ditolak oleh sistem. Role <strong>Admin Master</strong> selalu memiliki akses penuh ke seluruh modul.
-          </p>
-          <p className="text-blue-800/90 leading-relaxed">
-            Gunakan tab <strong>Hak Akses Khusus per Akun</strong> untuk memberikan modul tambahan hanya kepada akun tertentu
-            (misal satu pegawai diberi wewenang Kelola Master Data Pegawai) tanpa mengubah hak akses role-nya.
-          </p>
-        </div>
       </div>
 
       {mode === 'user' ? (

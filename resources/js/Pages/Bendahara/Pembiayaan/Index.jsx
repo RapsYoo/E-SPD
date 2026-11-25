@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import InfoTooltip from '@/Components/InfoTooltip';
 import {
   Wallet,
   Clock,
@@ -177,12 +178,16 @@ export default function BendaharaPembiayaanIndex({
             <Wallet className="h-4 w-4" />
             <span>Verifikasi Bendahara Pengeluaran</span>
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-            Monitoring RPD &amp; Daftar Nominatif Biaya
-          </h1>
-          <p className="text-xs text-slate-500">
-            Pantau Rincian Biaya Perjalanan Dinas (RPD) per pegawai, cetak Daftar Nominatif, dan berikan persetujuan pembiayaan secara paralel tanpa menghambat alur penyuratan.
-          </p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+              Monitoring RPD &amp; Daftar Nominatif Biaya
+            </h1>
+            <InfoTooltip
+              label="Petunjuk"
+              title="Alur Bendahara Pengeluaran"
+              text="Pantau Rincian Biaya Perjalanan Dinas (RPD) per pegawai, cetak Daftar Nominatif, dan berikan persetujuan pembiayaan secara paralel tanpa menghambat alur penyuratan Kapus maupun TU."
+            />
+          </div>
         </div>
       </div>
 

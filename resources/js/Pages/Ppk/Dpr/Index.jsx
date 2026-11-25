@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import InfoTooltip from '@/Components/InfoTooltip';
 import {
   FileCheck2,
   Clock,
@@ -160,12 +161,16 @@ export default function PpkDprIndex({
             <FileCheck2 className="h-4 w-4" />
             <span>Verifikasi Pejabat Pembuat Komitmen (PPK)</span>
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-            Manajemen Daftar Pengeluaran Riil (DPR)
-          </h1>
-          <p className="text-xs text-slate-500">
-            Periksa bukti tiket perjalanan dinas pegawai, cetak lembar DPR, dan berikan persetujuan PPK.
-          </p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+              Manajemen Daftar Pengeluaran Riil (DPR)
+            </h1>
+            <InfoTooltip
+              label="Petunjuk"
+              title="Verifikasi DPR (PPK)"
+              text="Periksa bukti tiket perjalanan dinas pegawai yang telah selesai bertugas, cetak lembar DPR, dan berikan persetujuan PPK."
+            />
+          </div>
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import React from "react";
+import { formatDate } from "./printHelpers";
 
 function VisumSignatureBlock() {
     return (
@@ -23,6 +24,14 @@ export default function VisumRampunganSheet({
     isActive = true,
 }) {
     const visumParticipants = pegawaiList.length > 0 ? pegawaiList : [null];
+    const multiRoutes = suratTugas.is_multi_trip && Array.isArray(suratTugas.rute_perjalanan) && suratTugas.rute_perjalanan.length > 0
+        ? suratTugas.rute_perjalanan
+        : null;
+    const asalKota = suratTugas.tempat_berangkat || "-";
+    const firstDestination = multiRoutes ? (multiRoutes[0]?.tujuan || tujuanPerjalanan) : tujuanPerjalanan;
+    const firstDepartDate = multiRoutes && multiRoutes[0]?.tanggal_berangkat
+        ? formatDate(multiRoutes[0].tanggal_berangkat)
+        : tanggalBerangkat;
 
     return (
         <>
@@ -72,15 +81,13 @@ export default function VisumRampunganSheet({
                                     <div className="grid grid-cols-[25mm_2mm_1fr] gap-x-1">
                                         <span>I. Berangkat dari</span>
                                         <span>:</span>
-                                        <span>
-                                            {suratTugas.tempat_berangkat || "-"}
-                                        </span>
+                                        <span>{asalKota}</span>
                                         <span>Ke</span>
                                         <span>:</span>
-                                        <span>{tujuanPerjalanan}</span>
+                                        <span>{firstDestination}</span>
                                         <span>Pada tanggal</span>
                                         <span>:</span>
-                                        <span>{tanggalBerangkat}</span>
+                                        <span>{firstDepartDate}</span>
                                     </div>
                                     <div className="mt-2 text-center">
                                         Pejabat Pembuat Komitmen
@@ -92,82 +99,89 @@ export default function VisumRampunganSheet({
                                     <p className="text-center">NIP. {ppkNip}</p>
                                 </td>
                             </tr>
-                            <tr className="h-28">
-                                <td className="border border-black p-2 text-center">
-                                    II
-                                </td>
-                                <td className="visum-entry-cell border border-black p-2 align-top">
-                                    <div className="grid grid-cols-[25mm_2mm_1fr] gap-x-1">
-                                        <span>Tiba di</span>
-                                        <span>:</span>
-                                        <span>{tujuanPerjalanan}</span>
-                                        <span>Pada tanggal</span>
-                                        <span>:</span>
-                                        <span>{tanggalBerangkat}</span>
-                                        <span>Kepala</span>
-                                        <span>:</span>
-                                        <span>____________________</span>
-                                    </div>
-                                    <VisumSignatureBlock />
-                                </td>
-                                <td className="visum-entry-cell border border-black p-2 align-top">
-                                    <div className="grid grid-cols-[25mm_2mm_1fr] gap-x-1">
-                                        <span>Berangkat dari</span>
-                                        <span>:</span>
-                                        <span>{tujuanPerjalanan}</span>
-                                        <span>Ke</span>
-                                        <span>:</span>
-                                        <span>
-                                            {suratTugas.tempat_berangkat || "-"}
-                                        </span>
-                                        <span>Pada tanggal</span>
-                                        <span>:</span>
-                                        <span>{tanggalKembali}</span>
-                                        <span>Kepala</span>
-                                        <span>:</span>
-                                        <span>____________________</span>
-                                    </div>
-                                    <VisumSignatureBlock />
-                                </td>
-                            </tr>
-                            {["III", "IV", "V"].map((nomor) => (
-                                <tr key={nomor} className="h-24">
-                                    <td className="border border-black p-2 text-center">
-                                        {nomor}
-                                    </td>
-                                    <td className="visum-entry-cell border border-black p-2 align-top">
-                                        <div className="grid grid-cols-[25mm_2mm_1fr] gap-x-1">
-                                            <span>Tiba di</span>
-                                            <span>:</span>
-                                            <span>____________________</span>
-                                            <span>Pada tanggal</span>
-                                            <span>:</span>
-                                            <span>______________</span>
-                                            <span>Kepala</span>
-                                            <span>:</span>
-                                            <span>___________________</span>
-                                        </div>
-                                        <VisumSignatureBlock />
-                                    </td>
-                                    <td className="visum-entry-cell border border-black p-2 align-top">
-                                        <div className="grid grid-cols-[25mm_2mm_1fr] gap-x-1">
-                                            <span>Berangkat dari</span>
-                                            <span>:</span>
-                                            <span>______________</span>
-                                            <span>Ke</span>
-                                            <span>:</span>
-                                            <span>_____________________</span>
-                                            <span>Pada tanggal</span>
-                                            <span>:</span>
-                                            <span>______________</span>
-                                            <span>Kepala</span>
-                                            <span>:</span>
-                                            <span>___________________</span>
-                                        </div>
-                                        <VisumSignatureBlock />
-                                    </td>
-                                </tr>
-                            ))}
+                            {["II", "III", "IV", "V"].map((nomor, legIdx) => {
+                                const leg = multiRoutes
+                                    ? multiRoutes[legIdx]
+                                    : legIdx === 0
+                                      ? {
+                                            tujuan: tujuanPerjalanan,
+                                            tanggal_berangkat: null,
+                                            tanggal_kembali: null,
+                                        }
+                                      : null;
+                                const nextLeg = multiRoutes
+                                    ? multiRoutes[legIdx + 1]
+                                    : null;
+
+                                const tibaDi = leg
+                                    ? leg.tujuan || tujuanPerjalanan
+                                    : "____________________";
+                                const tglTiba = leg
+                                    ? multiRoutes
+                                        ? formatDate(leg.tanggal_berangkat)
+                                        : tanggalBerangkat
+                                    : "______________";
+                                const berangkatDari = leg
+                                    ? leg.tujuan || tujuanPerjalanan
+                                    : "______________";
+                                const keTujuan = leg
+                                    ? nextLeg
+                                        ? nextLeg.tujuan || asalKota
+                                        : asalKota
+                                    : "_____________________";
+                                const tglLanjut = leg
+                                    ? multiRoutes
+                                        ? formatDate(
+                                              nextLeg?.tanggal_berangkat ||
+                                                  leg.tanggal_kembali
+                                          )
+                                        : tanggalKembali
+                                    : "______________";
+
+                                return (
+                                    <tr
+                                        key={nomor}
+                                        className={
+                                            legIdx === 0 ? "h-28" : "h-24"
+                                        }
+                                    >
+                                        <td className="border border-black p-2 text-center">
+                                            {nomor}
+                                        </td>
+                                        <td className="visum-entry-cell border border-black p-2 align-top">
+                                            <div className="grid grid-cols-[25mm_2mm_1fr] gap-x-1">
+                                                <span>Tiba di</span>
+                                                <span>:</span>
+                                                <span>{tibaDi}</span>
+                                                <span>Pada tanggal</span>
+                                                <span>:</span>
+                                                <span>{tglTiba}</span>
+                                                <span>Kepala</span>
+                                                <span>:</span>
+                                                <span>____________________</span>
+                                            </div>
+                                            <VisumSignatureBlock />
+                                        </td>
+                                        <td className="visum-entry-cell border border-black p-2 align-top">
+                                            <div className="grid grid-cols-[25mm_2mm_1fr] gap-x-1">
+                                                <span>Berangkat dari</span>
+                                                <span>:</span>
+                                                <span>{berangkatDari}</span>
+                                                <span>Ke</span>
+                                                <span>:</span>
+                                                <span>{keTujuan}</span>
+                                                <span>Pada tanggal</span>
+                                                <span>:</span>
+                                                <span>{tglLanjut}</span>
+                                                <span>Kepala</span>
+                                                <span>:</span>
+                                                <span>____________________</span>
+                                            </div>
+                                            <VisumSignatureBlock />
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             <tr className="h-32">
                                 <td className="border border-black p-2 text-center">
                                     VI

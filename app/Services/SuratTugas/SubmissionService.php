@@ -157,6 +157,8 @@ class SubmissionService
             'jenis_angkutan_nama' => $validated['jenis_angkutan_nama'],
             'tempat_berangkat' => $validated['tempat_berangkat'],
             'tempat_tujuan' => $validated['tempat_tujuan'],
+            'is_multi_trip' => (bool) ($validated['is_multi_trip'] ?? false),
+            'rute_perjalanan' => ! empty($validated['is_multi_trip']) ? ($validated['rute_perjalanan'] ?? []) : null,
             'negara_tujuan' => $validated['negara_tujuan'] ?? null,
             'no_setneg' => $validated['no_setneg'] ?? null,
             'tanggal_berangkat' => $validated['tanggal_berangkat'],

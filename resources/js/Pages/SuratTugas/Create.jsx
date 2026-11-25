@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SearchableSelect from '@/Components/SearchableSelect';
+import InfoTooltip from '@/Components/InfoTooltip';
 import RpdStepForm from './Partials/RpdStepForm';
 import {
   DEPARTURE_OPTIONS,
@@ -83,6 +84,8 @@ export default function Create({ pegawaiList, ppkList, bendaharaList = [], unitK
     jenis_angkutan_nama: draftData.jenis_angkutan_nama || '',
     tempat_berangkat: draftData.tempat_berangkat || 'Jakarta',
     tempat_tujuan: draftData.tempat_tujuan || '',
+    is_multi_trip: Boolean(draftData.is_multi_trip),
+    rute_perjalanan: Array.isArray(draftData.rute_perjalanan) ? draftData.rute_perjalanan : [],
     negara_tujuan: draftData.negara_tujuan || '',
     no_setneg: draftData.no_setneg || '',
     tanggal_berangkat: toDateInput(draftData.tanggal_berangkat),
@@ -161,6 +164,119 @@ export default function Create({ pegawaiList, ppkList, bendaharaList = [], unitK
       ...newData,
       durasi_hari: days,
     });
+  };
+
+  // Helper sinkronisasi Multi-Trip ke field utama ST & SPD
+  const syncMultiTripState = (nextRoutes, nextIsMulti = true) => {
+    const normalized = nextRoutes.map((leg) => ({
+      ...leg,
+      durasi_hari: leg.tanggal_berangkat && leg.tanggal_kembali
+        ? calcDays(leg.tanggal_berangkat, leg.tanggal_kembali)
+        : (Number(leg.durasi_hari) || 1),
+    }));
+
+    const destinations = normalized
+      .map((leg) => (leg.tujuan || '').trim())
+      .filter(Boolean);
+    const countries = [...new Set(
+      normalized.map((leg) => (leg.negara || '').trim()).filter(Boolean)
+    )];
+
+    const starts = normalized.map((l) => l.tanggal_berangkat).filter(Boolean).sort();
+    const ends = normalized.map((l) => l.tanggal_kembali).filter(Boolean).sort();
+    const firstStart = starts[0] || data.tanggal_berangkat || '';
+    const lastEnd = ends[ends.length - 1] || data.tanggal_kembali || '';
+    const totalDays = firstStart && lastEnd
+      ? calcDays(firstStart, lastEnd)
+      : normalized.reduce((sum, l) => sum + (Number(l.durasi_hari) || 1), 0);
+
+    setData((prev) => ({
+      ...prev,
+      is_multi_trip: nextIsMulti,
+      rute_perjalanan: normalized,
+      tempat_tujuan: destinations.join(' → '),
+      ...(prev.kategori_perjalanan === 'LUAR_NEGERI' && countries.length > 0
+        ? { negara_tujuan: countries.join(', ') }
+        : {}),
+      tanggal_berangkat: firstStart,
+      tanggal_kembali: lastEnd,
+      durasi_hari: Math.max(1, totalDays),
+    }));
+  };
+
+  const handleToggleMultiTrip = (enableMulti) => {
+    if (enableMulti) {
+      const existing = Array.isArray(data.rute_perjalanan) && data.rute_perjalanan.length >= 2
+        ? data.rute_perjalanan
+        : [
+            {
+              tujuan: data.tempat_tujuan || '',
+              negara: data.kategori_perjalanan === 'LUAR_NEGERI' ? (data.negara_tujuan || '') : '',
+              tanggal_berangkat: data.tanggal_berangkat || '',
+              tanggal_kembali: data.tanggal_berangkat || '',
+              durasi_hari: 1,
+            },
+            {
+              tujuan: '',
+              negara: '',
+              tanggal_berangkat: data.tanggal_kembali || '',
+              tanggal_kembali: data.tanggal_kembali || '',
+              durasi_hari: 1,
+            },
+          ];
+      syncMultiTripState(existing, true);
+    } else {
+      const firstLeg = data.rute_perjalanan?.[0];
+      setData((prev) => ({
+        ...prev,
+        is_multi_trip: false,
+        tempat_tujuan: firstLeg?.tujuan || prev.tempat_tujuan,
+      }));
+    }
+  };
+
+  const handleMultiTripLegChange = (idx, field, value) => {
+    const nextRoutes = [...(data.rute_perjalanan || [])];
+    const current = { ...nextRoutes[idx], [field]: value };
+
+    // Jika tanggal_berangkat diisi & tanggal_kembali kosong/lebih awal, samakan
+    if (field === 'tanggal_berangkat' && (!current.tanggal_kembali || current.tanggal_kembali < value)) {
+      current.tanggal_kembali = value;
+    }
+    nextRoutes[idx] = current;
+
+    // Otomatis sarankan tanggal mulai tujuan berikutnya bila masih kosong
+    if (field === 'tanggal_kembali' && nextRoutes[idx + 1] && !nextRoutes[idx + 1].tanggal_berangkat) {
+      nextRoutes[idx + 1] = {
+        ...nextRoutes[idx + 1],
+        tanggal_berangkat: value,
+        tanggal_kembali: nextRoutes[idx + 1].tanggal_kembali || value,
+      };
+    }
+
+    syncMultiTripState(nextRoutes, true);
+  };
+
+  const handleAddMultiTripLeg = () => {
+    const current = data.rute_perjalanan || [];
+    if (current.length >= 4) return;
+    const prevEnd = current[current.length - 1]?.tanggal_kembali || '';
+    syncMultiTripState([
+      ...current,
+      {
+        tujuan: '',
+        negara: '',
+        tanggal_berangkat: prevEnd,
+        tanggal_kembali: prevEnd,
+        durasi_hari: 1,
+      },
+    ], true);
+  };
+
+  const handleRemoveMultiTripLeg = (idx) => {
+    const current = data.rute_perjalanan || [];
+    if (current.length <= 2) return;
+    syncMultiTripState(current.filter((_, i) => i !== idx), true);
   };
 
   const handleTravelCategoryChange = (value) => {
@@ -298,145 +414,95 @@ export default function Create({ pegawaiList, ppkList, bendaharaList = [], unitK
     );
   };
 
+  const workflowSteps = [
+    { id: 1, label: 'Upload Nota / Undangan' },
+    { id: 2, label: 'Draft Personel & SPD' },
+    { id: 3, label: 'RPD & Daftar Nominatif' },
+    { id: 4, label: 'Disposisi Kapus' },
+    { id: 5, label: 'Penomoran TU' },
+    { id: 6, label: 'Output & Cetak PDF' },
+  ];
+
   return (
     <AdminLayout title="Generate Surat Tugas & SPD Baru">
       <Head title="Generate Surat Tugas & SPD Baru - e-SPD Pusdiklat Kemlu" />
 
-      {/* Title */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      {/* Header Minimalis */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
-            <span>Formulir 5-Tahap Terintegrasi</span>
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{draft ? 'Lanjutkan Draft Surat Tugas' : 'Generate Surat Tugas & SPD Online'}</h1>
-          <p className="text-xs text-slate-500">Isi Formulir 5-Tahap sesuai Alur Operasional Pusdiklat Kemlu</p>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+            {draft ? 'Lanjutkan Draft Surat Tugas' : 'Generate Surat Tugas & SPD Online'}
+          </h1>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Alur Operasional Pusdiklat Kemlu
+            <span className="mx-1.5 text-slate-300">•</span>
+            <span className="font-semibold text-[#0F2C59]">Tahap {activeStep} dari {workflowSteps.length}</span>
+          </p>
         </div>
         <button
           type="button"
           onClick={handleSaveDraft}
           disabled={savingDraft || processing}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-amber-400 hover:bg-amber-50 disabled:cursor-wait disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
         >
+          <Save className="h-3.5 w-3.5 text-slate-500" />
           <span>{savingDraft ? 'Menyimpan Draft...' : 'Simpan Draft & Keluar'}</span>
         </button>
       </div>
 
-      {/* 5-Step Interactive Step Bar */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 mb-6 overflow-x-auto">
-        <div className="flex items-center justify-between min-w-[700px] text-xs">
-          {/* Step 1 */}
-          <div
-            aria-current={activeStep === 1 ? 'step' : undefined}
-            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
-              activeStep === 1
-                ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
-            }`}
-          >
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
-              activeStep === 1 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700'
-            }`}>
-              1
-            </span>
-            <span>Upload Nota / Undangan</span>
-          </div>
+      {/* Minimalist Stepper Bar */}
+      <nav aria-label="Tahapan Generate Surat" className="mb-5 overflow-x-auto rounded-xl border border-slate-200/80 bg-white px-4 py-3">
+        <ol className="flex min-w-[740px] items-center justify-between gap-2">
+          {workflowSteps.map((step, index) => {
+            const isActive = activeStep === step.id;
+            const isCompleted = activeStep > step.id;
 
-          <ChevronRight className="w-4 h-4 text-slate-300" />
+            return (
+              <React.Fragment key={step.id}>
+                <li
+                  aria-current={isActive ? 'step' : undefined}
+                  className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-2 py-1 transition ${
+                    isActive ? 'bg-[#0F2C59]/[0.06]' : ''
+                  }`}
+                >
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition ${
+                      isCompleted
+                        ? 'bg-emerald-600 text-white'
+                        : isActive
+                          ? 'bg-[#0F2C59] text-white ring-4 ring-[#0F2C59]/10'
+                          : 'bg-slate-100 text-slate-400'
+                    }`}
+                  >
+                    {isCompleted ? <Check className="h-3 w-3 stroke-[3]" /> : step.id}
+                  </span>
+                  <span
+                    className={`text-xs transition ${
+                      isActive
+                        ? 'font-bold text-[#0F2C59]'
+                        : isCompleted
+                          ? 'font-semibold text-slate-700'
+                          : 'font-medium text-slate-400'
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                </li>
 
-          {/* Step 2 */}
-          <div
-            aria-current={activeStep === 2 ? 'step' : undefined}
-            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
-              activeStep === 2
-                ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
-            }`}
-          >
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
-              activeStep === 2 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700'
-            }`}>
-              2
-            </span>
-            <span>Draft Personel & SPD</span>
-          </div>
-
-          <ChevronRight className="w-4 h-4 text-slate-300" />
-
-          {/* Step 3: RPD & Daftar Nominatif */}
-          <div
-            aria-current={activeStep === 3 ? 'step' : undefined}
-            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
-              activeStep === 3
-                ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
-            }`}
-          >
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
-              activeStep === 3 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700'
-            }`}>
-              3
-            </span>
-            <span>RPD &amp; Daftar Nominatif</span>
-          </div>
-
-          <ChevronRight className="w-4 h-4 text-slate-300" />
-
-          {/* Step 4 */}
-          <div
-            aria-current={activeStep === 4 ? 'step' : undefined}
-            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
-              activeStep === 4
-                ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
-            }`}
-          >
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
-              activeStep === 4 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700'
-            }`}>
-              4
-            </span>
-            <span>Disposisi Kapus</span>
-          </div>
-
-          <ChevronRight className="w-4 h-4 text-slate-300" />
-
-          {/* Step 5 */}
-          <div
-            aria-current={activeStep === 5 ? 'step' : undefined}
-            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
-              activeStep === 5
-                ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
-            }`}
-          >
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
-              activeStep === 5 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700'
-            }`}>
-              5
-            </span>
-            <span>Penomoran TU</span>
-          </div>
-
-          <ChevronRight className="w-4 h-4 text-slate-300" />
-
-          {/* Step 6 */}
-          <div
-            aria-current={activeStep === 6 ? 'step' : undefined}
-            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border font-bold transition ${
-              activeStep === 6
-                ? 'bg-[#0F2C59] text-white border-amber-500 shadow-md'
-                : 'bg-slate-50 text-slate-600 border-slate-200 cursor-default'
-            }`}
-          >
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-xs ${
-              activeStep === 6 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700'
-            }`}>
-              6
-            </span>
-            <span>Output &amp; Cetak PDF</span>
-          </div>
-        </div>
-      </div>
+                {index < workflowSteps.length - 1 && (
+                  <li aria-hidden="true" className="flex-1 min-w-[16px]">
+                    <div
+                      className={`h-px w-full transition ${
+                        isCompleted ? 'bg-emerald-400' : 'bg-slate-200'
+                      }`}
+                    />
+                  </li>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </ol>
+      </nav>
 
       <form onSubmit={handleSubmit} onInvalidCapture={handleInvalidCapture} onChangeCapture={() => setSubmitNotice('')}>
         {(submitNotice || validationErrorEntries.length > 0) && (
@@ -866,30 +932,57 @@ export default function Create({ pegawaiList, ppkList, bendaharaList = [], unitK
                   <span>Lokasi &amp; Waktu Perjalanan Dinas</span>
                 </h3>
 
-                {/* Toggle mode jadwal */}
-                <div className="flex items-center gap-1 bg-slate-200 rounded-xl p-1">
-                  <button
-                    type="button"
-                    onClick={() => setJadwalMode('sama')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                      jadwalMode === 'sama'
-                        ? 'bg-white text-slate-800 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    Jadwal Sama
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setJadwalMode('per_pegawai')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                      jadwalMode === 'per_pegawai'
-                        ? 'bg-amber-500 text-white shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    Jadwal per Pegawai
-                  </button>
+                {/* Toggle Single/Multi-Trip & mode jadwal */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1 bg-slate-200 rounded-xl p-1">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleMultiTrip(false)}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                        !data.is_multi_trip
+                          ? 'bg-white text-slate-800 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Single Trip (1 Tujuan)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleMultiTrip(true)}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                        data.is_multi_trip
+                          ? 'bg-[#0F2C59] text-white shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Multi-Trip (Beberapa Kota)
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-slate-200 rounded-xl p-1">
+                    <button
+                      type="button"
+                      onClick={() => setJadwalMode('sama')}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                        jadwalMode === 'sama'
+                          ? 'bg-white text-slate-800 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Jadwal Sama
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setJadwalMode('per_pegawai')}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                        jadwalMode === 'per_pegawai'
+                          ? 'bg-amber-500 text-white shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Jadwal per Pegawai
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -900,6 +993,160 @@ export default function Create({ pegawaiList, ppkList, bendaharaList = [], unitK
                 </div>
               )}
 
+              {data.is_multi_trip ? (
+                <div className="space-y-3">
+                  {/* Kota Asal & Izin Setneg (jika LN) */}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Tempat Berangkat (Asal &amp; Kembali) *</label>
+                      <SearchableSelect
+                        name="tempat_berangkat"
+                        required
+                        value={data.tempat_berangkat}
+                        onChange={(val) => setData('tempat_berangkat', val)}
+                        options={DEPARTURE_OPTIONS}
+                        placeholder="Pilih kota keberangkatan"
+                        searchPlaceholder="Cari kota/kabupaten keberangkatan..."
+                      />
+                    </div>
+                    {data.kategori_perjalanan === 'LUAR_NEGERI' && (
+                      <div>
+                        <label className="block text-xs font-semibold text-amber-800 mb-1">Nomor Surat Izin Setneg *</label>
+                        <input
+                          type="text"
+                          required
+                          value={data.no_setneg}
+                          onChange={(e) => setData('no_setneg', e.target.value)}
+                          placeholder="Masukkan nomor surat izin Setneg"
+                          className="w-full rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs placeholder:text-slate-400"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Daftar Tahap Rute Multi-Trip */}
+                  <div className="rounded-xl border border-blue-200/80 bg-white p-3.5 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-bold text-slate-800">
+                          Rute Perjalanan Multi-Trip
+                        </p>
+                        <InfoTooltip
+                          label="Contoh"
+                          title="Panduan Perjalanan Multi-Trip"
+                          text="Susun hingga 4 kota tujuan berurutan (misal: Jakarta → Bali 2 hari → Yogyakarta 3 hari → Kembali ke Jakarta). Setiap rute otomatis mengisi kotak II–V pada Lembar Visum Rampungan."
+                        />
+                      </div>
+                      {(data.rute_perjalanan || []).length < 4 && (
+                        <button
+                          type="button"
+                          onClick={handleAddMultiTripLeg}
+                          className="inline-flex items-center gap-1 rounded-lg bg-[#0F2C59] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#1a3e7a] transition"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Tambah Kota Tujuan</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {(data.rute_perjalanan || []).map((leg, idx) => (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-1 gap-2.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3 sm:grid-cols-12 items-end"
+                        >
+                          <div className={data.kategori_perjalanan === 'LUAR_NEGERI' ? 'sm:col-span-3' : 'sm:col-span-5'}>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Tujuan {idx + 1} (Kota / Lokasi) *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={leg.tujuan || ''}
+                              onChange={(e) => handleMultiTripLegChange(idx, 'tujuan', e.target.value)}
+                              placeholder={idx === 0 ? 'Contoh: Denpasar, Bali' : 'Contoh: Yogyakarta'}
+                              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs"
+                            />
+                          </div>
+
+                          {data.kategori_perjalanan === 'LUAR_NEGERI' && (
+                            <div className="sm:col-span-2">
+                              <label className="block text-[11px] font-bold text-amber-800 mb-1">Negara *</label>
+                              <input
+                                type="text"
+                                required
+                                value={leg.negara || ''}
+                                onChange={(e) => handleMultiTripLegChange(idx, 'negara', e.target.value)}
+                                placeholder="Negara"
+                                className="w-full rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs"
+                              />
+                            </div>
+                          )}
+
+                          <div className="sm:col-span-3">
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                              Tanggal Mulai / Tiba *
+                            </label>
+                            <input
+                              type="date"
+                              required
+                              value={leg.tanggal_berangkat || ''}
+                              min={idx > 0 ? (data.rute_perjalanan[idx - 1]?.tanggal_kembali || undefined) : undefined}
+                              onChange={(e) => handleMultiTripLegChange(idx, 'tanggal_berangkat', e.target.value)}
+                              className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-3">
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                              Tanggal Selesai / Lanjut *
+                            </label>
+                            <input
+                              type="date"
+                              required
+                              value={leg.tanggal_kembali || ''}
+                              min={leg.tanggal_berangkat || undefined}
+                              onChange={(e) => handleMultiTripLegChange(idx, 'tanggal_kembali', e.target.value)}
+                              className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-1 flex items-center justify-between sm:justify-end gap-1.5 pb-0.5">
+                            <span className="rounded-md bg-blue-100 px-2 py-1 text-[10px] font-extrabold text-blue-900 whitespace-nowrap">
+                              {leg.durasi_hari || 1} hr
+                            </span>
+                            {(data.rute_perjalanan || []).length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMultiTripLeg(idx)}
+                                title="Hapus tujuan ini"
+                                className="rounded-lg p-1 text-rose-500 hover:bg-rose-100"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Visual Alur Rute Multi-Trip */}
+                    <div className="flex flex-wrap items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-[11px] text-slate-700">
+                      <span className="font-bold text-slate-900">{data.tempat_berangkat || 'Jakarta'}</span>
+                      {(data.rute_perjalanan || []).map((leg, i) => (
+                        <React.Fragment key={i}>
+                          <span className="text-amber-600 font-bold">→</span>
+                          <span className="rounded-md bg-white border border-slate-200 px-2 py-0.5 font-semibold text-slate-800">
+                            {leg.tujuan || `Tujuan ${i + 1}`} <span className="text-blue-700">({leg.durasi_hari || 1} hr)</span>
+                          </span>
+                        </React.Fragment>
+                      ))}
+                      <span className="text-amber-600 font-bold">→</span>
+                      <span className="font-bold text-emerald-700">{data.tempat_berangkat || 'Jakarta'} (Kembali)</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Tempat Berangkat *</label>
@@ -1037,6 +1284,7 @@ export default function Create({ pegawaiList, ppkList, bendaharaList = [], unitK
                   </>
                 )}
               </div>
+              )}
 
               {data.tempat_tujuan && (
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">

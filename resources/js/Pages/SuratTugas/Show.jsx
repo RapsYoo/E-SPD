@@ -550,8 +550,30 @@ export default function Show({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
                 <span className="text-slate-500">Tujuan Perjalanan:</span>
-                <p className="font-bold text-slate-900">{suratTugas.tempat_tujuan}</p>
+                <p className="font-bold text-slate-900">
+                  {suratTugas.tempat_tujuan}
+                  {suratTugas.is_multi_trip && (
+                    <span className="ml-2 inline-flex rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                      Multi-Trip
+                    </span>
+                  )}
+                </p>
                 <p className="text-slate-500 text-[11px]">Dari: {suratTugas.tempat_berangkat}</p>
+                {suratTugas.is_multi_trip && Array.isArray(suratTugas.rute_perjalanan) && suratTugas.rute_perjalanan.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[10.5px]">
+                    <span className="font-semibold text-slate-600">{suratTugas.tempat_berangkat}</span>
+                    {suratTugas.rute_perjalanan.map((leg, i) => (
+                      <React.Fragment key={i}>
+                        <span className="text-amber-600 font-bold">→</span>
+                        <span className="rounded bg-slate-100 border border-slate-200 px-1.5 py-0.5 font-semibold text-slate-800">
+                          {leg.tujuan} ({leg.durasi_hari || 1} hr)
+                        </span>
+                      </React.Fragment>
+                    ))}
+                    <span className="text-amber-600 font-bold">→</span>
+                    <span className="font-semibold text-emerald-700">{suratTugas.tempat_berangkat}</span>
+                  </div>
+                )}
               </div>
 
               <div>
