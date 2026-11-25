@@ -17,6 +17,7 @@ import {
   PieChart,
   LogOut,
   Wallet,
+  Network,
 } from 'lucide-react';
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed }) {
@@ -247,6 +248,25 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed 
                   }`}
                 />
                 <span>Data Pegawai</span>
+              </Link>
+            )}
+
+            {/* Peta Jabatan — tampil bila modul peta_jabatan.view atau peta_jabatan.manage aktif */}
+            {(can('peta_jabatan.view') || can('peta_jabatan.manage')) && (
+              <Link
+                href="/peta-jabatan"
+                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition ${
+                  isActive('/peta-jabatan')
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                }`}
+              >
+                <Network
+                  className={`w-5 h-5 ${
+                    isActive('/peta-jabatan') ? 'text-slate-950' : 'text-amber-400'
+                  }`}
+                />
+                <span>Peta Jabatan</span>
               </Link>
             )}
 

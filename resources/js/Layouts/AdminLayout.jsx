@@ -46,7 +46,7 @@ export default function AdminLayout({ children, title, variant }) {
             <div className="flex items-center space-x-2 text-[11px]">
               <span className="text-slate-400">Versi Sistem</span>
               <span className="font-mono font-semibold bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md">
-                BV 1.1
+                BV 1.2
               </span>
             </div>
           </footer>

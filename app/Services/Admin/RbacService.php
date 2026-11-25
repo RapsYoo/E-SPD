@@ -178,6 +178,20 @@ class RbacService
             'route_hint' => '/pegawai',
         ],
         [
+            'key' => 'peta_jabatan.view',
+            'category' => 'Direktori & Master Database',
+            'label' => 'Lihat Visualisasi Peta Jabatan',
+            'description' => 'Menampilkan menu Peta Jabatan (bagan struktur organisasi Pusdiklat Kemlu) di sidebar.',
+            'route_hint' => '/peta-jabatan',
+        ],
+        [
+            'key' => 'peta_jabatan.manage',
+            'category' => 'Direktori & Master Database',
+            'label' => 'Kelola Penempatan Peta Jabatan (Admin)',
+            'description' => 'Mengizinkan penentuan, perubahan, dan penghapusan pegawai pada posisi jabatan di bagan Peta Jabatan.',
+            'route_hint' => 'POST /peta-jabatan/{position}/assign',
+        ],
+        [
             'key' => 'master_pegawai.manage',
             'category' => 'Direktori & Master Database',
             'label' => 'Kelola Master Data Pegawai (CRUD)',
@@ -213,6 +227,7 @@ class RbacService
             'surat_tugas.print',
             'pembiayaan.cetak_rpd_nominatif',
             'rekap_pegawai.view',
+            'peta_jabatan.view',
         ],
         'sespalu' => [
             'surat_tugas.view',
@@ -221,6 +236,7 @@ class RbacService
             'surat_tugas.print',
             'pembiayaan.cetak_rpd_nominatif',
             'rekap_pegawai.view',
+            'peta_jabatan.view',
         ],
         'kapus' => [
             'surat_tugas.view',
@@ -229,6 +245,7 @@ class RbacService
             'pembiayaan.cetak_rpd_nominatif',
             'rekapitulasi.view',
             'rekap_pegawai.view',
+            'peta_jabatan.view',
         ],
         'tu' => [
             'surat_tugas.view',
@@ -239,6 +256,7 @@ class RbacService
             'rekapitulasi.view',
             'rekap_pegawai.view',
             'rekap_pegawai.edit_biaya',
+            'peta_jabatan.view',
         ],
         'ppk' => [
             'surat_tugas.view',
@@ -249,6 +267,7 @@ class RbacService
             'rekap_pegawai.view',
             'rekap_pegawai.edit_biaya',
             'dpr.manage_ppk',
+            'peta_jabatan.view',
         ],
         'bendahara' => [
             'surat_tugas.view',
@@ -257,6 +276,7 @@ class RbacService
             'rekap_pegawai.view',
             'pembiayaan.manage_bendahara',
             'pembiayaan.cetak_rpd_nominatif',
+            'peta_jabatan.view',
         ],
         'pegawai' => [
             'surat_tugas.view',
@@ -264,6 +284,7 @@ class RbacService
             'rekap_pegawai.view',
             'dpr.upload_tiket',
             'pegawai_directory.view',
+            'peta_jabatan.view',
         ],
     ];
 

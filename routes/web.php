@@ -11,6 +11,7 @@ use App\Http\Controllers\Bendahara\PembiayaanController as BendaharaPembiayaanCo
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Pegawai\TiketPerjalananController;
 use App\Http\Controllers\PegawaiDirectoryController;
+use App\Http\Controllers\PetaJabatanController;
 use App\Http\Controllers\Ppk\DprController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RekapitulasiController;
@@ -85,6 +86,16 @@ Route::middleware('auth')->group(function () {
 
     // Direktori pegawai read-only.
     Route::get('/pegawai', [PegawaiDirectoryController::class, 'index'])->middleware('module:pegawai_directory.view')->name('pegawai.index');
+
+    // Visualisasi Peta Jabatan & Penempatan Pegawai (dikontrol RBAC peta_jabatan.view / peta_jabatan.manage).
+    Route::get('/peta-jabatan', [PetaJabatanController::class, 'index'])
+        ->middleware('module:peta_jabatan.view,peta_jabatan.manage')
+        ->name('peta-jabatan.index');
+    Route::middleware('module:peta_jabatan.manage')->prefix('peta-jabatan')->name('peta-jabatan.')->group(function () {
+        Route::post('/{position}/assign', [PetaJabatanController::class, 'assign'])->name('assign');
+        Route::delete('/assignments/{assignment}', [PetaJabatanController::class, 'unassign'])->name('unassign');
+        Route::put('/{position}', [PetaJabatanController::class, 'updatePosition'])->name('update-position');
+    });
 
     Route::middleware('module:dpr.upload_tiket')->group(function () {
         Route::post('/surat-tugas/{suratTugas}/tiket', [TiketPerjalananController::class, 'store'])->name('pegawai.tiket.store');
